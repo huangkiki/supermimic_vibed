@@ -1,0 +1,554 @@
+{
+  "status": "completed pilot; encoded-only and grounded variants underperformed original",
+  "source_commit": "ebff203e4f57f195d37adaac6747aaacd15de81a",
+  "source_baseline": "a1508d42c9d1699a52e8233ab16d08c488441ab9",
+  "seed": 0,
+  "training": {
+    "iterations": 1000,
+    "environments": 512,
+    "replay_steps": 256,
+    "world_model_batch": 256,
+    "policy_batch": 512,
+    "world_model_warmup_iterations": 100,
+    "world_model_window": 8,
+    "policy_horizon": 32,
+    "world_model_updates_per_iteration": 10,
+    "simulator_transitions": 1312768
+  },
+  "runtime": {
+    "python": "3.12.14",
+    "packages": {
+      "torch": "2.11.0+cu130",
+      "triton": "3.6.0",
+      "warp-lang": "1.17.0",
+      "newton": "1.8.0.dev0",
+      "mujoco": "3.15.0",
+      "mujoco-warp": "3.15.0",
+      "usd-exchange": "3.0.1"
+    }
+  },
+  "gpu": "RTX 5090 32GB",
+  "data_revision": "lvhaidong/LAFAN1_Retargeting_Dataset@ce1572906efe6157840e8474d5a0d7aa87481e74",
+  "limits": [
+    "single seed and short budget",
+    "same training motion library, not unseen-motion generalization",
+    "timing observed under concurrent CPU/cache load; not an isolated speed comparison"
+  ],
+  "conditions": {
+    "original": {
+      "latent_dim": 0,
+      "state_weight": 0.0,
+      "idm_weight": 0.0,
+      "state_skip": false,
+      "evaluation": {
+        "norm_return": 0.43090373277664185,
+        "norm_return_framew": 0.452808141708374,
+        "n_failed": 15,
+        "failed": [
+          "dance1_subject1",
+          "dance2_subject4",
+          "fallAndGetUp1_subject1",
+          "fallAndGetUp1_subject4",
+          "fallAndGetUp1_subject5",
+          "fallAndGetUp2_subject2",
+          "fallAndGetUp2_subject3",
+          "fallAndGetUp3_subject1",
+          "fight1_subject3",
+          "fightAndSports1_subject1",
+          "jumps1_subject2",
+          "walk2_subject3",
+          "walk3_subject1",
+          "walk3_subject3",
+          "walk3_subject4"
+        ],
+        "per_clip": {
+          "dance1_subject1": 0.4,
+          "dance1_subject2": 0.4209,
+          "dance1_subject3": 0.5418,
+          "dance2_subject1": 0.4276,
+          "dance2_subject2": 0.4603,
+          "dance2_subject3": 0.531,
+          "dance2_subject4": 0.1201,
+          "dance2_subject5": 0.5338,
+          "fallAndGetUp1_subject1": 0.0205,
+          "fallAndGetUp1_subject4": 0.0234,
+          "fallAndGetUp1_subject5": 0.026,
+          "fallAndGetUp2_subject2": 0.0222,
+          "fallAndGetUp2_subject3": 0.0209,
+          "fallAndGetUp3_subject1": 0.1863,
+          "fight1_subject2": 0.4276,
+          "fight1_subject3": 0.4312,
+          "fight1_subject5": 0.4915,
+          "fightAndSports1_subject1": 0.3116,
+          "fightAndSports1_subject4": 0.4748,
+          "jumps1_subject1": 0.5549,
+          "jumps1_subject2": 0.4249,
+          "jumps1_subject5": 0.5316,
+          "run1_subject2": 0.5069,
+          "run1_subject5": 0.4474,
+          "run2_subject1": 0.4668,
+          "run2_subject4": 0.481,
+          "sprint1_subject2": 0.6045,
+          "sprint1_subject4": 0.5778,
+          "walk1_subject1": 0.6685,
+          "walk1_subject2": 0.6237,
+          "walk1_subject5": 0.5951,
+          "walk2_subject1": 0.5622,
+          "walk2_subject3": 0.4738,
+          "walk2_subject4": 0.6591,
+          "walk3_subject1": 0.4769,
+          "walk3_subject2": 0.6463,
+          "walk3_subject3": 0.4842,
+          "walk3_subject4": 0.5188,
+          "walk3_subject5": 0.4879,
+          "walk4_subject1": 0.5727
+        }
+      },
+      "cost": {
+        "iteration": 1000,
+        "wall_time": 697.7416861057281,
+        "sim_steps": 1312768,
+        "peak_gpu_allocated_bytes": 3061359104,
+        "peak_gpu_reserved_bytes": 3500146688,
+        "wm_parameters": 8822854
+      },
+      "probe": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.9165887236595154,
+            "component_rmse": {
+              "position_m": 0.004028722643852234,
+              "rotation_rad": 0.012539735063910484,
+              "linear_velocity_m_s": 0.07662762701511383,
+              "angular_velocity_rad_s": 0.5353845953941345,
+              "joint_position_rad": 0.019513817504048347,
+              "joint_velocity_rad_s": 0.9895473122596741
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 4.503887176513672,
+            "component_rmse": {
+              "position_m": 0.021814582869410515,
+              "rotation_rad": 0.057311102747917175,
+              "linear_velocity_m_s": 0.16701942682266235,
+              "angular_velocity_rad_s": 0.7422504425048828,
+              "joint_position_rad": 0.06931008398532867,
+              "joint_velocity_rad_s": 0.9531120657920837
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 8.837636947631836,
+            "component_rmse": {
+              "position_m": 0.035690974444150925,
+              "rotation_rad": 0.08750716596841812,
+              "linear_velocity_m_s": 0.24295926094055176,
+              "angular_velocity_rad_s": 0.95005202293396,
+              "joint_position_rad": 0.09756090492010117,
+              "joint_velocity_rad_s": 1.053655743598938
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.9259516000747681,
+            "component_rmse": {
+              "position_m": 0.003978013526648283,
+              "rotation_rad": 0.012586764991283417,
+              "linear_velocity_m_s": 0.07668168097734451,
+              "angular_velocity_rad_s": 0.5391923785209656,
+              "joint_position_rad": 0.01953650265932083,
+              "joint_velocity_rad_s": 0.9896427392959595
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 4.473494529724121,
+            "component_rmse": {
+              "position_m": 0.02126067876815796,
+              "rotation_rad": 0.05698258429765701,
+              "linear_velocity_m_s": 0.16677425801753998,
+              "angular_velocity_rad_s": 0.7471376657485962,
+              "joint_position_rad": 0.06881646811962128,
+              "joint_velocity_rad_s": 0.9721623063087463
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 8.724871635437012,
+            "component_rmse": {
+              "position_m": 0.03476908430457115,
+              "rotation_rad": 0.08690902590751648,
+              "linear_velocity_m_s": 0.24155524373054504,
+              "angular_velocity_rad_s": 0.9473768472671509,
+              "joint_position_rad": 0.096771240234375,
+              "joint_velocity_rad_s": 1.081872820854187
+            }
+          }
+        }
+      }
+    },
+    "latent": {
+      "latent_dim": 128,
+      "state_weight": 0.0,
+      "idm_weight": 0.0,
+      "state_skip": false,
+      "evaluation": {
+        "norm_return": 0.396311491727829,
+        "norm_return_framew": 0.4107726216316223,
+        "n_failed": 19,
+        "failed": [
+          "dance1_subject1",
+          "dance2_subject4",
+          "fallAndGetUp1_subject1",
+          "fallAndGetUp1_subject4",
+          "fallAndGetUp1_subject5",
+          "fallAndGetUp2_subject2",
+          "fallAndGetUp2_subject3",
+          "fallAndGetUp3_subject1",
+          "fight1_subject2",
+          "fight1_subject3",
+          "fightAndSports1_subject1",
+          "jumps1_subject2",
+          "sprint1_subject2",
+          "sprint1_subject4",
+          "walk1_subject5",
+          "walk2_subject3",
+          "walk3_subject1",
+          "walk3_subject3",
+          "walk3_subject4"
+        ],
+        "per_clip": {
+          "dance1_subject1": 0.39,
+          "dance1_subject2": 0.428,
+          "dance1_subject3": 0.5359,
+          "dance2_subject1": 0.4056,
+          "dance2_subject2": 0.4568,
+          "dance2_subject3": 0.5277,
+          "dance2_subject4": 0.1193,
+          "dance2_subject5": 0.5245,
+          "fallAndGetUp1_subject1": 0.0175,
+          "fallAndGetUp1_subject4": 0.0223,
+          "fallAndGetUp1_subject5": 0.0244,
+          "fallAndGetUp2_subject2": 0.0217,
+          "fallAndGetUp2_subject3": 0.0213,
+          "fallAndGetUp3_subject1": 0.1906,
+          "fight1_subject2": 0.4069,
+          "fight1_subject3": 0.4174,
+          "fight1_subject5": 0.4992,
+          "fightAndSports1_subject1": 0.3082,
+          "fightAndSports1_subject4": 0.4882,
+          "jumps1_subject1": 0.5414,
+          "jumps1_subject2": 0.4284,
+          "jumps1_subject5": 0.5436,
+          "run1_subject2": 0.5111,
+          "run1_subject5": 0.4377,
+          "run2_subject1": 0.4591,
+          "run2_subject4": 0.4779,
+          "sprint1_subject2": 0.2005,
+          "sprint1_subject4": 0.2,
+          "walk1_subject1": 0.6609,
+          "walk1_subject2": 0.6124,
+          "walk1_subject5": 0.3758,
+          "walk2_subject1": 0.5626,
+          "walk2_subject3": 0.4937,
+          "walk2_subject4": 0.6466,
+          "walk3_subject1": 0.4774,
+          "walk3_subject2": 0.6449,
+          "walk3_subject3": 0.4984,
+          "walk3_subject4": 0.0624,
+          "walk3_subject5": 0.5536,
+          "walk4_subject1": 0.6585
+        }
+      },
+      "cost": {
+        "iteration": 1000,
+        "wall_time": 757.2863206863403,
+        "sim_steps": 1312768,
+        "peak_gpu_allocated_bytes": 3100857344,
+        "peak_gpu_reserved_bytes": 3550478336,
+        "wm_parameters": 9223466
+      },
+      "probe": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.6594032049179077,
+            "component_rmse": {
+              "position_m": 0.004708793945610523,
+              "rotation_rad": 0.014586551114916801,
+              "linear_velocity_m_s": 0.07981321215629578,
+              "angular_velocity_rad_s": 0.5785800814628601,
+              "joint_position_rad": 0.024361735209822655,
+              "joint_velocity_rad_s": 1.4151512384414673
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 12.16406536102295,
+            "component_rmse": {
+              "position_m": 0.02719811722636223,
+              "rotation_rad": 0.07151439785957336,
+              "linear_velocity_m_s": 0.19529002904891968,
+              "angular_velocity_rad_s": 1.0238306522369385,
+              "joint_position_rad": 0.11076131463050842,
+              "joint_velocity_rad_s": 2.069416046142578
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 26.288122177124023,
+            "component_rmse": {
+              "position_m": 0.04393697530031204,
+              "rotation_rad": 0.11593328416347504,
+              "linear_velocity_m_s": 0.2767557203769684,
+              "angular_velocity_rad_s": 1.3237897157669067,
+              "joint_position_rad": 0.16910988092422485,
+              "joint_velocity_rad_s": 2.5899386405944824
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.6668124198913574,
+            "component_rmse": {
+              "position_m": 0.0046811350621283054,
+              "rotation_rad": 0.014615524560213089,
+              "linear_velocity_m_s": 0.0797010287642479,
+              "angular_velocity_rad_s": 0.5821545720100403,
+              "joint_position_rad": 0.024349458515644073,
+              "joint_velocity_rad_s": 1.4145468473434448
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 12.075362205505371,
+            "component_rmse": {
+              "position_m": 0.026757558807730675,
+              "rotation_rad": 0.0708177238702774,
+              "linear_velocity_m_s": 0.19266724586486816,
+              "angular_velocity_rad_s": 1.0285402536392212,
+              "joint_position_rad": 0.11008577793836594,
+              "joint_velocity_rad_s": 2.0804038047790527
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 26.042150497436523,
+            "component_rmse": {
+              "position_m": 0.04313604161143303,
+              "rotation_rad": 0.11467086523771286,
+              "linear_velocity_m_s": 0.2730015814304352,
+              "angular_velocity_rad_s": 1.3227773904800415,
+              "joint_position_rad": 0.16813193261623383,
+              "joint_velocity_rad_s": 2.598723888397217
+            }
+          }
+        }
+      }
+    },
+    "grounded": {
+      "latent_dim": 128,
+      "state_weight": 0.1,
+      "idm_weight": 0.1,
+      "state_skip": false,
+      "evaluation": {
+        "norm_return": 0.3954039514064789,
+        "norm_return_framew": 0.4141972064971924,
+        "n_failed": 20,
+        "failed": [
+          "dance1_subject1",
+          "dance2_subject4",
+          "fallAndGetUp1_subject1",
+          "fallAndGetUp1_subject4",
+          "fallAndGetUp1_subject5",
+          "fallAndGetUp2_subject2",
+          "fallAndGetUp2_subject3",
+          "fallAndGetUp3_subject1",
+          "fight1_subject3",
+          "fightAndSports1_subject1",
+          "jumps1_subject2",
+          "run1_subject2",
+          "run2_subject1",
+          "run2_subject4",
+          "walk1_subject5",
+          "walk2_subject1",
+          "walk2_subject3",
+          "walk3_subject1",
+          "walk3_subject3",
+          "walk3_subject4"
+        ],
+        "per_clip": {
+          "dance1_subject1": 0.4003,
+          "dance1_subject2": 0.4292,
+          "dance1_subject3": 0.5521,
+          "dance2_subject1": 0.415,
+          "dance2_subject2": 0.4631,
+          "dance2_subject3": 0.535,
+          "dance2_subject4": 0.1242,
+          "dance2_subject5": 0.5359,
+          "fallAndGetUp1_subject1": 0.0217,
+          "fallAndGetUp1_subject4": 0.0263,
+          "fallAndGetUp1_subject5": 0.0282,
+          "fallAndGetUp2_subject2": 0.0263,
+          "fallAndGetUp2_subject3": 0.0236,
+          "fallAndGetUp3_subject1": 0.0572,
+          "fight1_subject2": 0.4438,
+          "fight1_subject3": 0.4424,
+          "fight1_subject5": 0.4936,
+          "fightAndSports1_subject1": 0.3129,
+          "fightAndSports1_subject4": 0.5016,
+          "jumps1_subject1": 0.547,
+          "jumps1_subject2": 0.4425,
+          "jumps1_subject5": 0.5524,
+          "run1_subject2": 0.3243,
+          "run1_subject5": 0.4217,
+          "run2_subject1": 0.0773,
+          "run2_subject4": 0.0638,
+          "sprint1_subject2": 0.6051,
+          "sprint1_subject4": 0.5707,
+          "walk1_subject1": 0.6425,
+          "walk1_subject2": 0.6184,
+          "walk1_subject5": 0.2974,
+          "walk2_subject1": 0.3951,
+          "walk2_subject3": 0.481,
+          "walk2_subject4": 0.6369,
+          "walk3_subject1": 0.4721,
+          "walk3_subject2": 0.6426,
+          "walk3_subject3": 0.4935,
+          "walk3_subject4": 0.5134,
+          "walk3_subject5": 0.5468,
+          "walk4_subject1": 0.6393
+        }
+      },
+      "cost": {
+        "iteration": 1000,
+        "wall_time": 790.9144036769867,
+        "sim_steps": 1312768,
+        "peak_gpu_allocated_bytes": 3100745216,
+        "peak_gpu_reserved_bytes": 3554672640,
+        "wm_parameters": 9223466
+      },
+      "probe": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.6891165971755981,
+            "component_rmse": {
+              "position_m": 0.005666508339345455,
+              "rotation_rad": 0.01423878874629736,
+              "linear_velocity_m_s": 0.08207651972770691,
+              "angular_velocity_rad_s": 0.6421651840209961,
+              "joint_position_rad": 0.025907645002007484,
+              "joint_velocity_rad_s": 1.3228695392608643
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 11.90638256072998,
+            "component_rmse": {
+              "position_m": 0.03363824263215065,
+              "rotation_rad": 0.06746806204319,
+              "linear_velocity_m_s": 0.24619731307029724,
+              "angular_velocity_rad_s": 1.1708571910858154,
+              "joint_position_rad": 0.10603994131088257,
+              "joint_velocity_rad_s": 1.912178635597229
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 25.070926666259766,
+            "component_rmse": {
+              "position_m": 0.05467818304896355,
+              "rotation_rad": 0.10758934170007706,
+              "linear_velocity_m_s": 0.3531266450881958,
+              "angular_velocity_rad_s": 1.5187938213348389,
+              "joint_position_rad": 0.1584421992301941,
+              "joint_velocity_rad_s": 2.358596086502075
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.6942249536514282,
+            "component_rmse": {
+              "position_m": 0.005622928496450186,
+              "rotation_rad": 0.014304839074611664,
+              "linear_velocity_m_s": 0.08194374293088913,
+              "angular_velocity_rad_s": 0.6435986757278442,
+              "joint_position_rad": 0.025928936898708344,
+              "joint_velocity_rad_s": 1.321462631225586
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 11.84621524810791,
+            "component_rmse": {
+              "position_m": 0.033090222626924515,
+              "rotation_rad": 0.06741450726985931,
+              "linear_velocity_m_s": 0.24438880383968353,
+              "angular_velocity_rad_s": 1.172157645225525,
+              "joint_position_rad": 0.10560424625873566,
+              "joint_velocity_rad_s": 1.9258934259414673
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 24.929006576538086,
+            "component_rmse": {
+              "position_m": 0.05368448793888092,
+              "rotation_rad": 0.10750741511583328,
+              "linear_velocity_m_s": 0.35083454847335815,
+              "angular_velocity_rad_s": 1.5172470808029175,
+              "joint_position_rad": 0.15792471170425415,
+              "joint_velocity_rad_s": 2.381171226501465
+            }
+          }
+        }
+      }
+    }
+  },
+  "common_input_probe": {
+    "scope": "fixed reference-start native probes on the training motion library; not unseen-motion generalization or policy tracking",
+    "seed": 7001,
+    "frames_per_clip": 4,
+    "steps": 8,
+    "action_noise_std": {
+      "reference_pd": 0.0,
+      "noisy_reference_pd": 0.1
+    },
+    "domain_randomization": false,
+    "dataset_sha256": "2a8614b3735135b85cd5cdd7b5b74e3eec2b8f46e3e1e9380902a7cf7b16755e",
+    "scorer_checks": {
+      "identical_states": {
+        "valid_transitions": 1280,
+        "common_normalized_mse": 0.0,
+        "component_rmse": {
+          "position_m": 0.0,
+          "rotation_rad": 0.0,
+          "linear_velocity_m_s": 0.0,
+          "angular_velocity_rad_s": 0.0,
+          "joint_position_rad": 0.0,
+          "joint_velocity_rad_s": 0.0
+        }
+      },
+      "one_metre_translation": {
+        "valid_transitions": 1280,
+        "common_normalized_mse": 127.32437133789062,
+        "component_rmse": {
+          "position_m": 0.5773502588272095,
+          "rotation_rad": 0.0,
+          "linear_velocity_m_s": 0.0,
+          "angular_velocity_rad_s": 0.0,
+          "joint_position_rad": 0.0,
+          "joint_velocity_rad_s": 0.0
+        }
+      }
+    }
+  }
+}

@@ -153,8 +153,9 @@ An optional state encoder can be trained with physical state alignment and inver
 dynamics supervision inspired by [GAWM](https://github.com/zsibot/gawm). The
 original model remains the default. See [the experiment guide](docs/grounded-dynamics.md)
 for the three-condition comparison, training flags and simulator-free checks.
-These auxiliary objectives are experimental; the results below are the original
-upstream reproduction and do not measure this extension.
+The first encoder-replacement pilot underperformed the original model. A variant
+that retains physical state inputs is under evaluation. The results below are the
+original upstream reproduction and do not measure this extension.
 
 ## Result (LAFAN1, 40 clips, one RTX PRO 6000 Blackwell)
 

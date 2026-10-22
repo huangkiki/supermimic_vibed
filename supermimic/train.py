@@ -26,6 +26,7 @@ parser.add_argument("--wm_window", type=int, default=8)
 parser.add_argument("--wm_batches", type=int, default=10)
 parser.add_argument("--wm_batch", type=int, default=2048)
 parser.add_argument("--wm_latent_dim", type=int, default=0, help="GAWM-inspired state encoder width; 0 keeps the original WM")
+parser.add_argument("--wm_state_skip", action="store_true", help="retain physical-state inputs alongside the learned features")
 parser.add_argument("--wm_state_weight", type=float, default=0.0, help="physical state alignment loss weight")
 parser.add_argument("--wm_idm_weight", type=float, default=0.0, help="inverse dynamics loss weight")
 parser.add_argument("--pi_batch", type=int, default=4096)
@@ -54,6 +55,8 @@ if any(not math.isfinite(w) or w < 0 for w in (args.wm_state_weight, args.wm_idm
     parser.error("grounding weights must be finite and nonnegative")
 if (args.wm_state_weight or args.wm_idm_weight) and not args.wm_latent_dim:
     parser.error("grounding losses require --wm_latent_dim > 0")
+if args.wm_state_skip and not args.wm_latent_dim:
+    parser.error("--wm_state_skip requires --wm_latent_dim > 0")
 if args.wm_window < 1 or args.buffer_steps < args.wm_window:
     parser.error("require buffer_steps >= wm_window >= 1")
 
@@ -83,7 +86,7 @@ K, Hh, HZ = args.goal_frames, args.hist, args.horizon
 GOAL_DIM = 73 * K
 CRITIC_IN = INV_DIM + CRITIC_EXTRA + GOAL_DIM
 
-wm = WorldModel(latent_dim=args.wm_latent_dim).to(dev)
+wm = WorldModel(latent_dim=args.wm_latent_dim, state_skip=args.wm_state_skip).to(dev)
 pi = Policy(OBS_DIM, GOAL_DIM, hist=Hh).to(dev)
 critic = Critic(CRITIC_IN).to(dev)
 opt_wm = torch.optim.Adam(wm.parameters(), lr=args.lr)
@@ -92,7 +95,7 @@ opt_v = torch.optim.Adam(critic.parameters(), lr=args.lr)
 start_it, wall_offset, sim_steps = 0, 0.0, 0
 if args.resume:
     ck = torch.load(args.resume, map_location=dev)
-    for name in ("wm_latent_dim", "wm_state_weight", "wm_idm_weight"):
+    for name in ("wm_latent_dim", "wm_state_skip", "wm_state_weight", "wm_idm_weight"):
         if ck["args"].get(name, 0) != getattr(args, name):
             raise ValueError(f"--{name} must match the resumed checkpoint")
     wm.load_state_dict(ck["wm"]), pi.load_state_dict(ck["pi"]), critic.load_state_dict(ck["critic"])

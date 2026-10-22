@@ -55,6 +55,25 @@ class GroundedDynamicsTests(unittest.TestCase):
         for a, b in zip(actual, self.losses()):
             torch.testing.assert_close(a, b, rtol=0, atol=0)
 
+    def test_state_skip_can_represent_original_dynamics(self):
+        original = WorldModel(hidden=(32, 32)).to(DEVICE)
+        torch.nn.init.normal_(original.net[-1].weight, std=0.01)
+        original.in_norm.update(original.inputs(self.S, self.a, self.xi))
+        augmented = WorldModel(hidden=(32, 32), latent_dim=16, state_skip=True).to(DEVICE)
+        weights = original.net.state_dict()
+        weights['0.weight'] = torch.cat((weights['0.weight'], torch.zeros(32, 16, device=DEVICE)), dim=1)
+        augmented.net.load_state_dict(weights)
+        augmented.in_norm.load_state_dict(original.in_norm.state_dict())
+        augmented.out_norm.load_state_dict(original.out_norm.state_dict())
+        # Even a useless learned representation must not discard physical inputs.
+        with torch.no_grad():
+            for parameter in augmented.encoder.parameters():
+                parameter.zero_()
+        for actual, expected in zip(augmented.step(self.S, self.a, self.xi), original.step(self.S, self.a, self.xi)):
+            torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-6)
+        with self.assertRaisesRegex(ValueError, 'state_skip'):
+            WorldModel(state_skip=True)
+
     def test_each_auxiliary_loss_trains_shared_encoder(self):
         for which in (0, 1):
             self.wm.zero_grad(set_to_none=True)
@@ -90,8 +109,8 @@ class GroundedDynamicsTests(unittest.TestCase):
         self.assertTrue(all(p.grad is None or torch.count_nonzero(p.grad) == 0 for p in self.wm.parameters()))
 
     def test_freezing_model_keeps_multistep_action_gradient(self):
-        for latent_dim in (0, 16):
-            wm = WorldModel(hidden=(32, 32), latent_dim=latent_dim).to(DEVICE)
+        for latent_dim, state_skip in ((0, False), (16, False), (16, True)):
+            wm = WorldModel(hidden=(32, 32), latent_dim=latent_dim, state_skip=state_skip).to(DEVICE)
             torch.nn.init.normal_(wm.net[-1].weight, std=0.01)
             wm.requires_grad_(False)
             actions = self.a.detach().clone().requires_grad_()
@@ -129,6 +148,19 @@ class GroundedDynamicsTests(unittest.TestCase):
             torch.testing.assert_close(a, b, atol=2e-5, rtol=2e-5)
         sum(actual).backward()
         self.assertTrue(all(torch.isfinite(p.grad).all() for p in self.wm.encoder.parameters()))
+
+    @unittest.skipUnless(os.environ.get("SM_TEST_COMPILE") == "1", "opt-in compile check")
+    def test_compiled_state_skip_preserves_encoder_gradient(self):
+        wm = WorldModel(hidden=(32, 32), latent_dim=16, state_skip=True).to(DEVICE)
+        torch.nn.init.normal_(wm.net[-1].weight, std=0.01)
+        step = torch.compile(wm.step, fullgraph=True)
+        predicted = step(self.S, self.a, self.xi)
+        for actual, expected in zip(predicted, wm.step(self.S, self.a, self.xi)):
+            torch.testing.assert_close(actual, expected, rtol=2e-5, atol=2e-5)
+        predicted[4].square().mean().backward()
+        grads = [parameter.grad for parameter in wm.encoder.parameters()]
+        self.assertTrue(all(gradient is not None and torch.isfinite(gradient).all() for gradient in grads))
+        self.assertGreater(sum(gradient.abs().sum().item() for gradient in grads), 0)
 
 
 class ReplayTests(unittest.TestCase):

@@ -67,11 +67,14 @@ def run_mlp(net: nn.Module, x: torch.Tensor) -> torch.Tensor:
 class WorldModel(nn.Module):
     """Deterministic dynamics s_{t+1} = f(s_t, a_t, xi) predicting frame-local state increments."""
 
-    def __init__(self, hidden=(2048, 2048, 2048), latent_dim: int = 0):
+    def __init__(self, hidden=(2048, 2048, 2048), latent_dim: int = 0, state_skip: bool = False):
         super().__init__()
         if latent_dim < 0:
             raise ValueError("latent_dim must be nonnegative (0 selects the original model)")
+        if state_skip and not latent_dim:
+            raise ValueError("state_skip requires a learned state encoder")
         self.latent_dim = latent_dim
+        self.state_skip = state_skip
         self.in_dim = INV_DIM + NUM_J + XI_DIM
         dynamics_in = self.in_dim
         if latent_dim:
@@ -80,7 +83,7 @@ class WorldModel(nn.Module):
             self.encoder = mlp(INV_DIM, [256, 256], latent_dim, act=nn.SiLU, layer_norm=True)
             self.state_head = mlp(2 * latent_dim, [256], INV_DIM, act=nn.SiLU)
             self.idm_head = mlp(2 * latent_dim + XI_DIM, [256], NUM_J, act=nn.SiLU)
-            dynamics_in = latent_dim + NUM_J + XI_DIM
+            dynamics_in = self.in_dim + latent_dim if state_skip else latent_dim + NUM_J + XI_DIM
         self.net = mlp(dynamics_in, list(hidden), WM_OUT, act=nn.SiLU, layer_norm=True)
         nn.init.zeros_(self.net[-1].weight)
         nn.init.zeros_(self.net[-1].bias)
@@ -142,7 +145,8 @@ class WorldModel(nn.Module):
         p, R, v, w, q, qd = S
         x = self.in_norm(self.inputs(S, a, xi_n))
         if self.latent_dim:
-            x = torch.cat((run_mlp(self.encoder, x[..., :INV_DIM]), x[..., INV_DIM:]), -1)
+            encoded = run_mlp(self.encoder, x[..., :INV_DIM])
+            x = torch.cat((x, encoded), -1) if self.state_skip else torch.cat((encoded, x[..., INV_DIM:]), -1)
         y = run_mlp(self.net, x)
         d = y * self.out_norm.std() + self.out_norm.mean
         H = yaw_mat(R)
