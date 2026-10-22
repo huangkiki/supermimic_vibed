@@ -50,10 +50,31 @@ reference-PD probes, normalized 8-step prediction error was 8.84, 26.29 and
 for every model. It samples the training motion library, so it does not measure
 unseen-motion generalization. [Full scores and configuration](../results/gawm-pilot/summary.json).
 
-The next hypothesis is that retaining the known physical state can avoid the
-learning cost of replacing it with an encoder. `--wm_state_skip` implements this
-direct input path; its tracking benefit is **not yet established**. Its CPU/CUDA
-checks and native train/resume check pass. The default remains the original model.
+Retaining the known physical state with `--wm_state_skip` improved the seed-0
+development result at the original batch sizes. Each condition trained from
+scratch for 4,000 iterations with 4,096 environments, world-model batch 2,048,
+policy batch 4,096 and 41,222,144 simulator transitions. At commit `8500ba4`:
+
+| Model | Normalized return | Failed clips | Common-input 8-step MSE |
+|---|---:|---:|---:|
+| Original | 0.7150 | 4/40 | 1.0691 |
+| Physical inputs plus learned features | 0.7615 | 1/40 | 0.9968 |
+| Same inputs with SA=0.1 and IDM=0.1 | 0.7402 | 3/40 | 1.0328 |
+
+At the predeclared 2,000-iteration checkpoint, returns were 0.5403, 0.5516 and
+0.5544, respectively; all had 12 failed clips. The final retained-state variants
+both outperformed the original at this seed, but adding the auxiliary losses
+underperformed the same representation without them. This does **not** establish
+a benefit from GAWM's auxiliary objectives. The common-input error uses the same
+reference-PD protocol as the pilot, with all six checkpoints scored together.
+[Both checkpoints, all clip scores and prediction metrics](../results/gawm-retained-state/seed0.json).
+
+Observed training times were 34.6, 37.4 and 39.4 minutes, and peak allocated
+PyTorch memory was 13.45, 13.64 and 13.65 GB. Runs shared host CPU/cache resources;
+these timings are not isolated speed measurements. The design was selected after
+the first pilot, and seed 0 is development evidence. An unchanged seed-1 comparison
+is running to check repeatability. CPU/CUDA checks and native train/resume pass;
+the default remains the original model while replication is incomplete.
 
 ## Compare retained-state features
 
