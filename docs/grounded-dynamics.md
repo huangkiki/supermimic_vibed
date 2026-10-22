@@ -1,5 +1,12 @@
 # Grounding the dynamics representation
 
+Across two tested seeds at the same 4,000-iteration budget, retaining physical
+inputs and appending learned features improved mean tracking return by 4.78%,
+with failures falling from 7/80 to 3/80 evaluations. Use
+`--wm_latent_dim 128 --wm_state_skip` with auxiliary weights zero. The tested
+SA/IDM weights did not add benefit; [results and limits](#retained-state-result-two-seeds)
+are recorded below.
+
 This experiment transfers the **state alignment and inverse dynamics objectives**
 from [GAWM](https://github.com/zsibot/gawm/blob/c8e50746e4f21c660d6dfaec97d5164db541b1e6/train.py)
 to SuperMimic's state-based dynamics model. It is not a port of GAWM's visual JEPA
@@ -50,37 +57,75 @@ reference-PD probes, normalized 8-step prediction error was 8.84, 26.29 and
 for every model. It samples the training motion library, so it does not measure
 unseen-motion generalization. [Full scores and configuration](../results/gawm-pilot/summary.json).
 
-Retaining the known physical state with `--wm_state_skip` improved the seed-0
-development result at the original batch sizes. Each condition trained from
-scratch for 4,000 iterations with 4,096 environments, world-model batch 2,048,
-policy batch 4,096 and 41,222,144 simulator transitions. At commit `8500ba4`:
+## Retained-state result: two seeds
 
-| Model | Normalized return | Failed clips | Common-input 8-step MSE |
-|---|---:|---:|---:|
-| Original | 0.7150 | 4/40 | 1.0691 |
-| Physical inputs plus learned features | 0.7615 | 1/40 | 0.9968 |
-| Same inputs with SA=0.1 and IDM=0.1 | 0.7402 | 3/40 | 1.0328 |
+The recommended tested configuration is `--wm_latent_dim 128 --wm_state_skip`,
+with both auxiliary weights left at zero. The original model remains the default
+for checkpoint and behavior compatibility.
 
-At the predeclared 2,000-iteration checkpoint, returns were 0.5403, 0.5516 and
-0.5544, respectively; all had 12 failed clips. The final retained-state variants
-both outperformed the original at this seed, but adding the auxiliary losses
-underperformed the same representation without them. This does **not** establish
-a benefit from GAWM's auxiliary objectives. The common-input error uses the same
-reference-PD protocol as the pilot, with all six checkpoints scored together.
-[Both checkpoints, all clip scores and prediction metrics](../results/gawm-retained-state/seed0.json).
+Each condition trained from scratch at commit `8500ba4` for 4,000 iterations with
+4,096 environments, world-model batch 2,048, policy batch 4,096 and 41,222,144
+simulator transitions per run. Seed 0 selected the candidate after the first pilot;
+seed 1 repeated all three conditions without changing their hyperparameters.
+Evaluation used all 40 clips and the original failure criteria:
 
-Observed training times were 34.6, 37.4 and 39.4 minutes, and peak allocated
-PyTorch memory was 13.45, 13.64 and 13.65 GB. Runs shared host CPU/cache resources;
-these timings are not isolated speed measurements. The design was selected after
-the first pilot, and seed 0 is development evidence. An unchanged seed-1 comparison
-is running to check repeatability. CPU/CUDA checks and native train/resume pass;
-the default remains the original model while replication is incomplete.
+| Model | Seed 0 return / failures | Seed 1 return / failures | Mean return | Failures across 80 evaluations |
+|---|---:|---:|---:|---:|
+| Original | 0.7150 / 4 | 0.7191 / 3 | 0.7171 | 7 |
+| Physical inputs plus learned features | **0.7615 / 1** | **0.7411 / 2** | **0.7513** | **3** |
+| Same inputs with SA=0.1 and IDM=0.1 | 0.7402 / 3 | 0.7275 / 5 | 0.7338 | 8 |
+
+![Measured return and failures for both seeds](../results/gawm-retained-state/comparison.png)
+
+Keeping physical inputs and appending learned features improved return by 6.50%
+(seed 0) and 3.07% (seed 1), with fewer failures in both. The mean return improvement
+was 4.78%. Adding the auxiliary losses reduced return relative to the same
+representation without them in both seeds; seed 1 also failed more clips than the
+original. These results support the retained-state representation at this budget,
+but do **not** support enabling these auxiliary weights.
+
+At the predeclared 2,000-iteration checkpoint, returns were 0.5403 / 0.5516 / 0.5544
+for seed 0 (12 / 12 / 12 failures), and 0.5419 / 0.5469 / 0.5488 for seed 1
+(13 / 13 / 12 failures). Both checkpoints and every clip score are retained in
+[seed 0](../results/gawm-retained-state/seed0.json),
+[seed 1](../results/gawm-retained-state/seed1.json) and the
+[comparison summary](../results/gawm-retained-state/comparison.json).
+
+The common-input diagnostic scored all 12 checkpoints on the same native
+transitions and normalization scales. For reference-PD actions, final 8-step MSE
+at iteration 4,000 was:
+
+| Model | Seed 0 | Seed 1 |
+|---|---:|---:|
+| Original | 1.0691 | 1.1114 |
+| Physical inputs plus learned features | 0.9968 | 0.7829 |
+| Same inputs with SA=0.1 and IDM=0.1 | 1.0328 | 0.9396 |
+
+The recommended configuration reduced the two-seed mean of this diagnostic by
+about 18.4%. The probe uses four reference starts per clip, eight steps, and both
+reference-PD and noisy reference-PD actions; it is separate from policy tracking.
+[Complete probe scores, checkpoint hashes and scorer checks](../results/gawm-retained-state/common-probe.json).
+
+Observed training times averaged 33.1 / 35.7 / 38.1 minutes, respectively. The
+recommended configuration took about 7.9% longer in these runs. Runs shared host
+CPU/cache resources, so this is not an isolated speed measurement. Mean peak
+allocated PyTorch memory was about 13.45 / 13.65 / 13.65 GB; this excludes simulator
+allocations. All conditions used RTX 5090 32GB GPUs.
+
+These are two training seeds on the training motion library, not an unseen-motion
+or real-robot evaluation. The 80 evaluations reuse the same 40 clips across seeds.
+This is a system comparison, without a parameter-matched capacity ablation; the
+original and augmented architectures consume different initialization RNG
+sequences. The two augmented conditions share architecture and initialization at
+each seed. Do not interpret these results as a reproduction of the upstream
+README's 14,000-iteration result or as a statistical robustness guarantee.
 
 ## Compare retained-state features
 
 Use the setup and data preparation in the repository README. The original model
 remains the default and accepts the original checkpoint parameter layout.
-The following are **experimental configurations**, not established improvements:
+The middle configuration is the recommended result above. The auxiliary variant
+is retained for reproducible comparison:
 
 ```bash
 # Original physical-state MLP
@@ -116,6 +161,42 @@ thresholds. A lower auxiliary loss alone is not evidence of improved tracking.
 Report per-clip failures and normalized return alongside measured training time,
 peak GPU memory and sample counts. Short runs do not establish the README's
 original 0.82 return / 40-of-40 target or real-robot performance.
+
+## Reproduce the matched comparison
+
+After the README setup, run inside the same Isaac Lab environment. This example
+uses the exact comparison budgets; repeatability is bounded by GPU/runtime
+nondeterminism. Sequential execution will have different CPU contention from our
+parallel runs, so do not expect the same wall times.
+
+```bash
+for seed in 0 1; do
+  common=(--iterations 4000 --num_envs 4096 --buffer_steps 1000
+          --wm_batch 2048 --pi_batch 4096 --wm_only_iters 500
+          --ckpt_every 2000 --log_every 100 --seed "$seed")
+  python supermimic/train.py "${common[@]}" --log_dir "logs/full-original-seed$seed"
+  python supermimic/train.py "${common[@]}" --log_dir "logs/full-skip-latent-seed$seed" \
+    --wm_latent_dim 128 --wm_state_skip
+  python supermimic/train.py "${common[@]}" --log_dir "logs/full-skip-grounded-seed$seed" \
+    --wm_latent_dim 128 --wm_state_skip --wm_state_weight 0.1 --wm_idm_weight 0.1
+  for condition in original skip-latent skip-grounded; do
+    python supermimic/evaluate.py --run_dir "logs/full-$condition-seed$seed"
+  done
+done
+
+python tools/check_shared_dynamics.py \
+  --checkpoints logs/full-{original,skip-latent,skip-grounded}-seed{0,1}/ckpt_00{2,4}000.pt \
+  --output logs/common-probe.json
+
+python tools/plot_grounding_results.py \
+  results/gawm-retained-state/seed0.json results/gawm-retained-state/seed1.json \
+  --output results/gawm-retained-state/comparison.png
+```
+
+The probe saves its input tensors alongside the JSON and checks zero error for
+identical states and the expected RMSE for a one-metre translation. Its JSON binds
+scores to the checkpoint and scorer SHA-256 hashes. The plotting command redraws
+the published scores; it does not collect new measurements.
 
 ## Checks without Isaac Lab
 

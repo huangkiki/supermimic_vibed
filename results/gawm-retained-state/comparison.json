@@ -1,0 +1,113 @@
+{
+  "status": "complete",
+  "training_source_commit": "8500ba41d22693ceaa38d5da836ba64292411ad4",
+  "seeds": [
+    0,
+    1
+  ],
+  "iterations": 4000,
+  "environments": 4096,
+  "simulator_transitions_per_run": 41222144,
+  "evaluation": "Same40motionclips evaluated separately for each seed;80rollouts per condition, not80unique clips",
+  "recommendation": {
+    "wm_latent_dim": 128,
+    "wm_state_skip": true,
+    "wm_state_weight": 0.0,
+    "wm_idm_weight": 0.0
+  },
+  "limits": [
+    "Two training seeds, same training motion library; no unseen-motion or real-robot claim.",
+    "Seed0 was development; seed1 replicated all configurations without retuning.",
+    "Shared hostCPU/cache; observed training times are not isolated speed measurements.",
+    "System comparison; no parameter-matched capacity ablation."
+  ],
+  "probe_dataset_sha256": "e3d640325a098a30280280623c449220555dc94db0f926814e1c35e49b1b2dec",
+  "probe_scorer_sha256": "a45d257818ee0d3ab7f8dad797fa8a7368c50727cb9b4c0232dff8abfe5d682c",
+  "conditions": {
+    "original": {
+      "per_seed": [
+        {
+          "seed": 0,
+          "normalized_return": 0.7150396704673767,
+          "failed_clips": 4,
+          "training_seconds": 2073.153192281723,
+          "peak_torch_allocated_bytes": 13450125312,
+          "reference_pd_step8_mse": 1.069090723991394
+        },
+        {
+          "seed": 1,
+          "normalized_return": 0.7190777063369751,
+          "failed_clips": 3,
+          "training_seconds": 1895.7450172901154,
+          "peak_torch_allocated_bytes": 13457793024,
+          "reference_pd_step8_mse": 1.1114023923873901
+        }
+      ],
+      "mean_normalized_return": 0.7170586884021759,
+      "failed_evaluations_out_of_80": 7,
+      "mean_training_seconds": 1984.4491047859192,
+      "mean_peak_torch_allocated_bytes": 13453959168,
+      "mean_reference_pd_step8_mse": 1.090246558189392,
+      "relative_mean_return_change": 0.0,
+      "relative_observed_training_time_change": 0.0,
+      "relative_mean_probe_mse_change": 0.0
+    },
+    "skip-latent": {
+      "per_seed": [
+        {
+          "seed": 0,
+          "normalized_return": 0.761509120464325,
+          "failed_clips": 1,
+          "training_seconds": 2243.8511865139008,
+          "peak_torch_allocated_bytes": 13643159552,
+          "reference_pd_step8_mse": 0.9967668652534485
+        },
+        {
+          "seed": 1,
+          "normalized_return": 0.7411447763442993,
+          "failed_clips": 2,
+          "training_seconds": 2039.4310126304626,
+          "peak_torch_allocated_bytes": 13647604736,
+          "reference_pd_step8_mse": 0.7828993201255798
+        }
+      ],
+      "mean_normalized_return": 0.7513269484043121,
+      "failed_evaluations_out_of_80": 3,
+      "mean_training_seconds": 2141.6410995721817,
+      "mean_peak_torch_allocated_bytes": 13645382144,
+      "mean_reference_pd_step8_mse": 0.8898330926895142,
+      "relative_mean_return_change": 0.047790035259870134,
+      "relative_observed_training_time_change": 0.07921190541352807,
+      "relative_mean_probe_mse_change": -0.18382398366174257
+    },
+    "skip-grounded": {
+      "per_seed": [
+        {
+          "seed": 0,
+          "normalized_return": 0.7401736378669739,
+          "failed_clips": 3,
+          "training_seconds": 2361.338755130768,
+          "peak_torch_allocated_bytes": 13648437760,
+          "reference_pd_step8_mse": 1.0328266620635986
+        },
+        {
+          "seed": 1,
+          "normalized_return": 0.7274929881095886,
+          "failed_clips": 5,
+          "training_seconds": 2204.9823265075684,
+          "peak_torch_allocated_bytes": 13647585792,
+          "reference_pd_step8_mse": 0.9395807385444641
+        }
+      ],
+      "mean_normalized_return": 0.7338333129882812,
+      "failed_evaluations_out_of_80": 8,
+      "mean_training_seconds": 2283.160540819168,
+      "mean_peak_torch_allocated_bytes": 13648011776,
+      "mean_reference_pd_step8_mse": 0.9862037003040314,
+      "relative_mean_return_change": 0.023393656415326758,
+      "relative_observed_training_time_change": 0.15052612602300708,
+      "relative_mean_probe_mse_change": -0.09543057678452849
+    }
+  },
+  "runtime_image": "sha256:95358af979415da7c390f720c429c01be4716e4b386d984bde261cb6a860d22b"
+}

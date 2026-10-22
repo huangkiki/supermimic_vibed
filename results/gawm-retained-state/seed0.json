@@ -1,5 +1,5 @@
 {
-  "status": "seed0 complete; seed1 replication running; original model remains the default",
+  "status": "seed0 development comparison complete; unchanged seed1 replication also complete",
   "source_commit": "8500ba41d22693ceaa38d5da836ba64292411ad4",
   "source_baseline": "a1508d42c9d1699a52e8233ab16d08c488441ab9",
   "seed": 0,
