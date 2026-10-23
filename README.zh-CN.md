@@ -8,17 +8,18 @@
 
 ## 已经得到什么结果
 
-**目前尚无收敛后的多种子效率结论。** 已完成三种主方法及冻结WM辅助条件的原生Smoke、100次迭代单种子Pilot和64状态梯度诊断；4000 次迭代单种子矩阵中，PPO-Sim 与在线 PPO-WM 已完成但仍全部失败，BPTT 与冻结组继续执行。正式结果仍需至少3个seed和40段动作扩展。
+**目前尚无收敛后的多种子效率结论。** 已完成三种主方法及冻结WM辅助条件的原生Smoke、100次迭代单种子Pilot和64状态梯度诊断；4000 次迭代单种子矩阵中，原参数PPO-Sim与在线PPO-WM已完成但仍全部失败；BPTT第3000轮物理Return已到0.7517、失败3/18，第4000轮及冻结组继续评估/执行。正式结果仍需至少3个seed和40段动作扩展。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
+| 长程探索（seed0） | BPTT第1000/2000/3000轮物理Return=0.376/0.591/0.752，失败8/5/3段；PPO基线仍需调参，不能直接归因 | [已完成物理评估与成本](results/ablation/formal-seed0-partial/evaluations.csv) |
 | 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
 | Prediction / Gradient Fidelity | 同一批通过数值筛选的一步方向上，完整奖励符号一致率100%，去掉直接动作平滑项后61.4%；来自欠训练模型，不能外推至成熟策略 | [配对统计与限制](docs/ablation/results.md) |
 | 目标规模资源测量 | 4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB | [资源估算与执行条件](docs/ablation/runbook.md) |
 
-![同一物理评估协议下的短程Return曲线](results/ablation/pilot-v1/return-compute.png)
+![长程探索的已完成物理评估点，原PPO基线未合格](results/ablation/formal-seed0-partial/return-compute.png)
 
-曲线保持完整纵轴，避免放大接近失败下限的微小差异。冻结方法全额计入WM预训练、所有方法计入物理评估；单seed不绘制标准差带。
+仅绘已完成物理评估点，单seed不绘制标准差带；原PPO参数未合格，不能把曲线差距直接归因于算法。中间横坐标为checkpoint计时加累计复评成本的回溯重建，不是现场在线评估时序；完整方法端点使用进程分配。冻结方法另全额计入WM预训练。
 
 ![完整奖励与state-only辅助目标的配对梯度诊断](results/ablation/paired-components/paired-objectives.png)
 
