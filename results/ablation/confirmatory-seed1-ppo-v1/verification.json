@@ -8,11 +8,26 @@
     "per-clip-evaluations.csv",
     "process-allocations.csv",
     "qualification.json",
-    "analysis.json"
+    "analysis.json",
+    "final-per-motion-repeatability.csv",
+    "final-repeat-differences.csv",
+    "repeat-diagnostics.json"
   ],
   "missing_last_repeat_rejected_before_output": true,
   "archive_sha256": "f20777e4ec5c538a70e85583a205a8207a041afd879c9a9fd582589dffed3ba6",
   "plot_visual_inspection": "Return/compute, cost composition and repeat variability PNGs inspected; labels and legends readable; single training seed and repeat SD distinguished",
   "execution_scope": "Local CPU data analysis only; no additional physics rollout or GPU workload",
-  "native_full_cohort_qualification": "pending complete six-method three-seed experiments"
+  "native_full_cohort_qualification": "pending complete six-method three-seed experiments",
+  "repeat_diagnostics_verification": {
+    "actual_archive_round_trip": true,
+    "original_seven_outputs_unchanged": true,
+    "three_new_outputs_byte_identical": true,
+    "all_three_pair_differences_independently_summed_from_published_per_clip_csv": true,
+    "motion_counts": {
+      "failure_varies": 2,
+      "always_failed": 5,
+      "always_completed": 11
+    },
+    "scope": "CPU arithmetic checks only; no new physics evaluation or cause attribution"
+  }
 }

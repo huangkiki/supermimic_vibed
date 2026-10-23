@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import statistics
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -79,10 +80,56 @@ def reproduce(raw, output):
             or not math.isclose(sum(row['gpu_hours'] for row in allocations), endpoint['total_gpu_hours'], abs_tol=1e-12)
             or any(row['wm_training_seconds'] or row['imagined_steps'] for row in rows)):
         raise ValueError('PPO-Sim standalone cost does not reconcile')
+
+    final_clips = {}
+    for clip in clips:
+        if clip['iteration'] == 4000:
+            final_clips.setdefault(clip['motion'], {})[clip['repeat']] = clip
+    if len(final_clips) != 18 or any(set(group) != {0, 1, 2} for group in final_clips.values()):
+        raise ValueError('Final repeat diagnostics require all 18 motions and all three repeats')
+    motion_rows = []
+    for motion, group in sorted(final_clips.items()):
+        values = [float(group[index]['normalized_return']) for index in range(3)]
+        failures = [group[index]['failed'] == 'True' for index in range(3)]
+        row = dict(motion=motion, reference_steps=int(group[0]['reference_steps']),
+                   repeat_return_mean=statistics.mean(values), repeat_return_sd=statistics.stdev(values),
+                   failed_repeats=sum(failures), failure_varies=len(set(failures)) > 1)
+        for index in range(3):
+            row.update({f'return_repeat_{index}': values[index], f'failed_repeat_{index}': failures[index],
+                        f'steps_repeat_{index}': int(group[index]['steps'])})
+        motion_rows.append(row)
+    varying = {row['motion'] for row in motion_rows if row['failure_varies']}
+    final_records = {record['evaluation_repeat_index']: record for record in records if record['iteration'] == 4000}
+    differences, pairs = [], []
+    for left, right in ((0, 1), (0, 2), (1, 2)):
+        contributions = {motion: (float(group[right]['normalized_return']) - float(group[left]['normalized_return'])) / 18
+                         for motion, group in final_clips.items()}
+        recorded_difference = final_records[right]['physical_return'] - final_records[left]['physical_return']
+        reconstructed = sum(contributions.values())
+        if not math.isclose(recorded_difference, reconstructed, rel_tol=0, abs_tol=1e-7):
+            raise ValueError('Per-motion differences do not reconcile with recorded physical returns')
+        differences.extend(dict(from_repeat=left, to_repeat=right, motion=motion,
+                                contribution_to_mean_difference=value, failure_varies=motion in varying)
+                           for motion, value in sorted(contributions.items()))
+        pairs.append(dict(from_repeat=left, to_repeat=right, recorded_return_difference=recorded_difference,
+                          reconstructed_return_difference=reconstructed,
+                          failure_varying_motion_contribution=sum(contributions[motion] for motion in varying),
+                          other_motion_contribution=sum(value for motion, value in contributions.items() if motion not in varying),
+                          float_reduction_residual=recorded_difference - reconstructed))
     output.mkdir(parents=True, exist_ok=True)
     write_analysis(rows, records, output, 'PPO-Sim: one confirmatory training seed, three physical repeats per checkpoint')
     save_csv(output / 'per-clip-evaluations.csv', clips)
     save_csv(output / 'process-allocations.csv', allocations)
+    save_csv(output / 'final-per-motion-repeatability.csv', motion_rows)
+    save_csv(output / 'final-repeat-differences.csv', differences)
+    (output / 'repeat-diagnostics.json').write_text(json.dumps(dict(
+        iteration=4000, training_seeds=[1], evaluation_repeats=3, motions=18,
+        failure_varying_motions=sorted(varying),
+        always_failed_motions=[row['motion'] for row in motion_rows if row['failed_repeats'] == 3],
+        always_completed_motions=[row['motion'] for row in motion_rows if row['failed_repeats'] == 0],
+        pairs=pairs, reconciliation_absolute_tolerance=1e-7,
+        scope='Descriptive arithmetic decomposition of one checkpoint; all three pairs retained; not a causal explanation or independent-training-seed uncertainty'
+    ), indent=2) + '\n')
 
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.5), layout='constrained')

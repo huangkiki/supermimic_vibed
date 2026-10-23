@@ -1,0 +1,63 @@
+{
+  "iteration": 4000,
+  "training_seeds": [
+    1
+  ],
+  "evaluation_repeats": 3,
+  "motions": 18,
+  "failure_varying_motions": [
+    "run2_subject1",
+    "walk1_subject5"
+  ],
+  "always_failed_motions": [
+    "walk2_subject1",
+    "walk2_subject3",
+    "walk3_subject1",
+    "walk3_subject3",
+    "walk3_subject4"
+  ],
+  "always_completed_motions": [
+    "run1_subject2",
+    "run1_subject5",
+    "run2_subject4",
+    "sprint1_subject2",
+    "sprint1_subject4",
+    "walk1_subject1",
+    "walk1_subject2",
+    "walk2_subject4",
+    "walk3_subject2",
+    "walk3_subject5",
+    "walk4_subject1"
+  ],
+  "pairs": [
+    {
+      "from_repeat": 0,
+      "to_repeat": 1,
+      "recorded_return_difference": 0.017362624406814575,
+      "reconstructed_return_difference": 0.017362607022126515,
+      "failure_varying_motion_contribution": 0.015688691702153947,
+      "other_motion_contribution": 0.0016739153199725684,
+      "float_reduction_residual": 1.7384688060645415e-08
+    },
+    {
+      "from_repeat": 0,
+      "to_repeat": 2,
+      "recorded_return_difference": 0.010119855403900146,
+      "reconstructed_return_difference": 0.010119847953319553,
+      "failure_varying_motion_contribution": 0.0091913350754314,
+      "other_motion_contribution": 0.0009285128778881497,
+      "float_reduction_residual": 7.450580593454381e-09
+    },
+    {
+      "from_repeat": 1,
+      "to_repeat": 2,
+      "recorded_return_difference": -0.007242769002914429,
+      "reconstructed_return_difference": -0.007242759068806966,
+      "failure_varying_motion_contribution": -0.006497356626722547,
+      "other_motion_contribution": -0.0007454024420844184,
+      "float_reduction_residual": -9.934107462854225e-09
+    }
+  ],
+  "reconciliation_absolute_tolerance": 1e-07,
+  "scope": "Descriptive arithmetic decomposition of one checkpoint; all three pairs retained; not a causal explanation or independent-training-seed uncertainty"
+}

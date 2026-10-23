@@ -28,6 +28,23 @@ SD描述同一个checkpoint在新进程中的复评波动，不能作为独立�
 
 三次的checkpoint、训练/评估manifest、源码、GPU和物理协议身份一致。前两次失败差异涉及`run2_subject1`与`walk1_subject5`。已核对对应执行源码：评估固定Torch种子，使用Policy均值输出、nominal仿真参数并关闭reset噪声；TF32允许、AMP为none。**具体波动原因尚未定位**，这些检查不能证明逐位确定性，也不能直接归因于接触、TF32或某个求解器。没有增加诊断GPU运行或更改正式协议。
 
+完整三次复评的逐动作拆分确认，失败判定发生变化的仅有以下两段；另有5段三次都提前失败、11段三次都完整跑完。复评索引为0/1/2。
+
+| 动作 | 三次归一化Return | 三次是否提前失败 | 三次执行步数 / 参考长度 |
+|---|---|---|---|
+| run2_subject1 | 0.132353 / 0.298898 / 0.297393 | 是 / 否 / 否 | 5467 / 12240 / 12240；参考12240 |
+| walk1_subject5 | 0.277290 / 0.393141 / 0.277693 | 是 / 否 / 是 | 10019 / 13065 / 10008；参考13065 |
+
+按18段等权，将每段的回报差除以18后相加，可以核对总体回报差。三组两两比较全部保留：
+
+| 复评比较（后者减前者） | 记录的总体Return差 | 上述两段的合计贡献 | 其他16段的合计贡献 |
+|---|---:|---:|---:|
+| 0→1 | +0.017362624 | +0.015688692 | +0.001673915 |
+| 0→2 | +0.010119855 | +0.009191335 | +0.000928513 |
+| 1→2 | −0.007242769 | −0.006497357 | −0.000745402 |
+
+逐段求和与已记录总体差的最大残差为1.74e-8，低于声明的1e-7验收容差。始终完成的动作也存在回报变化；这一分解只定位已记录差异的分布，不能证明失败判定变化是唯一原因，更不能推断接触或求解器机制。[18段三次记录与复评SD](../../results/ablation/confirmatory-seed1-ppo-v1/final-per-motion-repeatability.csv) · [全部54条逐动作差分贡献](../../results/ablation/confirmatory-seed1-ppo-v1/final-repeat-differences.csv) · [算术核对和范围说明](../../results/ablation/confirmatory-seed1-ppo-v1/repeat-diagnostics.json)。
+
 ## 完整成本
 
 训练完整进程7707.345475秒（2.140929 GPU-hours），15次物理评估4826.899738秒（1.340805 GPU-hours），合计**12534.245213秒 / 3.481735 GPU-hours**。训练峰值设备显存8450 MiB。
@@ -55,6 +72,6 @@ python results/ablation/confirmatory-seed1-ppo-v1/reproduce.py \
   --output work/ppo-seed1-reproduce/figures
 ```
 
-复算核对37个输入SHA256、连续训练迭代、全部15次复评及逐clip汇总、源码/设备身份和16个独立费用分配。实际解包复算得到7份字节一致的CSV/JSON输出；移除最后一次评估文件后，在产生输出前拒绝。三张PNG已逐图检查图例与标注。[验收记录](../../results/ablation/confirmatory-seed1-ppo-v1/verification.json) · [数据与费用资格](../../results/ablation/confirmatory-seed1-ppo-v1/qualification.json) · [逐clip CSV](../../results/ablation/confirmatory-seed1-ppo-v1/per-clip-evaluations.csv) · [逐进程费用](../../results/ablation/confirmatory-seed1-ppo-v1/process-allocations.csv)。
+复算核对37个输入SHA256、连续训练迭代、全部15次复评及逐clip汇总、源码/设备身份和16个独立费用分配。实际解包复算得到10份字节一致的CSV/JSON输出：原7份结果保持不变，新增3份逐动作复评分解；另从已发布逐clip CSV单独求和核对全部三组差异。移除最后一次评估文件后，在产生输出前拒绝。三张PNG已逐图检查图例与标注。[验收记录](../../results/ablation/confirmatory-seed1-ppo-v1/verification.json) · [数据与费用资格](../../results/ablation/confirmatory-seed1-ppo-v1/qualification.json) · [逐clip CSV](../../results/ablation/confirmatory-seed1-ppo-v1/per-clip-evaluations.csv) · [逐进程费用](../../results/ablation/confirmatory-seed1-ppo-v1/process-allocations.csv)。
 
 这里验证的是单方法训练与物理记录、身份和费用；包含实际checkpoint张量的整批原生验收仍须等待完整campaign，严格三seed汇总门禁未放宽。正式训练配置和命令见[运行手册](runbook.md)与[预登记方案](../../experiments/ablation/configs/confirmatory-locomotion-plan.json)。
