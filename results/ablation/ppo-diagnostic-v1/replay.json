@@ -1,0 +1,116 @@
+{
+  "checkpoint": "/home/huangyue/work/supermimic-ablation-20261023/formal-repo/logs/ablation/formal-locomotion-seed0-v1/ppo_sim-seed0/ckpt_001000.pt",
+  "checkpoint_sha256": "466d8cd9448902bd2231e470ad35556f29ae988414f44e9ffd9ca4cf3b240059",
+  "batch_sha256": "660f04dff3eacffc3e0c0549a49ae42f8e049035a0fcc2757856f0fd42153814",
+  "samples": 16384,
+  "seed": 9021,
+  "target_kl": 0.02,
+  "seconds": 5.0117409330559894,
+  "results": [
+    {
+      "learning_rate": 0.0002,
+      "initial_approx_kl": 3.998720785602927e-07,
+      "max_initial_logprob_difference": 0.010524749755859375,
+      "policy_loss": -0.0029962225817143917,
+      "value_loss": 0.012470624316483736,
+      "approx_kl": 0.7860307097434998,
+      "actor_updates": 1,
+      "critic_updates": 20,
+      "kl_stopped": true,
+      "optimizer_exact_kl": {
+        "mean": 0.8316622972488403,
+        "p95": 2.9164528846740723,
+        "maximum": 11.022764205932617
+      },
+      "norm_only_exact_kl": {
+        "mean": 9.81773337116465e-06,
+        "p95": 3.4323311410844326e-05,
+        "maximum": 0.0004634261131286621
+      },
+      "total_exact_kl": {
+        "mean": 0.8309992551803589,
+        "p95": 2.9152867794036865,
+        "maximum": 11.02002239227295
+      }
+    },
+    {
+      "learning_rate": 2e-05,
+      "initial_approx_kl": 3.998720785602927e-07,
+      "max_initial_logprob_difference": 0.010524749755859375,
+      "policy_loss": 0.006867327572156985,
+      "value_loss": 0.012470624316483736,
+      "approx_kl": 0.022216875106096268,
+      "actor_updates": 3,
+      "critic_updates": 20,
+      "kl_stopped": true,
+      "optimizer_exact_kl": {
+        "mean": 0.022877521812915802,
+        "p95": 0.0623352974653244,
+        "maximum": 0.6248435974121094
+      },
+      "norm_only_exact_kl": {
+        "mean": 9.72678026300855e-06,
+        "p95": 3.361701965332031e-05,
+        "maximum": 0.0004962682723999023
+      },
+      "total_exact_kl": {
+        "mean": 0.02302730642259121,
+        "p95": 0.06313059478998184,
+        "maximum": 0.6236962676048279
+      }
+    },
+    {
+      "learning_rate": 5e-06,
+      "initial_approx_kl": 3.998720785602927e-07,
+      "max_initial_logprob_difference": 0.010524749755859375,
+      "policy_loss": -0.014306009537540377,
+      "value_loss": 0.012470624316483736,
+      "approx_kl": 0.013381559401750565,
+      "actor_updates": 20,
+      "critic_updates": 20,
+      "kl_stopped": false,
+      "optimizer_exact_kl": {
+        "mean": 0.013032563030719757,
+        "p95": 0.029755156487226486,
+        "maximum": 0.2494623064994812
+      },
+      "norm_only_exact_kl": {
+        "mean": 9.897059499053285e-06,
+        "p95": 3.497896250337362e-05,
+        "maximum": 0.0004639625549316406
+      },
+      "total_exact_kl": {
+        "mean": 0.013035230338573456,
+        "p95": 0.02978319674730301,
+        "maximum": 0.2520860433578491
+      }
+    },
+    {
+      "learning_rate": 1e-06,
+      "initial_approx_kl": 3.998720785602927e-07,
+      "max_initial_logprob_difference": 0.010524749755859375,
+      "policy_loss": -0.005362147325649857,
+      "value_loss": 0.012470624316483736,
+      "approx_kl": 0.0040887147188186646,
+      "actor_updates": 20,
+      "critic_updates": 20,
+      "kl_stopped": false,
+      "optimizer_exact_kl": {
+        "mean": 0.004030235577374697,
+        "p95": 0.009457391686737537,
+        "maximum": 0.03054654598236084
+      },
+      "norm_only_exact_kl": {
+        "mean": 9.868173947324976e-06,
+        "p95": 3.451108932495117e-05,
+        "maximum": 0.00048285722732543945
+      },
+      "total_exact_kl": {
+        "mean": 0.0040269335731863976,
+        "p95": 0.009467791765928268,
+        "maximum": 0.02979046106338501
+      }
+    }
+  ],
+  "scope": "Identical native rollout and optimizer state; exact Gaussian old-to-new KL, no learning conclusion"
+}

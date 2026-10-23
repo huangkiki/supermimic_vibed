@@ -115,3 +115,20 @@ python -m experiments.ablation.compare_fidelity logs/ablation/paired-components 
 ```
 
 配对目录使用 `gradient-components-{full,state_only}-h{1,8,32}`。配对分析只在相同随机方向、相同尺度、两侧都resolved的交集上比较，另报各自覆盖率；CSV保留所有checkpoint、尺度与接触组。方向/尺度复用同一状态，不能作为独立随机种子。
+
+
+## PPO 更新尺度检查与真实轨迹
+
+当前正式模板保留探索矩阵的原始参数，不代表已经调优。Actor 可通过配置中的 `actor_lr` 独立于 `lr` 调整，缺省继承原值，两个学习率均写入训练 CSV。具体失败证据、固定批次 replay 和短程资格配置见 [PPO资格记录](ppo-qualification.md)。
+
+需要保存可视化证据时，用新的评估输出目录运行：
+
+```bash
+python -m experiments.ablation.evaluate --checkpoint "$CHECKPOINT" \
+  --output logs/ablation/recorded-eval --record
+MUJOCO_GL=egl python tools/render.py \
+  logs/ablation/recorded-eval/trajectory.npz logs/ablation/recorded-eval/walk.mp4 \
+  --clips walk1_subject1 --seconds 6 --title 'Physical evaluation'
+```
+
+录制初始状态及真实终止状态，终止后保持最后姿态，避免渲染抽帧时将已reset的姿态误作失败瞬间。记录/渲染成本单独披露，不混入没有录制的主比较曲线。`--record`不改变评估动作、终止或评分。

@@ -37,6 +37,7 @@ class Config:
     wm_only_iters: int = 50
     collect_steps: float = 2.5
     lr: float = 2e-4
+    actor_lr: float | None = None
     lr_decay_iters: int = 250000
     gamma: float = 0.99
     lam: float = 0.95
@@ -75,6 +76,8 @@ class Config:
         for key in ("lr", "initial_std", "collect_steps"):
             if not math.isfinite(getattr(self, key)) or getattr(self, key) <= 0:
                 raise ValueError(f"{key} must be finite and positive")
+        if self.actor_lr is not None and (not math.isfinite(self.actor_lr) or self.actor_lr <= 0):
+            raise ValueError("actor_lr must be finite and positive, or null to inherit lr")
         if "_frozen" in self.method and not self.bootstrap:
             raise ValueError("frozen methods require the SAME pretrain checkpoint")
         if self.method == "ppo_wm_frozen_hard" and self.ppo_wm_survival != "hard":
@@ -82,6 +85,22 @@ class Config:
         if self.method == "ppo_sim" and self.bootstrap:
             raise ValueError("PPO-Sim must not be charged for or load WM pretraining")
         return self
+
+
+def set_learning_rates(config, iteration, actor_optimizer, critic_optimizer, wm_optimizer=None):
+    """Schedule the actor independently; retain the original shared-rate default."""
+    if iteration < 1:
+        raise ValueError("iterations are one-based")
+    fraction = min((iteration - 1) / config.lr_decay_iters, 1.)
+    scale = .03 + .97 * .5 * (1 + math.cos(math.pi * fraction))
+    actor_base = config.lr if config.actor_lr is None else config.actor_lr
+    rates = {"lr": config.lr * scale, "actor_lr": actor_base * scale}
+    for optimizer, rate in ((actor_optimizer, rates["actor_lr"]),
+                            (critic_optimizer, rates["lr"]), (wm_optimizer, rates["lr"])):
+        if optimizer is not None:
+            for group in optimizer.param_groups:
+                group["lr"] = rate
+    return rates
 
 
 def sha256(path):

@@ -14,8 +14,9 @@ from .common import Config, append_csv, identity, motion_files, sha256, write_js
 
 
 @torch.no_grad()
-def evaluate(env, pi, mdp, motion, cfg):
+def evaluate(env, pi, mdp, motion, cfg, record=None):
     from supermimic.mdp import MAX_STEP_REWARD
+    from supermimic.rotations import mat_to_quat
     count = len(motion.names)
     ids = torch.arange(count, device="cuda:0")
     env.done_eval.zero_()
@@ -26,6 +27,23 @@ def evaluate(env, pi, mdp, motion, cfg):
     steps = torch.zeros(count, device="cuda:0", dtype=torch.long)
     history = None
     vector_steps = 0
+    trajectory = {key: [] for key in ("root_p", "root_quat", "q", "f", "alive")}
+
+    def record_state():
+        state = env.state()
+        values = dict(root_p=state[0], root_quat=mat_to_quat(state[1]), q=state[4],
+                      f=env.f, alive=~env.done_eval)
+        previous_alive = trajectory["alive"][-1] if trajectory["alive"] else None
+        for key, value in values.items():
+            snapshot = value.detach().cpu().clone()
+            # Hold each exact terminal pose, including when render stride skips
+            # that frame. Finished simulator slots may already have been reset.
+            if previous_alive is not None:
+                snapshot[~previous_alive] = trajectory[key][-1][~previous_alive]
+            trajectory[key].append(snapshot)
+
+    if record:
+        record_state()
     while not bool(env.done_eval.all()):
         obs = mdp.obs(env.state(), env.a_prev, env.xi, env.f)
         history = obs[:, None].repeat(1, cfg.hist, 1) if history is None else torch.cat((history[:, 1:], obs[:, None]), 1)
@@ -39,6 +57,10 @@ def evaluate(env, pi, mdp, motion, cfg):
         returns += torch.where(alive, out["r"], 0.)
         steps += alive.long()
         vector_steps += 1
+        # Save the actual terminal state BEFORE resetting finished slots. Renderers
+        # freeze at the first alive=False frame, so a failure cannot look like a reset.
+        if record:
+            record_state()
         # Keep all slots finite and in bounds after they finish. Flags/score stay latched.
         done_ids = env.done_eval.nonzero().flatten()
         if len(done_ids):
@@ -48,6 +70,13 @@ def evaluate(env, pi, mdp, motion, cfg):
     rows = [dict(motion=name, return_sum=float(returns[i]), normalized_return=float(norm[i]),
                  steps=int(steps[i]), reference_steps=int(motion.clip_len[i] - 1),
                  failed=bool(env.failed_eval[i])) for i, name in enumerate(motion.names)]
+    if record:
+        import numpy as np
+        np.savez_compressed(record, names=np.array(motion.names),
+                            **{key: torch.stack(values).numpy() for key, values in trajectory.items()},
+                            ref_root_p=motion.root_p.cpu().numpy(), ref_root_R=motion.root_R.cpu().numpy(),
+                            ref_q=motion.q.cpu().numpy(), clip_start=motion.clip_start.cpu().numpy(),
+                            clip_len=motion.clip_len.cpu().numpy())
     return dict(physical_return=float(norm.mean()),
                 frame_weighted_return=float(returns.sum() / ((motion.clip_len - 1).sum() * MAX_STEP_REWARD)),
                 tracking_failure_rate=float(env.failed_eval.float().mean()),
@@ -63,6 +92,7 @@ def main():
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--motion-dir")
+    parser.add_argument("--record", action="store_true", help="Save trajectory.npz for the existing tools/render.py")
     add_launcher_args(parser)
     args = parser.parse_args()
     output = Path(args.output)
@@ -104,7 +134,7 @@ def main():
     sim_cfg = make_sim("cuda:0", args)
     with launch_simulation(sim_cfg, args):
         env = TrackingSim(sim_cfg, len(files), motion, mdp, eval_mode=True)
-        score = evaluate(env, pi, mdp, motion, cfg)
+        score = evaluate(env, pi, mdp, motion, cfg, output / "trajectory.npz" if args.record else None)
         torch.cuda.synchronize()
         elapsed = time.perf_counter() - started
         for row in score.pop("per_clip"):
@@ -115,6 +145,7 @@ def main():
                       evaluation_manifest=evaluation_manifest,
                       evaluation_seconds=elapsed, evaluation_gpu_hours=elapsed / 3600,
                       evaluation_gpu=torch.cuda.get_device_name(0),
+                      trajectory_recorded=args.record,
                       protocol="native-full-clips-first-frame-fresh-process-v1", **score)
         write_json(output / "evaluation.json", result)
         print(json.dumps({k: v for k, v in result.items() if k != "manifest"}, allow_nan=False), flush=True)

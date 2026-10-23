@@ -2,7 +2,7 @@
 
 本PR已完成原生Smoke、100迭代单seed Pilot、4096规模资源资格和64状态探索性梯度诊断。尚无收敛后的三seed或40段结果；单seed4000迭代矩阵正在独立工作目录执行，14 GPU-hours上限。
 
-训练/Pilot固定提交555a051；初版数值探针e410334；配对full/state_only探针8d02575；长程运行器30739d2。原supermimic目录未修改。26项CPU回归测试及对应CI通过，原生状态/FK/reset资格通过。
+训练/Pilot固定提交555a051；初版数值探针e410334；配对full/state_only探针8d02575；长程运行器30739d2。原supermimic目录未修改。先前26项CPU回归测试及对应CI通过；新增独立Actor学习率后29项原生CPU测试通过，原生状态/FK/reset资格通过。
 
 ## 统一短程物理评估
 
@@ -12,6 +12,26 @@
 ![Costs](../../results/ablation/pilot-v1/compute-breakdown.png)
 
 [评估与完整成本CSV](../../results/ablation/pilot-v1/evaluations.csv)。冻结方法曲线各自计入全部预训练；实际campaign只执行一次共享pretrain。中间成本点为重建快照，最终点使用完整进程分配时间。单seed无标准差带。
+
+## 4000 迭代探索：PPO 基线尚未合格
+
+2026-10-23 22:23 快照：PPO-Sim 与在线 PPO-WM 已分别完成 4000 次迭代和 5 次独立物理评估；BPTT 与冻结条件仍在执行。硬件、18 段动作和评分协议一致。
+
+| 迭代 | PPO-Sim 物理 Return | 在线 PPO-WM 物理 Return |
+|---:|---:|---:|
+| 0 | 0.001492 | 0.001492 |
+| 1000 | 0.003371 | 0.001674 |
+| 2000 | 0.009728 | 0.001717 |
+| 3000 | 0.005257 | 0.002987 |
+| 4000 | 0.003055 | 0.001697 |
+
+每个点均 18/18 提前失败，不能把这些数值解释为算法排名。PPO-Sim 99.75% 迭代触发 KL 提前停止，通常只有少数 actor minibatch 更新。下一 minibatch 的停止不撤销上一步过大的更新。
+
+![探索长跑的部分物理曲线，PPO尚未合格](../../results/ablation/formal-seed0-partial/return-compute.png)
+
+[完整成本与评估 CSV](../../results/ablation/formal-seed0-partial/evaluations.csv)。这两条曲线只包含已完成方法；其他条件未完成，不补点。单 seed，无标准差带。
+
+在同一真实 PPO-Sim 批次与 Adam 状态上，仅将 actor 学习率 2e-4 改为 5e-6，更新后的整批精确 KL 从 0.832 降到 0.013，20 次 minibatch 更新完成；归一化更新单独产生的 KL 约 1e-5。该诊断支持步长失配，尚未证明学习效果已修复。代码新增独立 `actor_lr` 配置，缺省仍继承原 `lr`。[完整诊断、原始数据与复现命令](ppo-qualification.md)。
 
 ## 奖励项对梯度诊断的混杂
 

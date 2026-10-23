@@ -9,7 +9,6 @@ import argparse
 from contextlib import nullcontext
 from dataclasses import asdict
 import json
-import math
 from pathlib import Path
 import time
 
@@ -18,7 +17,7 @@ STARTED = time.perf_counter()
 import torch
 from torch import nn
 
-from .common import METHODS, Config, Ledger, append_csv, freeze, identity, motion_files, write_json
+from .common import METHODS, Config, Ledger, append_csv, freeze, identity, motion_files, set_learning_rates, write_json
 from .ppo import GaussianActor, gae, ppo_update
 
 
@@ -43,6 +42,7 @@ class Experiment:
                                        lr=cfg.lr, betas=(0.9, 0.95))
         self.opt_v = torch.optim.Adam(self.critic.parameters(), lr=cfg.lr)
         self.opt_wm = torch.optim.Adam(self.wm.parameters(), lr=cfg.lr) if self.wm and not self.frozen else None
+        set_learning_rates(cfg, 1, self.opt_pi, self.opt_v, self.opt_wm)
         self.buffer = ReplayBuffer(cfg.buffer_steps, cfg.num_envs, self.device) if self.wm else None
         self.history = torch.zeros(cfg.num_envs, cfg.hist, OBS_DIM, device=self.device)
         self.wm_rollout = torch.compile(self._wm_rollout) if cfg.compile else self._wm_rollout
@@ -362,12 +362,7 @@ def main():
             if time.perf_counter() - started >= cfg.max_wall_seconds:
                 status = "budget_exhausted"
                 break
-            fraction = min((i - 1) / cfg.lr_decay_iters, 1.)
-            lr = cfg.lr * (.03 + .97 * .5 * (1 + math.cos(math.pi * fraction)))
-            for optimizer in (experiment.opt_pi, experiment.opt_v, experiment.opt_wm):
-                if optimizer:
-                    for group in optimizer.param_groups:
-                        group["lr"] = lr
+            rates = set_learning_rates(cfg, i, experiment.opt_pi, experiment.opt_v, experiment.opt_wm)
             wm_loss = None
             result = dict(policy_loss=None, value_loss=None, approx_kl=None, actor_updates=0, critic_updates=0, kl_stopped=False)
             if cfg.method == "ppo_sim":
@@ -382,7 +377,7 @@ def main():
                 if cfg.method != "pretrain" and (cfg.bootstrap or experiment.frozen or i > cfg.wm_only_iters):
                     result = experiment.optimize_imagined()
             completed = i
-            row = dict(iteration=i, method=cfg.method, seed=cfg.seed, lr=lr, wm_loss=wm_loss, **result, **ledger.snapshot())
+            row = dict(iteration=i, method=cfg.method, seed=cfg.seed, **rates, wm_loss=wm_loss, **result, **ledger.snapshot())
             append_csv(output / "train.csv", row)
             print(json.dumps(row, allow_nan=False), flush=True)
             if i % cfg.checkpoint_every == 0:

@@ -1,5 +1,9 @@
 # SuperMimic reproduction on Isaac Lab 3 (kit-less, MuJoCo-Warp)
 
+[中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md)
+
+The added ablation experiments are separate from the original author-reported reproduction below. Their short pilot policies still fail tracking; they do not establish an efficiency ranking.
+
 **Unofficial** reproduction of *SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
 Model* (arXiv 2610.28480) — no official code is released, so everything here is implemented from
 the paper. Target experiment: the controlled LAFAN1 comparison (Fig. 4a): 40 G1-retargeted LAFAN1
