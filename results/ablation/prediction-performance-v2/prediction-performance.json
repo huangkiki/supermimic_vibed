@@ -1,0 +1,58 @@
+[
+  {
+    "checkpoint_sha256": "4251caa57a232da9f7c845fa846bbdc865b57a979f8935cc5dca25a511dbf36b",
+    "method": "supermimic",
+    "seed": 0,
+    "iteration": 25,
+    "physical_return": 0.0014918406959623098,
+    "tracking_failure_rate": 1.0,
+    "evaluation_repeats": 1,
+    "evaluation_return_std": null,
+    "mse1": 0.08262260683113709,
+    "mse8": 0.05192811574670486,
+    "mse16": 0.1172238893341273,
+    "mse32": 0.23442744396743365
+  },
+  {
+    "checkpoint_sha256": "ec27cda68bd797fdd43bc59a22245ba172629765d4a0d1a3fbffa9faab570436",
+    "method": "supermimic",
+    "seed": 0,
+    "iteration": 50,
+    "physical_return": 0.001372185186482966,
+    "tracking_failure_rate": 1.0,
+    "evaluation_repeats": 1,
+    "evaluation_return_std": null,
+    "mse1": 0.07194989177514799,
+    "mse8": 0.03967255605675746,
+    "mse16": 0.10633909593161661,
+    "mse32": 0.22508195810951293
+  },
+  {
+    "checkpoint_sha256": "63215a6af5e5cfd60f3378e3fa13050397b8decea8b9df7848cc6767b991b27d",
+    "method": "supermimic",
+    "seed": 0,
+    "iteration": 75,
+    "physical_return": 0.001415008562617004,
+    "tracking_failure_rate": 1.0,
+    "evaluation_repeats": 1,
+    "evaluation_return_std": null,
+    "mse1": 0.06340180485858582,
+    "mse8": 0.02802365753086633,
+    "mse16": 0.08812672224303242,
+    "mse32": 0.22985395052819513
+  },
+  {
+    "checkpoint_sha256": "2eb25048229d20bf6d91a51d7bd660633e6af45cbe2eda1dc4089b2c9542af2a",
+    "method": "supermimic",
+    "seed": 0,
+    "iteration": 100,
+    "physical_return": 0.001462819636799395,
+    "tracking_failure_rate": 1.0,
+    "evaluation_repeats": 1,
+    "evaluation_return_std": null,
+    "mse1": 0.054347163924830966,
+    "mse8": 0.018968420266901376,
+    "mse16": 0.0765592174284393,
+    "mse32": 0.2934959142439766
+  }
+]

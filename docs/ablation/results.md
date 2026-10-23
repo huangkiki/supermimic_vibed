@@ -71,3 +71,13 @@ H32、ε=.03沿full奖励WM梯度微步的真实硬物理累计回报平均改�
 ```bash
 python results/ablation/policy-bank-smoke-v1/reproduce.py /path/to/policy-bank-smoke-v1
 ```
+
+## Prediction Error与物理表现的重复评估汇总
+
+修复了绘图入口按checkpoint覆盖复评、只取最后一条Return的问题。实际Matplotlib入口回归测试中，三次Return为0.2/0.4/0.9，旧输出0.9，修复后均值0.5、样本标准差0.360555，缺失第三次复评时拒绝绘图；46项CPU测试通过。该修复不改变已有单次评估的物理分数。
+
+已有欠训练Pilot四个WM checkpoint重新生成1/8/16/32步误差与物理Return的关联图。每点只有一次旧协议评估，标准差明确为空；没有补造复评或训练seed。图中物理表现仍接近失败下限，不能用四个相关checkpoint推断MSE的因果作用。
+
+![四时域误差与物理表现](../../results/ablation/prediction-performance-v2/prediction-performance.png)
+
+[逐点CSV](../../results/ablation/prediction-performance-v2/prediction-performance.csv) · [分析输入收据](../../results/ablation/prediction-performance-v2/analysis-receipt.json)。

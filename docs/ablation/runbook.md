@@ -103,6 +103,8 @@ python -m experiments.ablation.plot_fidelity logs/ablation/fidelity-smoke-v1 \
 python -m experiments.ablation.validate_fidelity logs/ablation/fidelity-smoke-v1
 ```
 
+若使用三次复评，将`--evaluations`改为`.../ckpt_*/repeat_*/evaluation.json`，必须提供每个被探测WM checkpoint的全部复评。该入口复用统一物理分析的GPU/数据/协议与重复完整性检查；先按checkpoint求Return均值和样本标准差，再与固定库的1/8/16/32步误差关联。`prediction-performance.csv/json`保存均值、复评次数、评估标准差、训练seed和各时域MSE；单次评估的标准差为空。图上的误差棒是checkpoint内部复评波动，不是多个训练seed的误差棒。
+
 每轮campaign运行期间保持源码和配置不变；runner会在每个进程前核验快照并拒绝继续混用代码版本。修改后必须新建campaign目录。安装/资产资格、被排除的运行和独立gradient probe分别保留成本，不塞进某个方法的训练收益。
 
 ## 实测预算与配对梯度统计

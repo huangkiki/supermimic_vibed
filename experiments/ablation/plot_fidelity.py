@@ -6,6 +6,33 @@ import json
 from pathlib import Path
 import numpy as np
 
+from .analyze import collect_records, save_csv
+
+
+def checkpoint_associations(prediction, evaluation_paths):
+    """Match checkpoint bytes and aggregate complete physical-evaluation repeats."""
+    hashes = list(dict.fromkeys(row["checkpoint_sha256"] for row in prediction))
+    matched_paths = [path for path in evaluation_paths
+                     if json.loads(Path(path).read_text())["checkpoint_sha256"] in hashes]
+    if not matched_paths:
+        raise ValueError("Missing physical evaluations for the probed WM checkpoints")
+    evaluated = {row["checkpoint_sha256"]: row for row in collect_records(matched_paths)}
+    if set(evaluated) != set(hashes):
+        raise ValueError("Missing physical evaluations for some probed WM checkpoints")
+    result = []
+    for sha in hashes:
+        row = {key: evaluated[sha][key] for key in (
+            "checkpoint_sha256", "method", "seed", "iteration", "physical_return",
+            "tracking_failure_rate", "evaluation_repeats", "evaluation_return_std")}
+        for horizon in (1, 8, 16, 32):
+            errors = [float(r["scaled_mse"]) for r in prediction
+                      if r["checkpoint_sha256"] == sha and int(r["horizon"]) == horizon]
+            if not errors or not np.isfinite(errors).all() or min(errors) < 0:
+                raise ValueError(f"Missing or invalid {horizon}-step prediction errors")
+            row[f"mse{horizon}"] = float(np.mean(errors))
+        result.append(row)
+    return result
+
 
 def main():
     parser = argparse.ArgumentParser(__doc__)
@@ -18,6 +45,7 @@ def main():
     gradient = list(csv.DictReader((root / "gradient.csv").open()))
     if not prediction or not gradient:
         raise ValueError("No real probe measurements to plot")
+    associations = checkpoint_associations(prediction, args.evaluations) if args.evaluations else []
     horizons = {int(r.get("gradient_horizon", 32)) for r in gradient}
     if len(horizons) != 1:
         raise ValueError("Gradient horizons define different objectives; plot them separately")
@@ -110,25 +138,31 @@ def main():
                  f"{receipt['args']['directions']} random directions; {reward_objective} reward, no critic")
     fig.savefig(output / "prediction-gradient.png", dpi=180)
     fig.savefig(output / "prediction-gradient.svg")
-    if args.evaluations:
-        evaluation = {r["checkpoint_sha256"]: r for path in args.evaluations for r in [json.loads(Path(path).read_text())]}
-        fig, ax = plt.subplots(figsize=(6, 4.5), layout="constrained")
-        matched = []
-        for sha in hashes:
-            if sha not in evaluation:
-                continue
-            mse = np.mean([float(r["scaled_mse"]) for r in prediction if r["checkpoint_sha256"] == sha and int(r["horizon"]) == 32])
-            score = evaluation[sha]["physical_return"]
-            ax.scatter(mse, score, color=colors[sha])
-            ax.annotate(sha[:8], (mse, score), fontsize=8)
-            matched.append(dict(checkpoint_sha256=sha, mse32=float(mse), physical_return=score))
-        if matched:
-            ax.set(xlabel="32-step fixed-bank state MSE", ylabel="Full-clip physical evaluation return",
-                   ylim=(min(0., min(r["physical_return"] for r in matched)),
-                         max(1., max(r["physical_return"] for r in matched))),
-                   title="Observational checkpoint association (not causality)")
-            fig.savefig(output / "prediction-performance.png", dpi=180)
-            (output / "prediction-performance.json").write_text(json.dumps(matched, indent=2) + "\n")
+    plt.close(fig)
+    if associations:
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8), layout="constrained")
+        lower = min(0., min(r["physical_return"] - (r["evaluation_return_std"] or 0.) for r in associations))
+        upper = max(1., max(r["physical_return"] + (r["evaluation_return_std"] or 0.) for r in associations))
+        for ax, horizon in zip(axes.flat, (1, 8, 16, 32)):
+            for row in associations:
+                sha = row["checkpoint_sha256"]
+                ax.errorbar(row[f"mse{horizon}"], row["physical_return"],
+                            yerr=row["evaluation_return_std"], fmt="o", capsize=3, color=colors[sha],
+                            label=f"it {row['iteration']} / {sha[:8]}")
+            ax.set(xlabel=f"{horizon}-step fixed-bank state MSE", ylabel="Full-clip physical evaluation return",
+                   ylim=(lower, upper))
+            ax.margins(x=.1)
+            ax.grid(alpha=.2)
+        axes[0, 0].legend(title="Checkpoint iteration / SHA", fontsize=8)
+        uncertainty = ("Mean and within-checkpoint evaluation SD; repeats are not training seeds"
+                       if all(r["evaluation_repeats"] > 1 for r in associations)
+                       else "One evaluation per checkpoint; evaluation SD unavailable")
+        fig.suptitle("Observational checkpoint association (not causality)\n"
+                     + uncertainty)
+        fig.savefig(output / "prediction-performance.png", dpi=180)
+        plt.close(fig)
+        (output / "prediction-performance.json").write_text(json.dumps(associations, indent=2, allow_nan=False) + "\n")
+        save_csv(output / "prediction-performance.csv", associations)
 
 
 if __name__ == "__main__":

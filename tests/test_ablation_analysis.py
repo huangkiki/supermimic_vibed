@@ -1,3 +1,4 @@
+import csv
 import json
 from pathlib import Path
 import tempfile
@@ -5,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from experiments.ablation.analyze import aggregate_curves, collect_records, main
+from experiments.ablation.plot_fidelity import main as fidelity_main
 
 
 def evaluation(seed=0, iteration=1):
@@ -20,6 +22,58 @@ def evaluation(seed=0, iteration=1):
 
 
 class AnalysisTests(unittest.TestCase):
+    def plot_prediction_performance(self, root, repeat_count):
+        probe = root / 'probe'
+        probe.mkdir()
+        record = evaluation()
+        sha = record['checkpoint_sha256']
+        (probe / 'probe.json').write_text(json.dumps(dict(
+            checkpoint_sha256={'ckpt_000001.pt': sha}, args=dict(samples=1, directions=1))))
+        tables = {
+            'prediction.csv': [dict(checkpoint_sha256=sha, sample=0, horizon=h, scaled_mse=.01 * h)
+                               for h in (1, 8, 16, 32)],
+            'gradient.csv': [dict(checkpoint_sha256=sha, gradient_horizon=1, reward_objective='full',
+                                  contact_group_level='body', contact_group='stable_contact',
+                                  objective=objective, direction_type=direction, resolved=True,
+                                  fd_derivative=1., predicted_derivative=1., epsilon=.01,
+                                  initial_state_max_drift=0., improvement=.01)
+                             for objective in ('hard', 'soft')
+                             for direction in ('wm_gradient', 'random_unit_l2')],
+        }
+        for name, rows in tables.items():
+            with (probe / name).open('w') as stream:
+                writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+                writer.writeheader()
+                writer.writerows(rows)
+        paths = []
+        for repeat, score in enumerate((.2, .4, .9)[:repeat_count]):
+            record = evaluation()
+            record.update(evaluation_repeat_index=repeat, evaluation_repeat_count=3, physical_return=score)
+            path = root / f'eval{repeat}.json'
+            path.write_text(json.dumps(record))
+            paths.append(str(path))
+        output = root / 'plots'
+        with patch('sys.argv', ['plot_fidelity', str(probe), '--output', str(output), '--evaluations', *paths]):
+            fidelity_main()
+        return output
+
+    def test_prediction_performance_plot_uses_all_repeats_not_the_last_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = self.plot_prediction_performance(Path(directory), 3)
+            row, = json.loads((output / 'prediction-performance.json').read_text())
+            self.assertAlmostEqual(row['physical_return'], .5)
+            self.assertAlmostEqual(row['evaluation_return_std'], .36055512754639896)
+            self.assertEqual(row['evaluation_repeats'], 3)
+            self.assertEqual(row['seed'], 0)
+            for horizon in (1, 8, 16, 32):
+                self.assertAlmostEqual(row[f'mse{horizon}'], .01 * horizon)
+            self.assertTrue((output / 'prediction-performance.png').is_file())
+
+    def test_prediction_performance_plot_rejects_missing_repeats(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, 'Missing'):
+                self.plot_prediction_performance(Path(directory), 2)
+
     def test_plot_entrypoint_reports_raw_repeat_count_after_plotting(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
