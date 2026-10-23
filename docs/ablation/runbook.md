@@ -22,6 +22,8 @@ python -m experiments.ablation.run_suite \
 
 Smoke沿用完整网络、原生仿真器和完整18段评估，只将训练批量、迭代数和imagination horizon降到小规模（H=4）；不据此评价效果。各条件3次迭代，预训练1次；各方法初始/最终checkpoint物理评估。它必须验证代码分支都执行、参数确实更新、冻结WM不变、所有指标有限，不要求能跟踪动作。
 
+共7次训练进程：1次独立pretrain、PPO-Sim、在线PPO-WM、SuperMimic、硬终止冻结PPO-WM，以及软终止的冻结PPO/BPTT配对。每个seed完整执行6种policy条件，不把不同终止目标的配对混为同一机制实验。
+
 输出目录禁止覆盖；失败日志保留。检查 `campaign.json`/每个 `completion.json`，有失败或达到预算不自动无限重试。
 
 ## H=32 短程曲线

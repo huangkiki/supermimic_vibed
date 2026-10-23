@@ -111,7 +111,7 @@ def main():
     fig, axes = plt.subplots(1, 3, figsize=(16, 4.6), layout="constrained")
     aggregate = []
     palette = dict(ppo_sim="#4477AA", ppo_wm_online="#EE6677", supermimic="#228833",
-                   ppo_wm_frozen="#AA3377", bptt_wm_frozen="#CCBB44")
+                   ppo_wm_frozen="#AA3377", bptt_wm_frozen="#CCBB44", ppo_wm_frozen_hard="#66CCEE")
     for ax, x_key, label, scale in zip(axes,
             ("end_to_end_seconds", "total_gpu_hours", "simulator_steps"),
             ("End-to-end wall-clock (minutes)", "Total allocated GPU-hours", "Training simulator steps"),

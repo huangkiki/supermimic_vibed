@@ -18,7 +18,7 @@ STARTED = time.perf_counter()
 import torch
 from torch import nn
 
-from .common import Config, Ledger, append_csv, freeze, identity, motion_files, write_json
+from .common import METHODS, Config, Ledger, append_csv, freeze, identity, motion_files, write_json
 from .ppo import GaussianActor, gae, ppo_update
 
 
@@ -38,7 +38,7 @@ class Experiment:
         torch.manual_seed(cfg.seed + 333)
         self.critic = Critic(INV_DIM + CRITIC_EXTRA + 73 * cfg.goal_frames).to(self.device)
         self.ppo = cfg.method.startswith("ppo")
-        self.frozen = cfg.method.endswith("_frozen")
+        self.frozen = "_frozen" in cfg.method
         self.opt_pi = torch.optim.Adam(self.actor.parameters() if self.ppo else self.pi.parameters(),
                                        lr=cfg.lr, betas=(0.9, 0.95))
         self.opt_v = torch.optim.Adam(self.critic.parameters(), lr=cfg.lr)
@@ -307,7 +307,7 @@ def main():
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("--config", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--method", choices=("ppo_sim", "ppo_wm_frozen", "ppo_wm_online", "supermimic", "bptt_wm_frozen", "pretrain"))
+    parser.add_argument("--method", choices=METHODS)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--bootstrap")
     add_launcher_args(parser)
@@ -338,7 +338,7 @@ def main():
     kin = G1Kinematics("cuda:0")
     motion = MotionLib([str(p) for p in motion_files(cfg)], kin, "cuda:0")
     mdp = MDP(kin, motion, torch.tensor(default_joint_pos_list(), device="cuda:0"))
-    frozen = cfg.method.endswith("_frozen")
+    frozen = "_frozen" in cfg.method
     sim_cfg = None if frozen else make_sim("cuda:0", args)
     context = nullcontext() if frozen else launch_simulation(sim_cfg, args)
     with context:

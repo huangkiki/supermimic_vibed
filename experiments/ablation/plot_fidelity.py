@@ -42,17 +42,22 @@ def main():
     axes[0, 1].set(xlabel="Simulator central FD (resolved scales)", ylabel="WM directional derivative", title="Matched soft objective; FD is a numerical reference")
     groups = sorted({r["contact_group"] for r in gradient})
     epsilons = sorted({float(r["epsilon"]) for r in gradient})
-    # A separate point for each scale; do not pool correlated epsilon repeats into n.
-    for i, label in enumerate(groups):
-        for j, eps in enumerate(epsilons):
-            rows = [r for r in gradient if r["contact_group"] == label and float(r["epsilon"]) == eps and r["objective"] == "hard" and r["direction_type"] == "random_unit_l2" and r["resolved"] == "True"]
-            if rows:
-                signs = [np.sign(float(r["fd_derivative"])) == np.sign(float(r["predicted_derivative"])) for r in rows]
-                axes[1, 0].scatter(i + (j - (len(epsilons) - 1) / 2) * .12, np.mean(signs),
-                                   label=f"eps={eps:g}" if i == 0 else None)
-    axes[1, 0].set(xticks=range(len(groups)), xticklabels=groups, ylim=(0, 1.05),
+    # Each checkpoint/group/scale is distinct; repeated banks are not independent samples.
+    for sha in hashes:
+        for i, label in enumerate(groups):
+            x, y = [], []
+            for eps in epsilons:
+                rows = [r for r in gradient if r["checkpoint_sha256"] == sha and r["contact_group"] == label and float(r["epsilon"]) == eps and r["objective"] == "hard" and r["direction_type"] == "random_unit_l2" and r["resolved"] == "True"]
+                if rows:
+                    x.append(eps)
+                    y.append(np.mean([np.sign(float(r["fd_derivative"])) == np.sign(float(r["predicted_derivative"])) for r in rows]))
+            if x:
+                axes[1, 0].plot(x, y, color=colors[sha], marker=("o", "s", "^")[i % 3],
+                                linestyle=("-", "--", ":")[i % 3], label=f"{sha[:8]} / {label}")
+    axes[1, 0].set(xlabel="Perturbation scale", xscale="log", ylim=(0, 1.05),
                    ylabel="Sign agreement (resolved only)", title="Hard physical objective, contact groups")
-    axes[1, 0].legend(fontsize=8)
+    if axes[1, 0].get_legend_handles_labels()[0]:
+        axes[1, 0].legend(fontsize=7)
     for sha in hashes:
         means = []
         for eps in epsilons:

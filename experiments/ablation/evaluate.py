@@ -10,7 +10,7 @@ STARTED = time.perf_counter()
 
 import torch
 
-from .common import Config, append_csv, motion_files, sha256, write_json
+from .common import Config, append_csv, identity, motion_files, sha256, write_json
 
 
 @torch.no_grad()
@@ -86,7 +86,15 @@ def main():
     torch.set_num_threads(4)
     torch.manual_seed(0)
     torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
     networks.AMP_DTYPE = torch.bfloat16 if cfg.amp == "bf16" else None
+    evaluation_manifest = identity(cfg, hash_bootstrap=False)
+    for key in ("assets", "packages", "torch", "cuda"):
+        if evaluation_manifest[key] != checkpoint["manifest"][key]:
+            raise ValueError(f"Evaluation environment differs from training: {key}")
+    for name, digest in evaluation_manifest["source_hashes"].items():
+        if name.startswith("supermimic/") and digest != checkpoint["manifest"]["source_hashes"][name]:
+            raise ValueError(f"Evaluation core source differs from training: {name}")
     kin = G1Kinematics("cuda:0")
     motion = MotionLib([str(p) for p in files], kin, "cuda:0")
     mdp = MDP(kin, motion, torch.tensor(default_joint_pos_list(), device="cuda:0"))
@@ -104,6 +112,7 @@ def main():
         result = dict(method=cfg.method, seed=cfg.seed, iteration=checkpoint["iteration"],
                       subset=cfg.subset, checkpoint_sha256=sha256(args.checkpoint),
                       manifest=checkpoint["manifest"], train_ledger=checkpoint["ledger"],
+                      evaluation_manifest=evaluation_manifest,
                       evaluation_seconds=elapsed, evaluation_gpu_hours=elapsed / 3600,
                       evaluation_gpu=torch.cuda.get_device_name(0),
                       protocol="native-full-clips-first-frame-fresh-process-v1", **score)

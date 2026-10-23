@@ -15,7 +15,7 @@ import time
 import torch
 
 
-METHODS = ("ppo_sim", "ppo_wm_frozen", "ppo_wm_online", "supermimic", "bptt_wm_frozen", "pretrain")
+METHODS = ("ppo_sim", "ppo_wm_frozen", "ppo_wm_frozen_hard", "ppo_wm_online", "supermimic", "bptt_wm_frozen", "pretrain")
 
 
 @dataclass
@@ -75,8 +75,10 @@ class Config:
         for key in ("lr", "initial_std", "collect_steps"):
             if not math.isfinite(getattr(self, key)) or getattr(self, key) <= 0:
                 raise ValueError(f"{key} must be finite and positive")
-        if self.method.endswith("_frozen") and not self.bootstrap:
+        if "_frozen" in self.method and not self.bootstrap:
             raise ValueError("frozen methods require the SAME pretrain checkpoint")
+        if self.method == "ppo_wm_frozen_hard" and self.ppo_wm_survival != "hard":
+            raise ValueError("hard frozen comparator must use hard termination")
         if self.method == "ppo_sim" and self.bootstrap:
             raise ValueError("PPO-Sim must not be charged for or load WM pretraining")
         return self
@@ -98,7 +100,7 @@ def motion_files(config):
     return files
 
 
-def identity(config):
+def identity(config, *, hash_bootstrap=True):
     files = motion_files(config)
     root = Path(__file__).resolve().parents[2]
     sources = sorted(p for folder in ("supermimic", "experiments/ablation")
@@ -114,7 +116,7 @@ def identity(config):
         "cuda": torch.version.cuda, "gpu_count": 1,
         "packages": {name: importlib.metadata.version(name) for name in
                      ("mujoco", "mujoco-warp", "warp-lang", "newton", "isaaclab", "isaaclab-newton")},
-        "bootstrap_sha256": sha256(config.bootstrap) if config.bootstrap else None,
+        "bootstrap_sha256": sha256(config.bootstrap) if config.bootstrap and hash_bootstrap else None,
         "evaluation": "native-full-clips-first-frame-fresh-process-v1",
     }
 

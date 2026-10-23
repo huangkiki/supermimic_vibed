@@ -31,15 +31,15 @@
 - A `ppo_sim`：原生 MuJoCo-Warp 物理 rollout，PPO+GAE。没有 WM 训练开销。
 - B1 `ppo_wm_online`：持续物理采集、WM 更新、imagined PPO；策略阶段完全 no-grad 穿过 WM。默认使用与物理 PPO 相同的硬终止阈值。
 - C `supermimic`：原生 collect→fit WM→BPTT+Critic；保留 H=32、软生存权重和 bootstrap。
-- B2 `ppo_wm_frozen`：完整计入独立 pretrain 的采集/拟合成本；后续不再采物理训练数据、不改 WM 或其归一化。
+- B2 `ppo_wm_frozen_hard`：硬终止与PPO-Sim一致。完整计入独立 pretrain 的采集/拟合成本；后续不再采物理训练数据、不改 WM 或其归一化。
 
 系统比较报告完整实现的效率。BPTT 的软终止、PPO 的随机动作、Dyna replay starts 与 PPO-Sim 连续 rollout 等差异仍存在，不能把系统差值全部归因于某一个因素。
 
 ### 相同 WM 的优化器机制比较
 
-辅助条件 `bptt_wm_frozen` 与 `ppo_wm_frozen` 加载**相同 seed 的同一 bootstrap.pt**，共享 WM、其归一化、replay、初始 deterministic mean、critic、H、goal/history、reward 和软生存权重。两者各自更新 policy/critic；policy rollout 没有进入 WM 的参数更新。
+另行运行的辅助条件 `bptt_wm_frozen` 与 `ppo_wm_frozen`（soft） 加载**相同 seed 的同一 bootstrap.pt**，共享 WM、其归一化、replay、初始 deterministic mean、critic、H、goal/history、reward 和软生存权重。两者各自更新 policy/critic；policy rollout 没有进入 WM 的参数更新。
 
-该配对的主要剩余差异是策略优化器与随机/确定性动作。它估计冻结模型下的算法收益，不与在线 WM 的成本混算。需要硬终止敏感性实验时，将 PPO 配置的 `ppo_wm_survival` 改为 `hard`，另开实验组，不能混入同目标机制曲线。
+该配对的主要剩余差异是策略优化器与随机/确定性动作。它估计冻结模型下的算法收益，不与在线 WM 的成本混算。单独的 `ppo_wm_frozen_hard` 条件用于硬终止敏感性分析，不能混入同目标机制曲线。
 
 PPO 用未裁剪 Normal(mean, exp(log_std))，记录真正采样动作的 log-prob。执行器原有物理限幅继续生效。初始 std=0.1 是为与原 WM 采集噪声对齐的实验选择，**不是已验证最优的 PPO 设置**；必要时对0.1/0.3/1.0、clip/epoch/KL 做等预算开发集敏感性试验。所有主网络宽度不变。PPO actor/critic 与对应 BPTT 使用相同学习率、critic 轮次、gamma/lambda；PPO新增 clipping、KL停止和可配置 entropy。
 

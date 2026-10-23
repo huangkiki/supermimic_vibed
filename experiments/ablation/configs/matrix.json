@@ -11,7 +11,8 @@
   "main_methods": [
     "ppo_sim",
     "ppo_wm_online",
-    "supermimic"
+    "supermimic",
+    "ppo_wm_frozen_hard"
   ],
   "frozen_pair": [
     "ppo_wm_frozen",

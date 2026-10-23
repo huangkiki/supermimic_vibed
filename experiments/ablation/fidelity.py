@@ -190,12 +190,16 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                 if initial_drift[n] > 1e-5:
                     resolved[:] = False
                 for j, (eps, plus, minus) in enumerate(measurements):
+                    drift = max(float(initial_drift[n]),
+                                float((plus["states"][0, n] - bank["state"][n]).abs().max()),
+                                float((minus["states"][0, n] - bank["state"][n]).abs().max()))
+                    resolved[j] = resolved[j] and drift <= 1e-5
                     row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n],
                                contact_group=group[n], initial_contact_group=initial_group[n], direction=direction_id,
                                direction_type="wm_gradient" if direction_id == directions else "random_unit_l2",
                                epsilon=eps, objective=kind, predicted_derivative=float(predicted[n]),
                                fd_derivative=float(derivatives[j, n]), resolved=bool(resolved[j]),
-                               repeat_return_noise=float(noise[kind][n]), initial_state_max_drift=float(initial_drift[n]),
+                               repeat_return_noise=float(noise[kind][n]), initial_state_max_drift=drift,
                                baseline_return=float(baseline[key][n]), positive_return=float(plus[key][n]),
                                negative_return=float(minus[key][n]), improvement=float(plus[key][n] - baseline[key][n]))
                     append_csv(output / "gradient.csv", row)

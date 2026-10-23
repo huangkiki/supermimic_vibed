@@ -111,11 +111,11 @@ def main():
     try:
         configs = Path(__file__).parent / "configs"
         for seed in args.seeds:
-            for method in ("pretrain", "ppo_sim", "ppo_wm_online", "supermimic", "ppo_wm_frozen", "bptt_wm_frozen"):
+            for method in ("pretrain", "ppo_sim", "ppo_wm_online", "supermimic", "ppo_wm_frozen_hard", "ppo_wm_frozen", "bptt_wm_frozen"):
                 run = output / f"{method}-seed{seed}"
                 raw = json.loads((configs / f"{args.phase}-{method}.json").read_text())
                 raw.update(seed=seed, subset=args.subset)
-                if method.endswith("_frozen"):
+                if "_frozen" in method:
                     raw["bootstrap"] = str(output / f"pretrain-seed{seed}" / "bootstrap.pt")
                 config_path = output / f"{method}-seed{seed}.json"
                 config_path.write_text(json.dumps(raw, indent=2) + "\n")

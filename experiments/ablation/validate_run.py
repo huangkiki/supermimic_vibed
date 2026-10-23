@@ -37,7 +37,7 @@ def main():
             for name, value in row.items():
                 if name not in ("method", "kl_stopped") and value:
                     assert math.isfinite(float(value)), (run, name, value)
-        if cfg["method"].endswith("_frozen"):
+        if "_frozen" in cfg["method"]:
             bootstrap = torch.load(cfg["bootstrap"], map_location="cpu", weights_only=False)
             assert all(torch.equal(value, last["wm"][key]) for key, value in bootstrap["wm"].items()), "frozen WM changed"
             assert last["ledger"]["simulator_steps"] == first["ledger"]["simulator_steps"]
