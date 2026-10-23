@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from experiments.ablation.recover_evaluations import file_hash, recovery_plan
+from experiments.ablation.recover_evaluations import file_hash, prepare_job, recovery_plan
 from experiments.ablation.run_suite import source_snapshot
 
 
@@ -73,6 +73,105 @@ class RecoveryTests(unittest.TestCase):
                 (root / 'campaign.json').write_text(json.dumps(campaign))
                 with self.assertRaises(ValueError):
                     recovery_plan(root, repo)
+
+    def unstarted_fixture(self, directory):
+        repo, root, campaign = self.fixture(directory)
+        configs = repo / 'experiments/ablation/configs'
+        configs.mkdir()
+        config = dict(iterations=1, checkpoint_every=1, seed=0, subset='locomotion')
+        for method in ('ppo_sim', 'ppo_wm_online'):
+            (configs / f'formal-{method}.json').write_text(json.dumps(config))
+        (root / 'ppo_sim-seed0.json').write_text(json.dumps(config))
+        campaign['args'].update(phase='formal', subset='locomotion', methods=['ppo_sim', 'ppo_wm_online'])
+        campaign['source_hashes'] = source_snapshot(repo)
+        (root / 'campaign.json').write_text(json.dumps(campaign))
+        return repo, root, campaign
+
+    def test_unstarted_training_requires_explicit_option_and_preserves_original_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo, root, original = self.unstarted_fixture(directory)
+            with self.assertRaises(ValueError):
+                recovery_plan(root, repo)
+            campaign, jobs = recovery_plan(root, repo, include_unstarted_training=True)
+            self.assertEqual(len(jobs), 8)  # Three old evaluations, one new training, four new evaluations.
+            training = [job for job in jobs if 'training_config' in job]
+            self.assertEqual(len(training), 1)
+            self.assertEqual(campaign, original)
+            self.assertFalse(training[0]['config_path'].exists())  # Dry planning has no writes.
+            prepare_job(training[0])
+            self.assertEqual(json.loads(training[0]['config_path'].read_text()), training[0]['training_config'])
+
+    def test_unstarted_option_rejects_any_evidence_of_prior_training_or_config_changes(self):
+        for artifact in ('directory', 'log', 'memory', 'config', 'old_config'):
+            with self.subTest(artifact=artifact), tempfile.TemporaryDirectory() as directory:
+                repo, root, _ = self.unstarted_fixture(directory)
+                if artifact == 'directory':
+                    (root / 'ppo_wm_online-seed0').mkdir()
+                elif artifact in ('log', 'memory'):
+                    suffix = '.log' if artifact == 'log' else '.gpu-memory.csv'
+                    (root / f'ppo_wm_online-seed0-train{suffix}').write_text('previous work')
+                else:
+                    method = 'ppo_sim' if artifact == 'old_config' else 'ppo_wm_online'
+                    (root / f'{method}-seed0.json').write_text('{}')
+                with self.assertRaises(ValueError):
+                    recovery_plan(root, repo, include_unstarted_training=True)
+
+    def test_job_inputs_are_rechecked_after_planning(self):
+        for mutation in ('checkpoint', 'training_output', 'training_config'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                repo, root, _ = self.unstarted_fixture(directory)
+                _, jobs = recovery_plan(root, repo, include_unstarted_training=True)
+                if mutation == 'checkpoint':
+                    job = jobs[0]
+                    job['checkpoint'].write_bytes(b'changed after planning')
+                else:
+                    job = next(job for job in jobs if 'training_config' in job)
+                    if mutation == 'training_output':
+                        job['cache'].parent.mkdir()
+                    else:
+                        job['config_path'].write_text('{}')
+                with self.assertRaises(ValueError):
+                    prepare_job(job)
+
+    def test_unstarted_evaluation_cannot_run_before_training_completes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo, root, _ = self.unstarted_fixture(directory)
+            _, jobs = recovery_plan(root, repo, include_unstarted_training=True)
+            job = jobs[-1]
+            run = job['checkpoint'].parent
+            run.mkdir()
+            job['checkpoint'].write_bytes(b'partial checkpoint')
+            (run / 'completion.json').write_text(json.dumps(dict(status='budget_reached', iterations=0)))
+            with self.assertRaises(ValueError):
+                prepare_job(job)
+
+    def test_frozen_recovery_pins_the_existing_bootstrap_and_its_paid_pretraining(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo, root, campaign = self.unstarted_fixture(directory)
+            config = dict(iterations=1, checkpoint_every=1, seed=0, subset='locomotion')
+            for method in ('pretrain', 'bptt_wm_frozen'):
+                (repo / f'experiments/ablation/configs/formal-{method}.json').write_text(json.dumps(config))
+            run = root / 'pretrain-seed0'
+            run.mkdir()
+            bootstrap = run / 'bootstrap.pt'
+            bootstrap.write_bytes(b'original shared world model and replay')
+            (run / 'completion.json').write_text(json.dumps(dict(status='completed', iterations=1)))
+            (root / 'pretrain-seed0.json').write_text(json.dumps(config))
+            campaign['commands'].insert(0, dict(command=['python', '-m', 'experiments.ablation.train', '--output', str(run)],
+                                                 returncode=0, seconds=10.))
+            campaign['actual_gpu_hours'] += 10/3600
+            campaign['args']['methods'] = ['pretrain', 'ppo_sim', 'bptt_wm_frozen']
+            campaign['source_hashes'] = source_snapshot(repo)
+            (root / 'campaign.json').write_text(json.dumps(campaign))
+            _, jobs = recovery_plan(root, repo, include_unstarted_training=True)
+            job = next(job for job in jobs if 'training_config' in job)
+            self.assertEqual(job['bootstrap_sha256'], file_hash(bootstrap))
+            bootstrap.write_bytes(b'different world model')
+            with self.assertRaises(ValueError):
+                prepare_job(job)
+            (run / 'completion.json').write_text(json.dumps(dict(status='completed', iterations=0)))
+            with self.assertRaises(ValueError):
+                recovery_plan(root, repo, include_unstarted_training=True)
 
 
 if __name__ == '__main__':

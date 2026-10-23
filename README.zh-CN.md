@@ -8,7 +8,7 @@
 
 ## 已经得到什么结果
 
-**目前尚无多种子效率结论。** 4000次迭代单种子、18段walk/run/sprint中，SuperMimic的物理Return达到0.8035，失败2/18；原参数PPO仍全部失败；调整Actor学习率后，PPO-Sim在1000轮达到0.2528、失败12/18。开发seed0仅用于调参，正式seeds1/2/3已预登记。原生Smoke、短程Pilot和64状态梯度诊断均已完成，冻结WM对照仍在执行。正式结果仍需至少3个训练seed和全部40段动作。
+**目前尚无多种子效率结论。** 4000次迭代单种子、18段walk/run/sprint中，SuperMimic的物理Return达到0.8035，失败2/18；原参数PPO仍全部失败；调整Actor学习率后，PPO-Sim在1000轮达到0.2528、失败12/18。开发seed0仅用于调参，正式seeds1/2/3已预登记。原生Smoke、短程Pilot和64状态梯度诊断均已完成，冻结WM配对尚未完成。正式结果仍需至少3个训练seed和全部40段动作。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
@@ -83,7 +83,7 @@ Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全
 
 ## 查看、复现和继续实验
 
-- [实验配置](experiments/ablation/configs)：Smoke / Pilot / 正式候选参数，seed矩阵0/1/2，18段walk/run/sprint后扩至全部40段。
+- [实验配置](experiments/ablation/configs)：Smoke / Pilot / 正式参数；seed0用于开发，正式seeds1/2/3，18段walk/run/sprint后扩至全部40段。
 - [运行手册](docs/ablation/runbook.md)：训练、独立复评、预算估算、固定库预测误差和梯度诊断。
 - [阶段结果](docs/ablation/results.md)：实际硬件、样本数、失败、数值参考筛选和未完成范围。
 - [源论文](https://arxiv.org/pdf/2610.28480)：第3/4节及相关附录；Figure 5(b)是训练回报对imagined steps，不能直接替换本项目的端到端物理曲线。
