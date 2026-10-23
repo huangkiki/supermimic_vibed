@@ -22,12 +22,16 @@ def main():
     if len(horizons) != 1:
         raise ValueError("Gradient horizons define different objectives; plot them separately")
     gradient_horizon = next(iter(horizons))
+    objectives = {r.get("reward_objective", "full") for r in gradient}
+    if len(objectives) != 1:
+        raise ValueError("Different reward objectives must be analyzed separately")
+    reward_objective = next(iter(objectives))
     output.mkdir(parents=True, exist_ok=True)
     summaries = []
     for path in sorted(root.glob("summary-*.json")):
         record = json.loads(path.read_text())
         summaries.extend(dict(checkpoint_sha256=record["checkpoint_sha256"],
-                              gradient_horizon=gradient_horizon, **row) for row in record["summaries"])
+                              gradient_horizon=gradient_horizon, reward_objective=reward_objective, **row) for row in record["summaries"])
     if summaries:
         with (output / "gradient-metrics.csv").open("w", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=list(summaries[0]))
@@ -97,7 +101,7 @@ def main():
     for ax in axes.flat:
         ax.grid(alpha=.2)
     fig.suptitle(f"{gradient_horizon}-step action-gradient diagnostic — {receipt['args']['samples']} states, "
-                 f"{receipt['args']['directions']} random directions; no critic")
+                 f"{receipt['args']['directions']} random directions; {reward_objective} reward, no critic")
     fig.savefig(output / "prediction-gradient.png", dpi=180)
     fig.savefig(output / "prediction-gradient.svg")
     if args.evaluations:

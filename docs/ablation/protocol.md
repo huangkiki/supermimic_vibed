@@ -85,6 +85,8 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 本版本实现**动作序列方向**，尚非完整 policy 参数方向。默认32步有限时域、gamma=.99、无critic，避免将critic梯度混进动力学梯度。可用 `--gradient-horizon 1/8/16/32` 另行评估短窗口，使稳定接触阶段不被整个32步窗口内的其他切换混淆；不同horizon代表不同目标，必须分开报告。状态预测仍固定评估1/8/16/32步。WM梯度用fp32且关闭TF32；这种诊断精度与训练精度分开记录。方向为每样本整段动作的单位L2随机方向，另测单位L2预测梯度方向。
 
+必须另查直接解析奖励的混杂：原奖励包含 `w_action_rate * ||a-a_prev||² * dt`，其动作梯度即使WM动力学很差也可能准确。默认 `--reward-objective full` 保留完整任务回报；辅助 `--reward-objective state_only` 在WM和物理两侧同时去掉这个动作平滑项，保留state tracking、joint-limit与终止目标。两种诊断分别报告，后者不是主任务成绩，不改任何训练或正式评估reward。高full-gradient一致性不能独自证明WM提供了可信动力学梯度。
+
 中心有限差分：`[J(a+eps*v)-J(a-eps*v)]/(2eps)`；eps=0.003/0.01/0.03/0.1。固定前缀只用于构建留出状态及接触历史；每次FD通过原生pose/velocity/joint写入API直接恢复该状态、参考帧和previous action，并用固定Newton `reset(flags=0)`清零求解器warm-start等内部缓冲。ξ固定为物理评估的名义参数，外来不同ξ的bank会被拒绝。该重置是明确的数值参考约定，不更改训练入口。
 
 要求每次初始状态max drift≤1e-5；多次零扰动回报差估计数值噪声。只有信号超过max(5×重复噪声,1e-7)且至少相邻两尺度方向导数相差≤25%才记resolved。其余保留为unresolved，不算符号一致或不一致。真实微步改善的图也排除初态不一致的测量，但不会只挑正改善或通过FD尺度筛选的样本。

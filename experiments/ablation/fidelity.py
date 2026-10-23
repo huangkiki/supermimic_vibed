@@ -84,14 +84,18 @@ def returns(rewards, done, gamma):
 
 
 @torch.no_grad()
-def physical_rollout(env, bank, actions, gamma, contacts=False):
+def physical_rollout(env, bank, actions, gamma, contacts=False, reward_objective="full"):
     from supermimic.mdp import flatten_state
+    from supermimic.motion import CONTROL_DT
     restore_probe_state(env, bank)
     states, rewards, hard, soft, signatures = [flatten_state(env.state())], [], [], [], []
     for action in actions:
         out = env.step(action)
         states.append(out["s1"])
-        rewards.append(out["r"])
+        reward = out["r"]
+        if reward_objective == "state_only":
+            reward = reward - env.mdp.cfg.w_action_rate * out["terms"]["action_rate"] * CONTROL_DT
+        rewards.append(reward)
         hard.append(out["term"].float())
         soft.append(env.mdp.soft_termination(env.state(), env.f))
         if contacts:
@@ -165,8 +169,9 @@ def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
     return bank
 
 
-def imagined_rollout(wm, mdp, bank, actions, gamma):
+def imagined_rollout(wm, mdp, bank, actions, gamma, reward_objective="full"):
     from supermimic.mdp import normalize_xi, unflatten_state
+    from supermimic.motion import CONTROL_DT
     state = unflatten_state(bank["state"])
     frames, previous = bank["frames"], bank["previous_action"]
     context = normalize_xi(bank["xi"])
@@ -174,17 +179,20 @@ def imagined_rollout(wm, mdp, bank, actions, gamma):
     for action in actions:
         state = wm.step(state, action, context)
         frames = frames + 1
-        rewards.append(mdp.reward(state, frames, action, previous))
+        reward = mdp.reward(state, frames, action, previous)
+        if reward_objective == "state_only":
+            reward = reward - mdp.cfg.w_action_rate * (action - previous).square().sum(-1) * CONTROL_DT
+        rewards.append(reward)
         done.append(mdp.soft_termination(state, frames))
         predictions.append(state)
         previous = action
     return returns(torch.stack(rewards), torch.stack(done), gamma), predictions
 
 
-def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directions, gamma, seed, gradient_horizon):
+def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directions, gamma, seed, gradient_horizon, reward_objective):
     from supermimic.mdp import unflatten_state
     actions = bank["actions"][:gradient_horizon].detach().clone().requires_grad_(True)
-    objective, predictions = imagined_rollout(wm, env.mdp, bank, actions, gamma)
+    objective, predictions = imagined_rollout(wm, env.mdp, bank, actions, gamma, reward_objective)
     grad, = torch.autograd.grad(objective.sum(), actions)
     if not torch.isfinite(grad).all():
         raise FloatingPointError("nonfinite WM action gradient")
@@ -196,7 +204,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
     group = window_contact_groups(labels, first, gradient_horizon)
     if gradient_horizon != len(bank["actions"]):
         with torch.no_grad():
-            _, predictions = imagined_rollout(wm, env.mdp, bank, bank["actions"], gamma)
+            _, predictions = imagined_rollout(wm, env.mdp, bank, bank["actions"], gamma, reward_objective)
     scale = torch.tensor([.3] * 3 + [.4] * 3 + [1.] * 3 + [3.14] * 3 + [1.] * 29 + [10.] * 29, device=env.device)
     segments = dict(position=(0, 3), orientation=(3, 6), linear_velocity=(6, 9), angular_velocity=(9, 12), joint_position=(12, 41), joint_velocity=(41, 70))
     for h in (1, 8, 16, 32):
@@ -211,8 +219,8 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
             row.update({name + "_mse": float(error[n, a:b].square().mean()) for name, (a, b) in segments.items()})
             append_csv(output / "prediction.csv", row)
     if gradient_horizon != len(bank["actions"]):
-        baseline = physical_rollout(env, bank, actions.detach(), gamma)
-    repeat = physical_rollout(env, bank, actions.detach(), gamma)
+        baseline = physical_rollout(env, bank, actions.detach(), gamma, reward_objective=reward_objective)
+    repeat = physical_rollout(env, bank, actions.detach(), gamma, reward_objective=reward_objective)
     noise = {kind: (repeat[kind + "_return"] - baseline[kind + "_return"]).abs().cpu().numpy() for kind in ("hard", "soft")}
     initial_drift = (repeat["states"][0] - bank["state"]).abs().amax(-1)
     generator = torch.Generator(device=env.device).manual_seed(seed + 1)
@@ -224,8 +232,8 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
         predicted = (grad * direction).sum((0, 2)).detach().cpu().numpy()
         measurements = []
         for eps in epsilons:
-            positive = physical_rollout(env, bank, actions.detach() + eps * direction, gamma)
-            negative = physical_rollout(env, bank, actions.detach() - eps * direction, gamma)
+            positive = physical_rollout(env, bank, actions.detach() + eps * direction, gamma, reward_objective=reward_objective)
+            negative = physical_rollout(env, bank, actions.detach() - eps * direction, gamma, reward_objective=reward_objective)
             measurements.append((eps, positive, negative))
         for kind in ("hard", "soft"):
             key = kind + "_return"
@@ -242,6 +250,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                     resolved[j] = resolved[j] and drift <= 1e-5
                     row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n],
                                gradient_horizon=gradient_horizon,
+                               reward_objective=reward_objective,
                                contact_group=group[n], initial_contact_group=initial_group[n], direction=direction_id,
                                direction_type="wm_gradient" if direction_id == directions else "random_unit_l2",
                                direction_l2_norm=float(direction[:, n].norm()),
@@ -262,7 +271,8 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                 rows = [r for r in results if r["objective"] == kind and r["contact_group"] == label and r["epsilon"] == eps and r["direction_type"] == "random_unit_l2"]
                 summaries.append(dict(objective=kind, contact_group=label, epsilon=eps,
                                       **agreement([r["fd_derivative"] for r in rows], [r["predicted_derivative"] for r in rows], [r["resolved"] for r in rows])))
-    write_json(output / f"summary-{ck_hash[:12]}.json", dict(checkpoint_sha256=ck_hash, gradient_horizon=gradient_horizon, summaries=summaries,
+    write_json(output / f"summary-{ck_hash[:12]}.json", dict(checkpoint_sha256=ck_hash, gradient_horizon=gradient_horizon,
+        reward_objective=reward_objective, summaries=summaries,
         claim="finite-horizon action-space diagnostic; hard FD includes termination discontinuities; neither FD variant is an absolute Jacobian truth"))
 
 
@@ -279,6 +289,8 @@ def main():
     parser.add_argument("--directions", type=int, default=4)
     parser.add_argument("--gradient-horizon", type=int, choices=(1, 8, 16, 32), default=32,
                         help="Shorter fixed horizons can isolate stable-contact windows; analyze horizons separately")
+    parser.add_argument("--reward-objective", choices=("full", "state_only"), default="full",
+                        help="state_only removes the direct action-rate penalty on BOTH sides; it is a diagnostic, not the task score")
     parser.add_argument("--epsilons", nargs="+", type=float, default=[0.003, 0.01, 0.03, 0.1])
     parser.add_argument("--probe-seed", type=int, default=9001)
     add_launcher_args(parser)
@@ -338,7 +350,7 @@ def main():
                         asset_hashes=collector["manifest"]["assets"],
                         held_out="independently generated transitions; same training motions; never fed to training")
             torch.save(bank, output / "heldout-bank.pt")
-        baseline = physical_rollout(env, bank, bank["actions"], cfg.gamma, contacts=True)
+        baseline = physical_rollout(env, bank, bank["actions"], cfg.gamma, contacts=True, reward_objective=args.reward_objective)
         torch.save(baseline, output / "physical-baseline.pt")
         # Retain evidence even if the initial-state qualification fails.
         drift = float((baseline["states"][0] - bank["state"]).abs().max())
@@ -359,7 +371,7 @@ def main():
             wm.load_state_dict(ck["wm"])
             freeze(wm, True)
             probe_checkpoint(env, wm, bank, baseline, sha256(checkpoint), output, args.epsilons,
-                             args.directions, cfg.gamma, args.probe_seed, args.gradient_horizon)
+                             args.directions, cfg.gamma, args.probe_seed, args.gradient_horizon, args.reward_objective)
         torch.cuda.synchronize()
         elapsed = time.perf_counter() - started
         write_json(output / "probe.json", dict(seconds=elapsed, gpu_hours=elapsed / 3600, args=vars(args),

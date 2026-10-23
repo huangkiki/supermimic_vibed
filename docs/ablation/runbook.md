@@ -92,6 +92,8 @@ python -m experiments.ablation.fidelity \
 
 对同一库的稳定接触短窗口，另外运行 `--gradient-horizon 8`（必要时1），输出到新目录；不同梯度horizon单独分析。缩短梯度窗口不会缩短1/8/16/32步状态预测评估。
 
+另用相同 `--bank` 与 `--reward-objective state_only` 去掉两侧的直接动作平滑奖励，检查full-gradient一致性是否被解析动作正则主导。该辅助目标不替代物理任务评分。
+
 ```bash
 python -m experiments.ablation.plot_fidelity logs/ablation/fidelity-smoke-v1 \
   --output results/ablation/fidelity-smoke-v1 \
