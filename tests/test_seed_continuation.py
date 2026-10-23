@@ -66,14 +66,14 @@ class SeedContinuationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'changed back'):
                 dependency_status(state, None, Path('/runtime/seed1.py'), root)
 
-    def completed_fixture(self, root):
+    def completed_fixture(self, root, subset='locomotion'):
         plan = dict(methods=list(METHOD_ORDER[1:]), iterations=2, checkpoint_every=1, ppo_actor_lr=.00002,
-                    evaluation_repeats=3, subset='locomotion', target_gpu_uuid='GPU-fixed',
+                    evaluation_repeats=3, subset=subset, target_gpu_uuid='GPU-fixed',
                     campaign_gpu_hours_cap_per_seed=32.)
         commands = [dict(seconds=10., returncode=0) for _ in range(7 + 6 * 3 * 3)]
         spend = len(commands) * 10 / 3600
         sources = {'immutable': 'sha'}
-        campaign = dict(status='completed', args=dict(seeds=[1], phase='formal', subset='locomotion', max_gpu_hours=32.),
+        campaign = dict(status='completed', args=dict(seeds=[1], phase='formal', subset=subset, max_gpu_hours=32.),
                         scope=campaign_scope(METHOD_ORDER, 2, 1, .00002, 3), resources=dict(uuid='GPU-fixed'),
                         source_hashes=sources, commands=commands, actual_gpu_hours=spend)
         validation = dict(actual_gpu_hours=spend, evaluation_processes=54,
@@ -111,32 +111,35 @@ class SeedContinuationTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         completed_cost(root, 1, plan, sources)
 
+    def continuation_fixture(self, root, subset='locomotion'):
+        execution = root / 'execution'
+        campaign = execution / f'logs/ablation/confirmatory-{subset}-seed1-v2'
+        campaign.mkdir(parents=True)
+        plan, _, record, _, _ = self.completed_fixture(campaign, subset)
+        plan.update(validation_seeds=[1, 2, 3], development_seeds=[0], campaign_gpu_hours_cap_total=96.)
+        record['source_hashes'] = {}
+        write_json(campaign / 'campaign.json', record)
+        smoke = execution / 'logs/ablation/all40-smoke-v1'
+        smoke.mkdir()
+        write_json(smoke / 'campaign.json', dict(status='completed', source_hashes={}))
+        write_json(root / 'plan.json', plan)
+        forecast = dict(seeds=[1], scope=record['scope'], gpu='test-gpu', gpu_uuid='GPU-fixed', subset=subset,
+                        projected_campaign_gpu_hours=1., projected_peak_memory_mib=1000.,
+                        projected_disk_gib=12., minimum_disk_reserve_gib=12.)
+        write_json(root / 'forecast.json', forecast)
+        write_json(root / 'predecessor.json', dict(status='completed'))
+        (root / 'predecessor.py').write_text('# Completed identified queue\n')
+        output = root / 'continuation'
+        argv = ['continue_seeds', '--execution-root', str(execution), '--plan', str(root / 'plan.json'),
+                '--forecast', str(root / 'forecast.json'), '--predecessor-queue', str(root / 'predecessor.json'),
+                '--predecessor-pid-file', str(root / 'no-longer-live.pid'),
+                '--predecessor-script', str(root / 'predecessor.py'), '--gpu', '0', '--output', str(output)]
+        resources = dict(name='test-gpu', uuid='GPU-fixed', memory_free_mib='40000')
+        return execution, output, argv, resources
+
     def test_insufficient_fresh_disk_preflight_cannot_start_any_training(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            execution = root / 'execution'
-            campaign = execution / 'logs/ablation/confirmatory-locomotion-seed1-v2'
-            campaign.mkdir(parents=True)
-            plan, _, record, _, _ = self.completed_fixture(campaign)
-            plan.update(validation_seeds=[1, 2, 3], development_seeds=[0], campaign_gpu_hours_cap_total=96.)
-            record['source_hashes'] = {}
-            write_json(campaign / 'campaign.json', record)
-            smoke = execution / 'logs/ablation/all40-smoke-v1'
-            smoke.mkdir()
-            write_json(smoke / 'campaign.json', dict(status='completed', source_hashes={}))
-            write_json(root / 'plan.json', plan)
-            forecast = dict(seeds=[1], scope=record['scope'], gpu='test-gpu', gpu_uuid='GPU-fixed', subset='locomotion',
-                            projected_campaign_gpu_hours=1., projected_peak_memory_mib=1000.,
-                            projected_disk_gib=12., minimum_disk_reserve_gib=12.)
-            write_json(root / 'forecast.json', forecast)
-            write_json(root / 'predecessor.json', dict(status='completed'))
-            (root / 'predecessor.py').write_text('# Completed identified queue\n')
-            output = root / 'continuation'
-            argv = ['continue_seeds', '--execution-root', str(execution), '--plan', str(root / 'plan.json'),
-                    '--forecast', str(root / 'forecast.json'), '--predecessor-queue', str(root / 'predecessor.json'),
-                    '--predecessor-pid-file', str(root / 'no-longer-live.pid'),
-                    '--predecessor-script', str(root / 'predecessor.py'), '--gpu', '0', '--output', str(output)]
-            resources = dict(name='test-gpu', uuid='GPU-fixed', memory_free_mib='40000')
+            execution, output, argv, resources = self.continuation_fixture(Path(directory))
             with patch('sys.argv', argv), patch('experiments.ablation.continue_seeds.wait_for_idle_gpu', return_value=(resources, [])), \
                     patch('experiments.ablation.continue_seeds.shutil.disk_usage', return_value=SimpleNamespace(free=10 * 2**30)), \
                     patch('experiments.ablation.continue_seeds.subprocess.Popen') as launch:
@@ -147,6 +150,30 @@ class SeedContinuationTests(unittest.TestCase):
             self.assertEqual(state['status'], 'stopped')
             self.assertEqual(state['completed_seeds'], [1])
             self.assertFalse((execution / 'logs/ablation/confirmatory-locomotion-seed2-v2').exists())
+
+    def test_next_seed_dispatch_preserves_the_registered_motion_subset(self):
+        for subset in ('all40', 'locomotion'):
+            with self.subTest(subset=subset), tempfile.TemporaryDirectory() as directory:
+                execution, output, argv, resources = self.continuation_fixture(Path(directory), subset)
+                # Stop at the first dispatched process: no training or GPU query runs in this test.
+                process = SimpleNamespace(pid=321, wait=lambda: 1)
+                with patch('sys.argv', argv), patch('experiments.ablation.continue_seeds.wait_for_idle_gpu', return_value=(resources, [])), \
+                        patch('experiments.ablation.continue_seeds.shutil.disk_usage', return_value=SimpleNamespace(free=100 * 2**30)), \
+                        patch('experiments.ablation.continue_seeds.subprocess.Popen', return_value=process) as launch:
+                    with self.assertRaisesRegex(RuntimeError, 'Subprocess failed'):
+                        main()
+                launch.assert_called_once()
+                command = launch.call_args.args[0]
+                actual_subset = command[command.index('--subset') + 1] if '--subset' in command else 'locomotion'
+                self.assertEqual(actual_subset, subset)
+                self.assertEqual(command[command.index('--seeds') + 1], '2')
+                self.assertEqual(float(command[command.index('--max-gpu-hours') + 1]), 32.)
+                forecast = json.loads(Path(command[command.index('--forecast') + 1]).read_text())
+                self.assertEqual((forecast['subset'], forecast['seeds']), (subset, [2]))
+                self.assertEqual(Path(command[command.index('--output') + 1]),
+                                 execution / f'logs/ablation/confirmatory-{subset}-seed2-v2')
+                self.assertEqual(launch.call_args.kwargs['cwd'], execution)
+                self.assertEqual(json.loads((output / 'queue.json').read_text())['status'], 'stopped')
 
 
 if __name__ == '__main__':

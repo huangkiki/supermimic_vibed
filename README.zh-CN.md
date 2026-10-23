@@ -92,6 +92,8 @@ PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动�
 
 `continue_seeds`可在已识别的seed1队列完成后串行执行seed2/3，每批重查资源并保持32/seed、总96 GPU-hours上限；完整三seed验收后才生成正式汇总。前一批失败或资源不足会停止后续启动，等待不算训练进度。[续跑条件与命令](docs/ablation/runbook.md#按原预算串行续跑seed-2和3)。
 
+续跑时每个seed都显式沿用预登记的动作子集，已用CPU回归检查`locomotion`和`all40`的启动参数、输出目录及预算文件一致。全40段正式实验仍须使用其独立资源资格、计划和预算；该检查不表示已经启动或完成全40段训练。
+
 两个1000轮PPO候选均完成，各9次物理复评：lr=5e-6/2e-5最终Return均值0.013086/0.252798，失败18/12段，合计1.6260 GPU-hours。恢复器在原执行源码和原预算下补齐资源门禁中断的评估，未重训。正式验证选用2e-5、排除开发seed0；六条件×seeds1/2/3的保守估算为94.17 GPU-hours，分批上限32/seed，总上限96。这是计划预算，不是已经运行的结果。[结果、预登记与运行命令](docs/ablation/ppo-qualification.md#两候选完成与正式参数冻结)。
 
 Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全部复评，分别展示1/8/16/32步误差；缺失复评会拒绝绘图，单次评估不伪造标准差。[旧Pilot的四时域关联图与CSV](results/ablation/prediction-performance-v2/)仍显示全部策略跟踪失败，只是观察性关联，不能证明低MSE带来更好控制。

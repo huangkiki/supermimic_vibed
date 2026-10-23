@@ -201,6 +201,7 @@ def main():
                 free_disk_gib=free_disk, previous_completed_gpu_hours=prior_cost, forecast=forecast))
             persist()
             execute([sys.executable, "-m", "experiments.ablation.run_suite", "--phase", "formal", "--iterations", str(plan["iterations"]),
+                     "--subset", plan["subset"],
                      "--checkpoint-every", str(plan["checkpoint_every"]), "--ppo-actor-lr", str(plan["ppo_actor_lr"]),
                      "--evaluation-repeats", str(plan["evaluation_repeats"]), "--seeds", str(seed), "--gpu", str(args.gpu),
                      "--max-gpu-hours", str(cap), "--forecast", str(forecast_path), "--output", str(campaign_paths[index])],

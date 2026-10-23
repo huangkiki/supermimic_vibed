@@ -165,6 +165,8 @@ python -m experiments.ablation.continue_seeds \
 
 结果保存在各自`confirmatory-locomotion-seed{1,2,3}-v2`目录。外部队列保存原子更新的`queue.json`、每批资源预检和子进程PID/log，最终`cohort-analysis/`只在全部三seed完成后生成。若队列停止，先检查已存在的campaign与实际进程，保留成功项和失败账本，不重新运行已完成seed。
 
+上述示例使用18段`locomotion`计划。续跑器将计划的`subset`显式传给每次`run_suite --subset`，使训练、forecast和`confirmatory-{subset}-seedN-v2`输出目录对应同一动作集合；不依赖子进程默认子集。CPU回归覆盖`all40`与`locomotion`两条分支，并检查seed编号与原预算不变。以后扩展全40段时仍需独立的已验收计划、forecast和资源预检，不能复用18段预算；也不要为使用新版本而改动正在运行的编排checkout。
+
 ## 实测预算与配对梯度统计
 
 ```bash
