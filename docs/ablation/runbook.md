@@ -308,7 +308,7 @@ python -m experiments.ablation.analyze \
 
 ## PPO 更新尺度检查与真实轨迹
 
-当前正式模板保留探索矩阵的原始参数，不代表已经调优。Actor 可通过配置中的 `actor_lr` 独立于 `lr` 调整，缺省继承原值，两个学习率均写入训练 CSV。具体失败证据、固定批次 replay 和短程资格配置见 [PPO资格记录](ppo-qualification.md)。
+通用`formal-*`模板保留探索矩阵的原始参数；正式seeds1/2/3使用前面的预登记命令，由运行器将PPO Actor学习率覆盖为`2e-5`。复现正式对照时不能省略这一覆盖。Actor 可通过配置中的 `actor_lr` 独立于 `lr` 调整，缺省继承原值，两个学习率均写入训练 CSV。具体失败证据、固定批次 replay 和短程资格配置见 [PPO资格记录](ppo-qualification.md)。
 
 需要保存可视化证据时，用新的评估输出目录运行：
 
@@ -339,3 +339,11 @@ python -m experiments.ablation.analyze \
 ```
 
 身份脚本使用CPU加载和流式SHA256，检查本次固定范围（pretrain500、三条件各32轮）；它不重训、不启动物理仿真，也不将同一bootstrap误称为相同采样轨迹。必须使用实际checkpoint，日志或文件名不能替代张量验收。
+
+## 已完成checkpoint的归档与恢复
+
+为保留后续正式seed的原磁盘预算，三份已完成实验的`pretrain-seed0/bootstrap.pt`已复制到独立数据盘，逐文件SHA256校验后移除远端副本，共12,091,735,329字节。三个原campaign中的44个其他checkpoint保留，inode/大小/mtime未变；53,824个其他文件内容哈希未变。活动训练文件不在此次操作范围内。[三个文件的历史相对路径与SHA256](../../results/ablation/checkpoint-storage/retired-bootstraps.csv) · [验收摘要](../../results/ablation/checkpoint-storage/archive-receipt.json)。
+
+完整交付包中的`checkpoint-archive-index.csv`记录实际归档位置和历史远端路径；`Checkpoint归档与恢复.md`提供分批恢复命令。它也包含此前已归档的49个Smoke/Pilot文件，两批共52个文件。原始训练日志的路径保持原样，不能据此推断大文件仍位于原处。
+
+只读CSV绘图无需bootstrap。重新运行`validate_run`、冻结张量身份检查或依赖旧replay的实验前，先按清单恢复相应完整bootstrap；policy checkpoint不能替代其中的replay。恢复前重新检查当前磁盘余量及正式队列预留，使用保留已存在文件的复制方式，再核对SHA256；不批量覆盖原文件、不通过降低资源门槛腾空间。这里提供恢复说明，本次未执行恢复。

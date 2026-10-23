@@ -97,6 +97,7 @@ Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全
 
 - [实验配置](experiments/ablation/configs)：Smoke / Pilot / 正式参数；seed0用于开发，正式seeds1/2/3，18段walk/run/sprint后扩至全部40段。
 - [运行手册](docs/ablation/runbook.md)：训练、独立复评、预算估算、固定库预测误差和梯度诊断。
+- [已归档bootstrap清单](results/ablation/checkpoint-storage/retired-bootstraps.csv)：三份已完成预训练文件经SHA256验证后归档，活动训练文件仍在原位。重跑旧冻结组的原生验收前，需按[恢复说明](docs/ablation/runbook.md#已完成checkpoint的归档与恢复)恢复完整bootstrap及replay。
 - [阶段结果](docs/ablation/results.md)：实际硬件、样本数、失败、数值参考筛选和未完成范围。
 - [源论文](https://arxiv.org/pdf/2610.28480)：第3/4节及相关附录；Figure 5(b)是训练回报对imagined steps，不能直接替换本项目的端到端物理曲线。
 
