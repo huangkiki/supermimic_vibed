@@ -36,7 +36,7 @@ class AnalysisTests(unittest.TestCase):
 
     def test_different_gpu_or_motion_is_not_a_controlled_curve(self):
         first = evaluation()
-        for field in ("gpu", "motions", "assets"):
+        for field in ("gpu", "motions", "assets", "source_hashes"):
             other = evaluation(seed=1)
             other["manifest"][field] = "different"
             with self.assertRaisesRegex(ValueError, "Mixed"):

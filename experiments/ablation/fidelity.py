@@ -174,7 +174,8 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
     results = []
     for direction_id in range(directions + 1):
         direction = grad.detach().clone() if direction_id == directions else torch.randn(actions.shape, generator=generator, device=env.device)
-        direction /= direction.square().sum((0, 2), keepdim=True).sqrt().clamp_min(1e-12)
+        raw_norm = direction.square().sum((0, 2), keepdim=True).sqrt()
+        direction /= raw_norm.clamp_min(1e-12)
         predicted = (grad * direction).sum((0, 2)).detach().cpu().numpy()
         measurements = []
         for eps in epsilons:
@@ -197,6 +198,8 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                     row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n],
                                contact_group=group[n], initial_contact_group=initial_group[n], direction=direction_id,
                                direction_type="wm_gradient" if direction_id == directions else "random_unit_l2",
+                               direction_l2_norm=float(direction[:, n].norm()),
+                               wm_gradient_l2_norm=float(grad[:, n].norm()),
                                epsilon=eps, objective=kind, predicted_derivative=float(predicted[n]),
                                fd_derivative=float(derivatives[j, n]), resolved=bool(resolved[j]),
                                repeat_return_noise=float(noise[kind][n]), initial_state_max_drift=drift,

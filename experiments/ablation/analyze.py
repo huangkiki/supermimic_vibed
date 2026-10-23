@@ -18,7 +18,8 @@ def comparison_key(record):
                            packages=manifest.get("packages", {}),
                            motions=manifest["motions"], assets=manifest["assets"],
                            protocol=record["protocol"],
-                           core_sources={k: v for k, v in manifest["source_hashes"].items() if k.startswith("supermimic/")},
+                           training_sources=manifest["source_hashes"],
+                           evaluation_sources=record.get("evaluation_manifest", {}).get("source_hashes", {}),
                            config={k: cfg[k] for k in ("subset", "horizon", "hist", "goal_frames", "gamma", "lam", "amp", "num_envs", "pi_batch")}), sort_keys=True)
 
 

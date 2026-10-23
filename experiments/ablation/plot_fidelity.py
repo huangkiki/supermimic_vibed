@@ -59,14 +59,17 @@ def main():
     if axes[1, 0].get_legend_handles_labels()[0]:
         axes[1, 0].legend(fontsize=7)
     for sha in hashes:
-        means = []
-        for eps in epsilons:
-            rows = [r for r in gradient if r["checkpoint_sha256"] == sha and float(r["epsilon"]) == eps and r["objective"] == "hard" and r["direction_type"] == "wm_gradient"]
-            means.append(np.mean([float(r["improvement"]) for r in rows]))
-        axes[1, 1].plot(epsilons, means, marker="o", color=colors[sha])
+        for kind, style in (("wm_gradient", "-"), ("random_unit_l2", "--")):
+            means = []
+            for eps in epsilons:
+                rows = [r for r in gradient if r["checkpoint_sha256"] == sha and float(r["epsilon"]) == eps and r["objective"] == "hard" and r["direction_type"] == kind]
+                means.append(np.mean([float(r["improvement"]) for r in rows]))
+            axes[1, 1].plot(epsilons, means, marker="o", linestyle=style, color=colors[sha],
+                            label=f"{sha[:8]} / {'gradient' if kind == 'wm_gradient' else 'random'}")
     axes[1, 1].axhline(0, color="gray", linewidth=.7)
     axes[1, 1].set(xlabel="Action-sequence step size (unit L2 direction)", ylabel="Actual hard simulator return improvement",
                    title="One small step along the WM gradient")
+    axes[1, 1].legend(fontsize=7)
     for ax in axes.flat:
         ax.grid(alpha=.2)
     fig.suptitle("Finite-horizon action-gradient diagnostic — no critic, not policy convergence")
