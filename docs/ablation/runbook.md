@@ -280,6 +280,30 @@ bash "$RECIPE_ROOT/experiments/ablation/qualify_all40.sh"
 
 每个campaign保存`train.csv`、所有checkpoint、物理`per_clip.csv`、完整费用账本、每秒显存采样、验收和单独的图。独立pretrain的完整成本保留在其所属campaign；它没有被在线两方法共享，也没有虚构成PPO-Sim的必要成本。后续全40段forecast需要这些资源测量、冻结条件资格和成熟策略评估耗时，不能用初始策略很快失败的评估耗时外推成功跟踪成本。这一轮不产生多seed或方法优劣结论。
 
+该资格已完成，实际总0.533098 GPU-hours，三策略均40/40失败；目标规模计时、显存、费用和逐clip来源见[实测结果](results.md#全部40段目标规模资源实测)。原规划上限与实际费用分别保留。
+
+## 全部40段冻结条件的资源资格
+
+使用上述已验收的固定3526437执行目录，新增一个独立输出campaign。新500轮pretrain由hard/soft PPO及BPTT三条件共享，各32轮策略，六次物理评估。预估2.4141 GPU-hours、硬上限2.5，峰值28701.6 MiB、磁盘5 GiB加24 GiB保留；预计值由40段在线方法实测phase推导，后续以本次直接测量替代。独立预训练成本不能从总账扣除。
+
+先核验前一资源recipe的`exit.txt=0`、三份原生`validation.json`、执行源码未变及当前GPU/磁盘可用；运行器还会在每个子进程前重新检查资源。`FROZEN_FORECAST`指向新增配置的绝对路径，保持在独立recipe目录，不能把新分析源码覆盖进执行目录：
+
+```bash
+cd "$ABLATION_EXECUTION_ROOT"
+python -m experiments.ablation.run_suite --phase formal --subset all40 \
+  --methods pretrain ppo_wm_frozen_hard ppo_wm_frozen bptt_wm_frozen \
+  --iterations 32 --checkpoint-every 32 --ppo-actor-lr 0.00002 \
+  --evaluation-repeats 1 --seeds 0 --gpu 2 --max-gpu-hours 2.5 \
+  --forecast "$FROZEN_FORECAST" --output "$NEW_FROZEN_OUTPUT"
+python -m experiments.ablation.validate_run "$NEW_FROZEN_OUTPUT"
+python -m experiments.ablation.analyze \
+  --evaluations "$NEW_FROZEN_OUTPUT"/*/ckpt_*/evaluation.json \
+  --campaign "$NEW_FROZEN_OUTPUT/campaign.json" --output "$NEW_FROZEN_OUTPUT/analysis" \
+  --title 'All40 frozen resource qualification only; 32 policy iterations'
+```
+
+本次GPU2资源测量与18段GPU0正式三seed实验分开；不重置18段的32/seed、总96预算。完整40段多seed实验仍待新的资源审查和成熟策略评估时长验证。
+
 ## PPO 更新尺度检查与真实轨迹
 
 当前正式模板保留探索矩阵的原始参数，不代表已经调优。Actor 可通过配置中的 `actor_lr` 独立于 `lr` 调整，缺省继承原值，两个学习率均写入训练 CSV。具体失败证据、固定批次 replay 和短程资格配置见 [PPO资格记录](ppo-qualification.md)。

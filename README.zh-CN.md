@@ -17,7 +17,7 @@
 | 全部40段链路验收 | 7个训练进程、12次物理评估、480条clip记录，0.197570 GPU-hours；各策略仅训练3轮且全部40段失败，不是全量训练结果 | [40段Smoke数据](results/ablation/all40-smoke-v1/evaluations.csv) |
 | 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
 | Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
-| 目标规模资源测量 | **18段**、4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB；40段另行测量 | [资源估算与执行条件](docs/ablation/runbook.md#全部40段的目标规模资源测量) |
+| 全40段目标规模资源测量 | 4096环境/H32，三方法各32轮策略更新完成；峰值显存8.51 / 12.42 / 23.36 GiB，含独立预训练总0.533098 GPU-hours。均40/40失败，只用于资源资格 | [实测成本与吞吐](results/ablation/all40-resource-v1/) |
 
 ![六条件长程探索，开发seed0且原PPO参数未合格](results/ablation/formal-seed0-complete/return-compute.png)
 
@@ -89,6 +89,8 @@ Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全
 正式梯度汇总入口`analyze_fidelity_cohort`按独立训练seed等权统计，保留未解析方向、接触组覆盖和无法定义的相关系数。它先验收完整训练与物理评估，再检查每seed六个探针、状态库和checkpoint身份及探针费用；当前尚无真实三seed梯度结果。[统计规则与运行命令](docs/ablation/runbook.md#汇总独立训练seed的梯度分析)。
 
 所有方法最终在真实物理模拟器中评估。主要曲线使用完整motion归一化Return，对墙时、GPU-hours和Simulator Steps分别作图；不把imagined return当物理成绩。
+
+40段资源测试的最后30个更新中，两种PPO均每轮完成20个Actor minibatch更新。PPO-Sim物理采集约10.21万steps/s，在线PPO-WM imagined rollout约43.60万steps/s；同时包含模型采集、拟合及策略优化的暖态迭代分别1.919/1.292秒。短批次端到端费用分别0.06827/0.13630 GPU-hours，在线WM需支付模型学习及初始化成本。它们均未学会跟踪，因此这些测量仍不能说明谁更快达到同一策略质量。下一项有限资源资格补测同一冻结WM上的三种控制条件。[费用定义与后续资源门禁](docs/ablation/results.md#全部40段目标规模资源实测)。
 
 ## 查看、复现和继续实验
 
