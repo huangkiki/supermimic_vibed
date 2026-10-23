@@ -23,6 +23,19 @@ def main():
         raise ValueError("Gradient horizons define different objectives; plot them separately")
     gradient_horizon = next(iter(horizons))
     output.mkdir(parents=True, exist_ok=True)
+    summaries = []
+    for path in sorted(root.glob("summary-*.json")):
+        record = json.loads(path.read_text())
+        summaries.extend(dict(checkpoint_sha256=record["checkpoint_sha256"],
+                              gradient_horizon=gradient_horizon, **row) for row in record["summaries"])
+    if summaries:
+        with (output / "gradient-metrics.csv").open("w", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(summaries[0]))
+            writer.writeheader()
+            writer.writerows(summaries)
+    receipt = json.loads((root / "probe.json").read_text())
+    labels = {sha: f"{Path(path).stem.replace('ckpt_', 'it ')} / {sha[:8]}"
+              for path, sha in receipt["checkpoint_sha256"].items()}
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -33,13 +46,21 @@ def main():
         rows = [r for r in prediction if r["checkpoint_sha256"] == sha]
         horizons = sorted({int(r["horizon"]) for r in rows})
         mean = [np.mean([float(r["scaled_mse"]) for r in rows if int(r["horizon"]) == h]) for h in horizons]
-        axes[0, 0].plot(horizons, mean, marker="o", color=colors[sha], label=sha[:8])
+        axes[0, 0].plot(horizons, mean, marker="o", color=colors[sha], label=labels[sha])
     axes[0, 0].set(xlabel="Prediction horizon (control steps)", ylabel="Fixed-scale state MSE", title="Same held-out states/actions for every WM")
-    axes[0, 0].legend(title="Checkpoint SHA", fontsize=8)
+    axes[0, 0].legend(title="Checkpoint iteration / SHA", fontsize=8)
+    derivative_extent = []
     for sha in hashes:
         rows = [r for r in gradient if r["checkpoint_sha256"] == sha and r["objective"] == "soft" and r["direction_type"] == "random_unit_l2" and r["resolved"] == "True"]
         axes[0, 1].scatter([float(r["fd_derivative"]) for r in rows], [float(r["predicted_derivative"]) for r in rows],
                            alpha=.35, s=12, color=colors[sha])
+        derivative_extent.extend(float(r[key]) for r in rows for key in ("fd_derivative", "predicted_derivative"))
+    if derivative_extent:
+        limits = [min(derivative_extent + [0.]), max(derivative_extent + [0.])]
+        axes[0, 1].plot(limits, limits, color="gray", linestyle="--", linewidth=.8, label="Equal derivatives")
+        axes[0, 1].legend(fontsize=7)
+    else:
+        axes[0, 1].text(.5, .5, "No resolved numerical references", transform=axes[0, 1].transAxes, ha="center")
     axes[0, 1].axhline(0, color="gray", linewidth=.6)
     axes[0, 1].axvline(0, color="gray", linewidth=.6)
     axes[0, 1].set(xlabel="Simulator central FD (resolved scales)", ylabel="WM directional derivative", title="Matched soft objective; FD is a numerical reference")
@@ -75,7 +96,8 @@ def main():
     axes[1, 1].legend(fontsize=7)
     for ax in axes.flat:
         ax.grid(alpha=.2)
-    fig.suptitle(f"{gradient_horizon}-step action-gradient diagnostic — no critic, not policy convergence")
+    fig.suptitle(f"{gradient_horizon}-step action-gradient diagnostic — {receipt['args']['samples']} states, "
+                 f"{receipt['args']['directions']} random directions; no critic")
     fig.savefig(output / "prediction-gradient.png", dpi=180)
     fig.savefig(output / "prediction-gradient.svg")
     if args.evaluations:
