@@ -11,11 +11,13 @@ import json
 from pathlib import Path
 import time
 
+STARTED = time.perf_counter()
+
 import numpy as np
 import torch
 
-from .common import Config, append_csv, freeze, motion_files, sha256, write_json
-from .fidelity_math import agreement, contact_groups, reference_quality
+from .common import Config, append_csv, freeze, identity, motion_files, sha256, write_json
+from .fidelity_math import agreement, contact_groups, reference_quality, window_contact_groups
 
 
 def contact_signature(env):
@@ -141,9 +143,9 @@ def imagined_rollout(wm, mdp, bank, actions, gamma):
     return returns(torch.stack(rewards), torch.stack(done), gamma), predictions
 
 
-def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directions, gamma, seed):
+def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directions, gamma, seed, gradient_horizon):
     from supermimic.mdp import unflatten_state
-    actions = bank["actions"].detach().clone().requires_grad_(True)
+    actions = bank["actions"][:gradient_horizon].detach().clone().requires_grad_(True)
     objective, predictions = imagined_rollout(wm, env.mdp, bank, actions, gamma)
     grad, = torch.autograd.grad(objective.sum(), actions)
     if not torch.isfinite(grad).all():
@@ -153,20 +155,25 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
     labels = contact_groups(combined_contacts)
     first = len(bank["prefix_contacts"])
     initial_group = labels[first]
-    group = ["switch_nearby" if any(row[n] == "switch_nearby" for row in labels[first:])
-             else initial_group[n] for n in range(samples)]
+    group = window_contact_groups(labels, first, gradient_horizon)
+    if gradient_horizon != len(bank["actions"]):
+        with torch.no_grad():
+            _, predictions = imagined_rollout(wm, env.mdp, bank, bank["actions"], gamma)
     scale = torch.tensor([.3] * 3 + [.4] * 3 + [1.] * 3 + [3.14] * 3 + [1.] * 29 + [10.] * 29, device=env.device)
     segments = dict(position=(0, 3), orientation=(3, 6), linear_velocity=(6, 9), angular_velocity=(9, 12), joint_position=(12, 41), joint_velocity=(41, 70))
     for h in (1, 8, 16, 32):
         if h > len(predictions):
             continue
         error = wm.state_error(predictions[h - 1], unflatten_state(baseline["states"][h])).detach()
+        prediction_groups = window_contact_groups(labels, first, h)
         for n in range(samples):
             row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n], horizon=h,
-                       contact_group=group[n], initial_contact_group=initial_group[n],
+                       contact_group=prediction_groups[n], initial_contact_group=initial_group[n],
                        scaled_mse=float((error[n] / scale).square().mean()))
             row.update({name + "_mse": float(error[n, a:b].square().mean()) for name, (a, b) in segments.items()})
             append_csv(output / "prediction.csv", row)
+    if gradient_horizon != len(bank["actions"]):
+        baseline = physical_rollout(env, bank, actions.detach(), gamma)
     repeat = physical_rollout(env, bank, actions.detach(), gamma)
     noise = {kind: (repeat[kind + "_return"] - baseline[kind + "_return"]).abs().cpu().numpy() for kind in ("hard", "soft")}
     initial_drift = (repeat["states"][0] - bank["state"]).abs().amax(-1)
@@ -196,6 +203,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                                 float((minus["states"][0, n] - bank["state"][n]).abs().max()))
                     resolved[j] = resolved[j] and drift <= 1e-5
                     row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n],
+                               gradient_horizon=gradient_horizon,
                                contact_group=group[n], initial_contact_group=initial_group[n], direction=direction_id,
                                direction_type="wm_gradient" if direction_id == directions else "random_unit_l2",
                                direction_l2_norm=float(direction[:, n].norm()),
@@ -215,12 +223,12 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                 rows = [r for r in results if r["objective"] == kind and r["contact_group"] == label and r["epsilon"] == eps and r["direction_type"] == "random_unit_l2"]
                 summaries.append(dict(objective=kind, contact_group=label, epsilon=eps,
                                       **agreement([r["fd_derivative"] for r in rows], [r["predicted_derivative"] for r in rows], [r["resolved"] for r in rows])))
-    write_json(output / f"summary-{ck_hash[:12]}.json", dict(checkpoint_sha256=ck_hash, summaries=summaries,
+    write_json(output / f"summary-{ck_hash[:12]}.json", dict(checkpoint_sha256=ck_hash, gradient_horizon=gradient_horizon, summaries=summaries,
         claim="finite-horizon action-space diagnostic; hard FD includes termination discontinuities; neither FD variant is an absolute Jacobian truth"))
 
 
 def main():
-    started = time.perf_counter()
+    started = STARTED
     from isaaclab.app import add_launcher_args, launch_simulation
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("--checkpoints", nargs="+", required=True)
@@ -230,10 +238,14 @@ def main():
     parser.add_argument("--samples", type=int, default=64)
     parser.add_argument("--prefix-steps", type=int, default=16)
     parser.add_argument("--directions", type=int, default=4)
+    parser.add_argument("--gradient-horizon", type=int, choices=(1, 8, 16, 32), default=32,
+                        help="Shorter fixed horizons can isolate stable-contact windows; analyze horizons separately")
     parser.add_argument("--epsilons", nargs="+", type=float, default=[0.003, 0.01, 0.03, 0.1])
     parser.add_argument("--probe-seed", type=int, default=9001)
     add_launcher_args(parser)
     args = parser.parse_args()
+    if min(args.samples, args.directions, args.prefix_steps) < 1:
+        raise ValueError("samples, directions and prefix-steps must be positive")
     if args.epsilons != sorted(set(args.epsilons)) or min(args.epsilons) <= 0 or len(args.epsilons) < 2:
         raise ValueError("At least two unique positive increasing perturbation scales are required")
     output = Path(args.output)
@@ -255,6 +267,13 @@ def main():
     torch.manual_seed(args.probe_seed)
     collector = torch.load(args.collector, map_location="cuda:0", weights_only=False)
     cfg = Config(**collector["config"])
+    probe_manifest = identity(cfg, hash_bootstrap=False)
+    for key in ("assets", "packages", "torch", "cuda"):
+        if probe_manifest[key] != collector["manifest"][key]:
+            raise ValueError(f"Probe environment differs from collector: {key}")
+    for name, digest in probe_manifest["source_hashes"].items():
+        if name.startswith("supermimic/") and digest != collector["manifest"]["source_hashes"][name]:
+            raise ValueError(f"Probe core source differs from collector: {name}")
     kin = G1Kinematics("cuda:0")
     files = motion_files(cfg)
     hashes = {p.name: sha256(p) for p in files}
@@ -264,6 +283,7 @@ def main():
     mdp = MDP(kin, motion, torch.tensor(default_joint_pos_list(), device="cuda:0"))
     pi = Policy(OBS_DIM, 73 * cfg.goal_frames, cfg.hist).to("cuda:0")
     pi.load_state_dict(collector["pi"])
+    pi.eval()
     sim_cfg = make_sim("cuda:0", args)
     with launch_simulation(sim_cfg, args):
         env = TrackingSim(sim_cfg, args.samples, motion, mdp, eval_mode=True)
@@ -291,16 +311,22 @@ def main():
                 raise ValueError("WM checkpoint dataset/architecture mismatch")
             if ck["manifest"]["assets"] != bank["asset_hashes"]:
                 raise ValueError("WM checkpoint asset mismatch")
+            for key in ("packages", "torch", "cuda"):
+                if ck["manifest"][key] != probe_manifest[key]:
+                    raise ValueError(f"WM checkpoint environment mismatch: {key}")
+            if ck["config"]["gamma"] != cfg.gamma:
+                raise ValueError("WM checkpoint return objective mismatch")
             wm = WorldModel().to("cuda:0")
             wm.load_state_dict(ck["wm"])
             freeze(wm, True)
             probe_checkpoint(env, wm, bank, baseline, sha256(checkpoint), output, args.epsilons,
-                             args.directions, cfg.gamma, args.probe_seed)
+                             args.directions, cfg.gamma, args.probe_seed, args.gradient_horizon)
         torch.cuda.synchronize()
         elapsed = time.perf_counter() - started
         write_json(output / "probe.json", dict(seconds=elapsed, gpu_hours=elapsed / 3600, args=vars(args),
                    gpu=torch.cuda.get_device_name(0), collector_sha256=sha256(args.collector),
                    checkpoint_sha256={str(p): sha256(p) for p in args.checkpoints},
+                   manifest=probe_manifest, peak_torch_memory_bytes=torch.cuda.max_memory_allocated(),
                    precision="fp32, TF32 disabled", initial_state_max_drift=drift))
 
 

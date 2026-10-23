@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from experiments.ablation.fidelity_math import agreement, contact_groups, reference_quality
+from experiments.ablation.fidelity_math import agreement, contact_groups, reference_quality, window_contact_groups
 
 
 class FidelityTests(unittest.TestCase):
@@ -29,6 +29,13 @@ class FidelityTests(unittest.TestCase):
         self.assertEqual(score["resolved"], 2)
         self.assertEqual(score["sign_agreement"], .5)
         self.assertIsNone(score["pearson"])
+
+    def test_future_switch_does_not_relabel_a_short_stable_window(self):
+        labels = [["stable_contact"], ["stable_contact"], ["switch_nearby"]]
+        self.assertEqual(window_contact_groups(labels, 0, 2), ["stable_contact"])
+        self.assertEqual(window_contact_groups(labels, 0, 3), ["switch_nearby"])
+        with self.assertRaises(ValueError):
+            window_contact_groups(labels, 0, 4)
 
 
 if __name__ == "__main__":

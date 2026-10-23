@@ -1,4 +1,3 @@
-import copy
 import json
 from pathlib import Path
 import tempfile
@@ -57,6 +56,29 @@ class AnalysisTests(unittest.TestCase):
         curve = aggregate_curves(self.collect([a, b, c]), "end_to_end_seconds")
         self.assertAlmostEqual(curve[0]["mean"], .4)
         self.assertAlmostEqual(curve[0]["std"], .2)
+
+    def test_final_endpoint_includes_process_and_shared_pretrain_allocation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / "ppo_wm_frozen-seed0"
+            pretrain = root / "pretrain-seed0"
+            run.mkdir()
+            pretrain.mkdir()
+            (run / "completion.json").write_text(json.dumps(dict(iterations=1)))
+            (pretrain / "completion.json").write_text(json.dumps(dict(iterations=1, ledger=dict(train_wall_seconds=30.))))
+            record = evaluation()
+            record["method"] = "ppo_wm_frozen"
+            path = run / "evaluation.json"
+            path.write_text(json.dumps(record))
+            commands = [dict(command=["python", "-m", "experiments.ablation.train", "--output", str(p)],
+                             seconds=seconds, returncode=0) for p, seconds in ((run, 105.), (pretrain, 35.))]
+            commands.append(dict(command=["python", "-m", "experiments.ablation.evaluate", "--checkpoint", str(run / "ckpt_000001.pt")],
+                                 seconds=12., returncode=0))
+            campaign = root / "campaign.json"
+            campaign.write_text(json.dumps(dict(commands=commands)))
+            row, = collect_records([path], campaign)
+            self.assertEqual(row["end_to_end_seconds"], 152.)
+            self.assertEqual(row["cost_basis"], "complete_process_allocation")
 
 
 if __name__ == "__main__":

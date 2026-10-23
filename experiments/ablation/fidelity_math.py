@@ -51,3 +51,12 @@ def contact_groups(contact_signatures, radius=2):
             row.append("switch_nearby" if changed else "stable_contact" if contact_signatures[t][n] else "flight")
         result.append(row)
     return result
+
+
+def window_contact_groups(labels, start, horizon):
+    """A stable window must avoid every detected switch neighborhood in it."""
+    window = labels[start:start + horizon]
+    if horizon < 1 or len(window) != horizon:
+        raise ValueError("Contact window must be fully observed")
+    return ["switch_nearby" if any(row[n] == "switch_nearby" for row in window)
+            else window[0][n] for n in range(len(window[0]))]

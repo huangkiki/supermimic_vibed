@@ -1,7 +1,6 @@
 """Plot saved probe measurements; prediction accuracy and gradient accuracy stay distinct."""
 from __future__ import annotations
 import argparse
-from collections import defaultdict
 import csv
 import json
 from pathlib import Path
@@ -19,6 +18,10 @@ def main():
     gradient = list(csv.DictReader((root / "gradient.csv").open()))
     if not prediction or not gradient:
         raise ValueError("No real probe measurements to plot")
+    horizons = {int(r.get("gradient_horizon", 32)) for r in gradient}
+    if len(horizons) != 1:
+        raise ValueError("Gradient horizons define different objectives; plot them separately")
+    gradient_horizon = next(iter(horizons))
     output.mkdir(parents=True, exist_ok=True)
     import matplotlib
     matplotlib.use("Agg")
@@ -72,7 +75,7 @@ def main():
     axes[1, 1].legend(fontsize=7)
     for ax in axes.flat:
         ax.grid(alpha=.2)
-    fig.suptitle("Finite-horizon action-gradient diagnostic — no critic, not policy convergence")
+    fig.suptitle(f"{gradient_horizon}-step action-gradient diagnostic — no critic, not policy convergence")
     fig.savefig(output / "prediction-gradient.png", dpi=180)
     fig.savefig(output / "prediction-gradient.svg")
     if args.evaluations:
@@ -89,6 +92,8 @@ def main():
             matched.append(dict(checkpoint_sha256=sha, mse32=float(mse), physical_return=score))
         if matched:
             ax.set(xlabel="32-step fixed-bank state MSE", ylabel="Full-clip physical evaluation return",
+                   ylim=(min(0., min(r["physical_return"] for r in matched)),
+                         max(1., max(r["physical_return"] for r in matched))),
                    title="Observational checkpoint association (not causality)")
             fig.savefig(output / "prediction-performance.png", dpi=180)
             (output / "prediction-performance.json").write_text(json.dumps(matched, indent=2) + "\n")

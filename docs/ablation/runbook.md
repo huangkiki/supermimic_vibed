@@ -36,6 +36,7 @@ python -m experiments.ablation.run_suite \
   --gpu 1 --max-gpu-hours 2 --seeds 0
 python -m experiments.ablation.analyze \
   --evaluations logs/ablation/pilot-v1/*/ckpt_*/evaluation.json \
+  --campaign logs/ablation/pilot-v1/campaign.json \
   --output results/ablation/pilot-v1
 ```
 
@@ -86,3 +87,13 @@ python -m experiments.ablation.fidelity \
 ```
 
 后续checkpoint用 `--bank .../heldout-bank.pt`，`--samples`与原库一致。库从不参与模型训练。`prediction.csv`与`gradient.csv`保存逐样本、checkpoint、horizon/方向/尺度/接触标签与数值参考有效性。`physical-baseline.pt`保留完整物理状态序列和contact signatures。具体数学目标、单位、噪声筛选与证据边界见 [protocol.md](protocol.md)。
+
+对同一库的稳定接触短窗口，另外运行 `--gradient-horizon 8`（必要时1），输出到新目录；不同梯度horizon单独分析。缩短梯度窗口不会缩短1/8/16/32步状态预测评估。
+
+```bash
+python -m experiments.ablation.plot_fidelity logs/ablation/fidelity-smoke-v1 \
+  --output results/ablation/fidelity-smoke-v1 \
+  --evaluations logs/ablation/pilot-v1/supermimic-seed0/ckpt_*/evaluation.json
+```
+
+每轮campaign运行期间保持源码和配置不变；runner会在每个进程前核验快照并拒绝继续混用代码版本。修改后必须新建campaign目录。安装/资产资格、被排除的运行和独立gradient probe分别保留成本，不塞进某个方法的训练收益。

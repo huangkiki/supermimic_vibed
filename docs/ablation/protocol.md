@@ -65,6 +65,8 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 独立方法成本：`采集 + WM拟合/更新 + 策略/critic + 初始化/编译/IO + 所有此前checkpoint物理评估`。冻结 WM 的预训练全额计入每个方法；实际 campaign 成本只执行一次共享 pretrain，并用 bootstrap SHA 追踪，二者分列。绝不能用 warm WM 的增量训练成本冒充 cold-start PPO-WM 成本。
 
+分析时传入 `--campaign`，最终checkpoint使用完整训练进程、全部前序评估进程及预训练进程的实际占用秒数，包含启动、写盘和退出。中间点使用checkpoint内计时快照，尚不包含该次checkpoint自身写盘和进程退出；CSV的 `cost_basis` 显式区分。runner先完成训练再逐checkpoint复评，因此中间成本曲线是按“若评估穿插训练”重建的累计成本，不是现场在线完成时间。实际campaign总占用另报，不把重建值冒充实测端点。
+
 图包括 Return vs end-to-end wall-clock / total allocated GPU-hours / training simulator steps。物理评估步数单独记录。单GPU时前两条横轴成比例，这是正确现象。冻结WM的 simulator-steps 横坐标恒定，不据此拟合所谓样本效率斜率。
 
 均值与样本标准差(ddof=1)在各seed的共同支持区间以最近已完成checkpoint左保持，绝不外推，不进行移动平均；单seed不绘标准差带。计划报告首次达到0.6/0.82物理回报的成本；没达到就是未达到，不推算时间。
@@ -77,12 +79,12 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 同一 bank 对各阶段 WM 计算终点 h=1/8/16/32 的分量 MSE：位置m²、旋转rad²、线速度(m/s)²、角速度(rad/s)²、关节角rad²、关节速度(rad/s)²。另给固定尺度(.3m,.4rad,1m/s,3.14rad/s,1rad,10rad/s)的 scaled MSE；该尺度由本协议声明，不用不同 checkpoint 自己的归一化替代，不声称是论文 Fig3(c) 的同一指标。
 
-本版本实现**动作序列方向**，尚非完整 policy 参数方向。固定32步有限时域、gamma=.99、无critic，避免将critic梯度混进动力学梯度。WM梯度用fp32且关闭TF32；这种诊断精度与训练精度分开记录。方向为每样本整段动作的单位L2随机方向，另测单位L2预测梯度方向。
+本版本实现**动作序列方向**，尚非完整 policy 参数方向。默认32步有限时域、gamma=.99、无critic，避免将critic梯度混进动力学梯度。可用 `--gradient-horizon 1/8/16/32` 另行评估短窗口，使稳定接触阶段不被整个32步窗口内的其他切换混淆；不同horizon代表不同目标，必须分开报告。状态预测仍固定评估1/8/16/32步。WM梯度用fp32且关闭TF32；这种诊断精度与训练精度分开记录。方向为每样本整段动作的单位L2随机方向，另测单位L2预测梯度方向。
 
 中心有限差分：`[J(a+eps*v)-J(a-eps*v)]/(2eps)`；eps=0.003/0.01/0.03/0.1。每次从相同reset状态和完整固定前缀重放，要求初始状态max drift≤1e-5；多次零扰动回报差估计数值噪声。只有信号超过max(5×重复噪声,1e-7)且至少相邻两尺度方向导数相差≤25%才记resolved。其余保留为unresolved，不算符号一致或不一致。
 
 分别保存真实硬终止物理回报FD、匹配WM软生存目标的物理FD；报告符号一致率、Pearson（样本/方差不足留空）、正向微小更新的真实return improvement。FD只是尺度依赖的数值参考，不是MuJoCo-Warp解析Ground-truth Jacobian。
 
-接触来自实际MuJoCo-Warp collision/constraint records的geom-pair集合（dist≤0且efc有效），并明确是最后物理substep的记录，不是足高近似或接触力真值。在±2个控制步的接触集合变化附近标记switch_nearby，否则区分stable_contact与flight。同时记录初始局部标签和整段32步窗口标签；窗口内任一时刻接近切换都归入switch_nearby，只有全窗口稳定才归stable_contact/flight。保留整段contact signatures供更细分析；某组没有样本就明确留空。
+接触来自实际MuJoCo-Warp collision/constraint records的geom-pair集合（dist≤0且efc有效），并明确是最后物理substep的记录，不是足高近似或接触力真值。在±2个控制步的接触集合变化附近标记switch_nearby，否则区分stable_contact与flight。同时记录初始局部标签和对应预测/梯度horizon的窗口标签；窗口内任一时刻接近切换都归入switch_nearby，只有全窗口稳定才归stable_contact/flight。保留整段contact signatures供更细分析；某组没有样本就明确留空。
 
 不同checkpoint的Prediction Error与其物理评估return关系只能先报观察性相关：策略成熟度、数据分布和训练时间共同变化。同输入的模型梯度与真实微步改善更直接检验机制；也不能据此宣称低MSE必然导致更高最终policy performance。
