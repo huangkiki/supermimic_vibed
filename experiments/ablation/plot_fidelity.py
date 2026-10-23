@@ -65,8 +65,8 @@ def main():
         for kind, style in (("wm_gradient", "-"), ("random_unit_l2", "--")):
             means = []
             for eps in epsilons:
-                rows = [r for r in gradient if r["checkpoint_sha256"] == sha and float(r["epsilon"]) == eps and r["objective"] == "hard" and r["direction_type"] == kind]
-                means.append(np.mean([float(r["improvement"]) for r in rows]))
+                rows = [r for r in gradient if r["checkpoint_sha256"] == sha and float(r["epsilon"]) == eps and r["objective"] == "hard" and r["direction_type"] == kind and float(r["initial_state_max_drift"]) <= 1e-5]
+                means.append(np.mean([float(r["improvement"]) for r in rows]) if rows else np.nan)
             axes[1, 1].plot(epsilons, means, marker="o", linestyle=style, color=colors[sha],
                             label=f"{sha[:8]} / {'gradient' if kind == 'wm_gradient' else 'random'}")
     axes[1, 1].axhline(0, color="gray", linewidth=.7)

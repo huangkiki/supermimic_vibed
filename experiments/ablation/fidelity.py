@@ -46,14 +46,32 @@ def contact_signature(env):
 
 
 @torch.no_grad()
-def reset_recipe(env, bank):
+def restore_probe_state(env, bank):
+    """Restore physical coordinates/velocities, with a fixed solver warm-start.
+
+    Replaying a PD prefix has small numerical variation; it cannot guarantee an
+    identical FD initial state. The bank prefix only constructs the held-out
+    state and supplies contact history. Every numerical rollout restores that
+    state directly through the same native write APIs used by TrackingSim.reset.
+    """
     ids = torch.arange(env.N, device=env.device)
-    env.reset(ids, bank["reset_frames"])
-    env.done_eval.zero_()
-    env.failed_eval.zero_()
+    if not torch.equal(env.xi, bank["xi"]):
+        raise ValueError("Probe bank parameters differ from the nominal physical environment")
+    env.reset(ids, bank["frames"])
+    state = bank["state"]
+    quaternion = state[:, 3:7]
+    pose = torch.cat((state[:, :3] + env.scene.env_origins, quaternion[:, 1:], quaternion[:, :1]), -1)
+    env.robot.write_root_link_pose_to_sim_index(root_pose=pose, env_ids=ids)
+    env.robot.write_root_link_velocity_to_sim_index(root_velocity=state[:, 7:13], env_ids=ids)
+    env.robot.write_joint_position_to_sim_index(position=state[:, 13:42], env_ids=ids)
+    env.robot.write_joint_velocity_to_sim_index(velocity=state[:, 42:71], env_ids=ids)
+    env.scene.reset(ids)
+    env.a_prev.copy_(bank["previous_action"])
     env.refresh()
-    for action in bank["prefix_actions"]:
-        env.step(action)
+    # Pinned Newton reset(flags=0) clears persistent solver buffers without
+    # overwriting the authored joint coordinates. This is a numerical convention.
+    manager = env.sim.backend_manager
+    manager._solver.reset(manager.backend.state_0, flags=0)
     env.done_eval.zero_()
     env.failed_eval.zero_()
 
@@ -68,7 +86,7 @@ def returns(rewards, done, gamma):
 @torch.no_grad()
 def physical_rollout(env, bank, actions, gamma, contacts=False):
     from supermimic.mdp import flatten_state
-    reset_recipe(env, bank)
+    restore_probe_state(env, bank)
     states, rewards, hard, soft, signatures = [flatten_state(env.state())], [], [], [], []
     for action in actions:
         out = env.step(action)
@@ -108,7 +126,10 @@ def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
     # has already failed. Post-failure states are not an active control task.
     for _ in range(64):
         bank["prefix_actions"] = []
-        reset_recipe(env, bank)
+        env.reset(torch.arange(env.N, device=env.device), bank["reset_frames"])
+        env.done_eval.zero_()
+        env.failed_eval.zero_()
+        env.refresh()
         prefix_contacts = []
         for _ in range(prefix_steps):
             action = (motion.q[env.f + 1] - env.default_q) / env.alpha
@@ -228,6 +249,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                                epsilon=eps, objective=kind, predicted_derivative=float(predicted[n]),
                                fd_derivative=float(derivatives[j, n]), resolved=bool(resolved[j]),
                                repeat_return_noise=float(noise[kind][n]), initial_state_max_drift=drift,
+                               reproducible_initial_state=drift <= 1e-5,
                                baseline_return=float(baseline[key][n]), positive_return=float(plus[key][n]),
                                negative_return=float(minus[key][n]), improvement=float(plus[key][n] - baseline[key][n]))
                     append_csv(output / "gradient.csv", row)
@@ -317,11 +339,11 @@ def main():
                         held_out="independently generated transitions; same training motions; never fed to training")
             torch.save(bank, output / "heldout-bank.pt")
         baseline = physical_rollout(env, bank, bank["actions"], cfg.gamma, contacts=True)
-        # The reset recipe's state is the authoritative FD initial state; retain initial drift.
+        torch.save(baseline, output / "physical-baseline.pt")
+        # Retain evidence even if the initial-state qualification fails.
         drift = float((baseline["states"][0] - bank["state"]).abs().max())
         if drift > 1e-5:
-            raise RuntimeError(f"Initial state not reproducible by reset recipe: {drift}")
-        torch.save(baseline, output / "physical-baseline.pt")
+            raise RuntimeError(f"Initial state not reproducible by native state restore: {drift}")
         for checkpoint in args.checkpoints:
             ck = torch.load(checkpoint, map_location="cuda:0", weights_only=False)
             if ck["manifest"]["motions"] != hashes or ck["wm"] is None:
@@ -344,6 +366,7 @@ def main():
                    gpu=torch.cuda.get_device_name(0), collector_sha256=sha256(args.collector),
                    checkpoint_sha256={str(p): sha256(p) for p in args.checkpoints},
                    manifest=probe_manifest, peak_torch_memory_bytes=torch.cuda.max_memory_allocated(),
+                   reset_protocol="native physical state restore, nominal xi, Newton solver reset flags=0 before each rollout",
                    precision="fp32, TF32 disabled", initial_state_max_drift=drift))
 
 
