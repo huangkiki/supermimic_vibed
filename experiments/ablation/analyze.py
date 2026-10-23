@@ -84,8 +84,11 @@ def collect_records(paths, campaign_path=None):
                              simulator_steps=ledger["simulator_steps"], imagined_steps=ledger["imagined_steps"],
                              evaluation_simulator_steps=eval_steps, total_simulator_steps=ledger["simulator_steps"] + eval_steps,
                              wm_training_seconds=ledger["wm_training_seconds"],
+                             imagined_rollout_seconds=ledger.get("imagined_rollout_seconds", 0.),
                              policy_optimization_seconds=ledger["policy_optimization_seconds"],
                              collection_seconds=ledger["collection_seconds"], cumulative_evaluation_seconds=eval_seconds,
+                             simulator_steps_per_second=ledger["simulator_steps"] / max(ledger["collection_seconds"], 1e-12),
+                             imagined_steps_per_second=ledger["imagined_steps"] / max(ledger.get("imagined_rollout_seconds", 0.), 1e-12),
                              checkpoint_sha256=record["checkpoint_sha256"]))
     return rows
 
@@ -177,6 +180,31 @@ def main():
     fig.savefig(output / "return-compute.png", dpi=180)
     fig.savefig(output / "return-compute.svg")
     save_csv(output / "curve-statistics.csv", aggregate)
+    # Cost composition is separate from performance: equal update counts do not
+    # establish equal learning, and cold compilation remains in each phase.
+    endpoints = {}
+    for row in rows:
+        key = row["method"], row["seed"]
+        if key not in endpoints or row["iteration"] > endpoints[key]["iteration"]:
+            endpoints[key] = row
+    final = [endpoints[key] for key in sorted(endpoints)]
+    phases = ("collection_seconds", "wm_training_seconds", "imagined_rollout_seconds", "policy_optimization_seconds")
+    fig, ax = plt.subplots(figsize=(12, 5.8), layout="constrained")
+    bottom = np.zeros(len(final))
+    values = {name: [r[name] / 60 for r in final] for name in phases}
+    values["startup / IO / teardown"] = [(r["train_wall_seconds"] - sum(r[name] for name in phases)) / 60 for r in final]
+    values["all preceding physical evaluations"] = [r["cumulative_evaluation_seconds"] / 60 for r in final]
+    if min(values["startup / IO / teardown"]) < -1e-6:
+        raise ValueError("Phase accounting exceeds measured training cost")
+    for name, heights in values.items():
+        ax.bar(np.arange(len(final)), heights, bottom=bottom, label=name.replace("_seconds", "").replace("_", " "))
+        bottom += heights
+    ax.set(xticks=np.arange(len(final)), xticklabels=[f"{r['method']}\nseed {r['seed']}" for r in final],
+           ylabel="Allocated minutes, including inherited pretraining", title="Final checkpoint cost composition; cold compilation included")
+    ax.tick_params(axis="x", labelrotation=25)
+    ax.legend(fontsize=8, loc="upper left", bbox_to_anchor=(1.01, 1))
+    fig.savefig(output / "compute-breakdown.png", dpi=180)
+    fig.savefig(output / "compute-breakdown.svg")
     (output / "analysis.json").write_text(json.dumps(dict(evaluation_count=len(rows),
         seeds=sorted({r["seed"] for r in rows}), aggregation="sample SD, left hold at common support, no extrapolation",
         accounting="full bootstrap and preceding evaluations charged; --campaign uses complete process allocation for final endpoints",
