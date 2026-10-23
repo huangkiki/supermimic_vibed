@@ -100,16 +100,33 @@ def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
     available = motion.clip_len[clip] - prefix_steps - horizon - 5
     if (available <= 0).any():
         raise ValueError("held-out horizon exceeds clip length")
-    frames = motion.clip_start[clip] + (torch.rand(samples, device=env.device, generator=generator) * available).long()
-    bank = dict(reset_frames=frames, prefix_actions=[], probe_seed=seed, collector_seed=cfg.seed)
-    reset_recipe(env, bank)
-    prefix_contacts = []
-    for _ in range(prefix_steps):
-        action = (motion.q[env.f + 1] - env.default_q) / env.alpha
-        bank["prefix_actions"].append(action.clone())
-        env.step(action)
-        prefix_contacts.append(contact_signature(env))
+    def draw_frames():
+        return motion.clip_start[clip] + (torch.rand(samples, device=env.device, generator=generator) * available).long()
+    bank = dict(reset_frames=draw_frames(), probe_seed=seed, collector_seed=cfg.seed)
+    attempts = torch.ones(samples, device=env.device, dtype=torch.long)
+    # Keep the clip assignment fixed; reject starts whose reference-PD prefix
+    # has already failed. Post-failure states are not an active control task.
+    for _ in range(64):
+        bank["prefix_actions"] = []
+        reset_recipe(env, bank)
+        prefix_contacts = []
+        for _ in range(prefix_steps):
+            action = (motion.q[env.f + 1] - env.default_q) / env.alpha
+            bank["prefix_actions"].append(action.clone())
+            env.step(action)
+            prefix_contacts.append(contact_signature(env))
+        if not torch.isfinite(flatten_state(env.state())).all():
+            raise FloatingPointError("Nonfinite state during held-out bank collection")
+        valid = ~env.failed_eval
+        if bool(valid.all()):
+            break
+        attempts += (~valid).long()
+        bank["reset_frames"] = torch.where(valid, bank["reset_frames"], draw_frames())
+    else:
+        raise RuntimeError("Could not collect live held-out starts for every clip within 64 attempts")
     bank["prefix_actions"] = torch.stack(bank["prefix_actions"])
+    bank["start_sampling_attempts"] = attempts
+    bank["prefix_rule"] = "fixed reference-PD prefix; no hard failure during prefix; per-clip rejection, maximum 64 attempts"
     bank["state"] = flatten_state(env.state())
     bank["frames"] = env.f.clone()
     bank["xi"] = env.xi.clone()
