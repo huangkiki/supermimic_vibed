@@ -1,0 +1,46 @@
+{
+  "status": "resource_qualification_not_convergence",
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "subset": "locomotion",
+  "seeds": [
+    0
+  ],
+  "scope": {
+    "methods": [
+      "ppo_wm_online"
+    ],
+    "iterations": 532,
+    "checkpoint_every": 532,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 1
+  },
+  "projected_campaign_gpu_hours": 0.625,
+  "projected_peak_memory_mib": 15000,
+  "projected_disk_gib": 4,
+  "minimum_disk_reserve_gib": 20,
+  "assumptions": {
+    "training_upper_seconds": 600,
+    "physical_evaluation_upper_seconds": 600,
+    "evaluation_processes": 2,
+    "time_margin": 1.25,
+    "wm_only_iterations": 500,
+    "policy_updates": 32
+  },
+  "measurements": {
+    "original_online_warmup_500_seconds": 313.2427955850726,
+    "original_online_first_policy_iteration_seconds": 104.1916361929616,
+    "original_peak_device_memory_mib": 12422,
+    "qualified_sim_all20_updates_upper_seconds": 2.1
+  },
+  "sources": [
+    "outputs/raw/formal-locomotion-seed0-v1/ppo_wm_online-seed0/train.csv",
+    "results/ablation/ppo-diagnostic-v1/native-verification.json"
+  ],
+  "limitations": [
+    "Measures tuned PPO-WM optimization throughput and numerical stability only, not mature policy performance",
+    "GPU2 same-host overlap; excluded from primary efficiency ranking",
+    "Physically evaluate both saved checkpoints; all cold start and evaluations charged",
+    "Explicit campaign cap .75 GPU-hours; original 3.5 GPU-hour two-candidate tuning remains separately capped"
+  ]
+}

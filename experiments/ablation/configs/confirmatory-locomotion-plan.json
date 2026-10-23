@@ -1,0 +1,49 @@
+{
+  "status": "preregistered_before_seeds_1_2_3",
+  "subset": "locomotion",
+  "development_seeds": [
+    0
+  ],
+  "validation_seeds": [
+    1,
+    2,
+    3
+  ],
+  "methods": [
+    "ppo_sim",
+    "ppo_wm_online",
+    "supermimic",
+    "ppo_wm_frozen_hard",
+    "ppo_wm_frozen",
+    "bptt_wm_frozen"
+  ],
+  "iterations": 4000,
+  "checkpoint_every": 1000,
+  "evaluation_repeats": 3,
+  "ppo_actor_lr": 2e-05,
+  "other_actor_wm_critic_lr": 0.0002,
+  "initial_std": 0.1,
+  "num_envs": 4096,
+  "horizon": 32,
+  "wm_window": 8,
+  "wm_only_iters": 500,
+  "pretrain_iters": 500,
+  "target_gpu_uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+  "campaign_gpu_hours_cap_per_seed": 32,
+  "campaign_gpu_hours_cap_total": 96,
+  "execution": "Serial seed campaigns on the same physical GPU; each launch rechecks resources. Start seed1 after the earlier matrix and all40 smoke terminate successfully.",
+  "selection_basis": "Two prespecified seed0 learning rates; lr2e-5 had stronger full-clip physical performance at iteration1000 across three evaluation repeats. Development costs are separate; no claim of globally optimal PPO tuning.",
+  "primary_endpoint": {
+    "return_threshold": 0.8,
+    "max_tracking_failure_rate": 0.2,
+    "rule": "First observed checkpoint whose mean of three complete physical evaluations satisfies both; never interpolate or extrapolate"
+  },
+  "secondary_return_thresholds": [
+    0.5,
+    0.7
+  ],
+  "censoring": "Report attainment numerator/denominator and per-seed cost; if any seed fails to reach a target, do not report an uncensored mean time or an invented speedup.",
+  "costs": "All model data collection, fitting, policy optimization, cold setup, checkpoint IO and physical repeats charged. Every standalone frozen method pays the full shared pretrain cost; actual campaign spend deduplicates it.",
+  "scope_limit": "4000 iterations are a finite comparison budget, not a convergence guarantee. All40 is a separate cohort with new qualification and forecast; never pool its returns or GPU costs with locomotion.",
+  "gradient_followup": "After physical evaluations: per-seed final SuperMimic collector, shared bank across WM1000/2000/3000/4000, full/state_only H1/8/32, eps .003/.01/.03/.1. Report state-level dependency and resolved fractions. H32 stable-contact counts may be too small; do not claim significance from them."
+}

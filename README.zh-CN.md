@@ -8,11 +8,12 @@
 
 ## 已经得到什么结果
 
-**目前尚无多种子效率结论。** 4000次迭代单种子、18段walk/run/sprint中，SuperMimic的物理Return达到0.8035，失败2/18；原参数PPO-Sim与在线PPO-WM仍全部失败，PPO基线正在做有界调参。原生Smoke、短程Pilot和64状态梯度诊断均已完成，冻结WM对照仍在执行。正式结果仍需至少3个训练seed和全部40段动作。
+**目前尚无多种子效率结论。** 4000次迭代单种子、18段walk/run/sprint中，SuperMimic的物理Return达到0.8035，失败2/18；原参数PPO仍全部失败；调整Actor学习率后，PPO-Sim在1000轮达到0.2528、失败12/18。开发seed0仅用于调参，正式seeds1/2/3已预登记。原生Smoke、短程Pilot和64状态梯度诊断均已完成，冻结WM对照仍在执行。正式结果仍需至少3个训练seed和全部40段动作。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
 | 长程探索（seed0） | BPTT第4000轮物理Return=0.8035，失败2/18；训练与五次物理评估共1.8824 GPU-hours。PPO基线尚未合格，不能归因或排名 | [已完成物理评估与成本](results/ablation/formal-seed0-partial/evaluations.csv) |
+| PPO参数选择（seed0） | Actor lr=2e-5、1000轮：三次物理复评均值0.252798、失败12/18；尚非完整长程或多seed结论 | [调参范围与预登记](docs/ablation/ppo-qualification.md) |
 | 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
 | Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
 | 目标规模资源测量 | 4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB | [资源估算与执行条件](docs/ablation/runbook.md) |
@@ -74,7 +75,7 @@ PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动�
 
 新运行器支持每个 checkpoint 的多次独立物理复评，单独记录其波动和全部费用；复评次数不能算作训练 seed 数。[重复评估与有界 PPO 调参](docs/ablation/ppo-qualification.md#有界长程验证与重复评估)。
 
-lr=5e-6的PPO候选已完成1000轮和9次物理复评，最终Return=0.013086，仍18/18失败；全程0.6813 GPU-hours。一次进程间资源门禁中断已通过独立恢复器补齐，原训练/评估源码和总预算不变，未重训。[结果与恢复验收](docs/ablation/ppo-qualification.md#lr5e-6候选的1000轮结果与调度恢复)。
+两个1000轮PPO候选均完成，各9次物理复评：lr=5e-6/2e-5最终Return均值0.013086/0.252798，失败18/12段，合计1.6260 GPU-hours。恢复器在原执行源码和原预算下补齐资源门禁中断的评估，未重训。正式验证选用2e-5、排除开发seed0；六条件×seeds1/2/3的保守估算为94.17 GPU-hours，分批上限32/seed，总上限96。这是计划预算，不是已经运行的结果。[结果、预登记与运行命令](docs/ablation/ppo-qualification.md#两候选完成与正式参数冻结)。
 
 Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全部复评，分别展示1/8/16/32步误差；缺失复评会拒绝绘图，单次评估不伪造标准差。[旧Pilot的四时域关联图与CSV](results/ablation/prediction-performance-v2/)仍显示全部策略跟踪失败，只是观察性关联，不能证明低MSE带来更好控制。
 

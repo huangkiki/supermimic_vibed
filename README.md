@@ -2,7 +2,7 @@
 
 [中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md)
 
-The added ablation experiments are separate from the original author-reported reproduction below. On one training seed and 18 locomotion clips, SuperMimic at iteration 4000 reaches a physical return of 0.8035 with 2/18 failures, costing 1.8824 GPU-hours including training and five physical evaluations. The PPO baselines still fail tracking and require qualification; these exploratory results do not establish an efficiency ranking. See the [measured results and limitations](docs/ablation/results.md).
+The added ablation experiments are separate from the original author-reported reproduction below. On one training seed and 18 locomotion clips, SuperMimic at iteration 4000 reaches a physical return of 0.8035 with 2/18 failures, costing 1.8824 GPU-hours including training and five physical evaluations. The original PPO settings fail; tuning only the Actor learning rate yields PPO-Sim return 0.2528 with 12/18 failures at iteration 1000. Seeds1/2/3 and their compute limits are preregistered; these exploratory results do not establish an efficiency ranking. See the [measured results and limitations](docs/ablation/results.md).
 
 **Unofficial** reproduction of *SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
 Model* (arXiv 2610.28480) — no official code is released, so everything here is implemented from

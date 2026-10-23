@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "method": "ppo_sim",
+      "seed": 0,
+      "iterations": 1000,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    }
+  ],
+  "actual_gpu_hours": 0.9447374319449753,
+  "evaluation_processes": 9,
+  "evaluation_repeats_per_checkpoint": 3,
+  "scope": "execution and recording qualification, not policy convergence or scientific superiority"
+}

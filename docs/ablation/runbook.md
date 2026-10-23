@@ -135,6 +135,25 @@ python -m experiments.ablation.compare_fidelity logs/ablation/paired-components 
 
 配对目录使用 `gradient-components-{full,state_only}-h{1,8,32}`。配对分析只在相同随机方向、相同尺度、两侧都resolved的交集上比较，另报各自覆盖率；CSV保留所有checkpoint、尺度与接触组。方向/尺度复用同一状态，不能作为独立随机种子。
 
+正式seeds1/2/3使用新测量估算，旧的频繁KL提前停止的PPO耗时不再适用。先准备四个完成运行目录（训练CSV、manifest、completion及父目录campaign）；不同探针设备仅用于预算，不混作方法成绩。估算绑定目标GPU UUID，并要求PPO至少实际完成过全套Actor更新：
+
+```bash
+python -m experiments.ablation.forecast \
+  --ppo-sim-run logs/ablation/ppo-lr2e-5-v1/ppo_sim-seed0 \
+  --ppo-wm-run logs/ablation/tuned-wm-resource-v1/ppo_wm_online-seed0 \
+  --bptt-run logs/ablation/formal-locomotion-seed0-v1/supermimic-seed0 \
+  --pretrain-run logs/ablation/formal-locomotion-seed0-v1/pretrain-seed0 \
+  --gpu-uuid GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9 \
+  --seeds 1 --iterations 4000 --checkpoint-every 1000 --evaluation-repeats 3 \
+  --evaluation-seconds 600 --output forecast-confirmatory-seed1.json
+python -m experiments.ablation.run_suite \
+  --phase formal --iterations 4000 --checkpoint-every 1000 --ppo-actor-lr .00002 \
+  --evaluation-repeats 3 --seeds 1 --gpu 0 --max-gpu-hours 32 \
+  --forecast forecast-confirmatory-seed1.json --output logs/ablation/confirmatory-locomotion-seed1-v2
+```
+
+上面的UUID是本次已检查的GPU0；其他机器必须重新测量、估算与预检，不直接改名冒用。seed2/3各用匹配seed的新forecast和新输出目录，同一不可变执行版本；三批上限合计96 GPU-hours。先完成旧矩阵和all40 Smoke，再执行第一批，避免本项目主动安排的测量重叠。预登记端点、删失与开发seed排除规则见[PPO资格](ppo-qualification.md#两候选完成与正式参数冻结)。
+
 已训练collector实验使用固定最终checkpoint4000采集bank，四个WM阶段均复用相同动作序列，不能随WM更换collector。下面复现2026-10-24的六探针配置；先检查GPU/磁盘和checkpoint身份，在新输出目录执行。该轮实测0.188922 GPU-hours，资源预检、0.3 GPU-hours硬上限和完整进程费用见交付包的`run-trained-fidelity.py`与plan；以下命令只说明单探针参数，不自行提供预算监督。
 
 ```bash
