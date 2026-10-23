@@ -111,7 +111,8 @@ def identity(config, *, hash_bootstrap=True):
         "source_hashes": {str(p.relative_to(root)): sha256(p) for p in sources},
         "motions": {p.name: sha256(p) for p in files},
         "assets": {str(p.relative_to(root)): sha256(p)
-                   for p in sorted((root / "data/g1_description").rglob("*")) if p.is_file()},
+                   for directory in ("data/g1_description", "data/g1_usd", "data/isaac-assets")
+                   for p in sorted((root / directory).rglob("*")) if p.is_file()},
         "gpu": torch.cuda.get_device_name(0), "torch": torch.__version__,
         "cuda": torch.version.cuda, "gpu_count": 1,
         "packages": {name: importlib.metadata.version(name) for name in
