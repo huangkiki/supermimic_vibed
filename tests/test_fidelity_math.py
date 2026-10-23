@@ -46,8 +46,8 @@ class FidelityTests(unittest.TestCase):
         terms = dict(track=state.square(), joint_limit=state.relu())
         config = SimpleNamespace(w_joint_limit=-2.)
         full = terms["track"] - 10. * action.square() - .04 * terms["joint_limit"]
-        self.assertIs(select_probe_reward(full, terms, config, "full"), full)
-        state_only = select_probe_reward(full, terms, config, "state_only")
+        self.assertIs(select_probe_reward(full, terms, config, "full", .02), full)
+        state_only = select_probe_reward(full, terms, config, "state_only", .02)
         state_grad, direct_grad = torch.autograd.grad(state_only, (state, action), allow_unused=True)
         self.assertAlmostEqual(float(state_grad), 3.96, places=6)
         self.assertIsNone(direct_grad)

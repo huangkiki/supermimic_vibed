@@ -83,25 +83,25 @@ def returns(rewards, done, gamma):
     return (discounts * alive * rewards).sum(0)
 
 
-def select_probe_reward(full_reward, terms, config, objective):
+def select_probe_reward(full_reward, terms, config, objective, control_dt):
     """Use identical analytic terms on both sides, without subtractive cancellation."""
-    from supermimic.motion import CONTROL_DT
     if objective == "full":
         return full_reward
     if objective == "state_only":
-        return terms["track"] + config.w_joint_limit * terms["joint_limit"] * CONTROL_DT
+        return terms["track"] + config.w_joint_limit * terms["joint_limit"] * control_dt
     raise ValueError(f"Unknown probe objective: {objective}")
 
 
 @torch.no_grad()
 def physical_rollout(env, bank, actions, gamma, contacts=False, reward_objective="full"):
     from supermimic.mdp import flatten_state
+    from supermimic.motion import CONTROL_DT
     restore_probe_state(env, bank)
     states, rewards, hard, soft, signatures = [flatten_state(env.state())], [], [], [], []
     for action in actions:
         out = env.step(action)
         states.append(out["s1"])
-        rewards.append(select_probe_reward(out["r"], out["terms"], env.mdp.cfg, reward_objective))
+        rewards.append(select_probe_reward(out["r"], out["terms"], env.mdp.cfg, reward_objective, CONTROL_DT))
         hard.append(out["term"].float())
         soft.append(env.mdp.soft_termination(env.state(), env.f))
         if contacts:
@@ -177,6 +177,7 @@ def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
 
 def imagined_rollout(wm, mdp, bank, actions, gamma, reward_objective="full"):
     from supermimic.mdp import normalize_xi, unflatten_state
+    from supermimic.motion import CONTROL_DT
     state = unflatten_state(bank["state"])
     frames, previous = bank["frames"], bank["previous_action"]
     context = normalize_xi(bank["xi"])
@@ -185,7 +186,7 @@ def imagined_rollout(wm, mdp, bank, actions, gamma, reward_objective="full"):
         state = wm.step(state, action, context)
         frames = frames + 1
         reward, terms = mdp.reward(state, frames, action, previous, terms=True)
-        rewards.append(select_probe_reward(reward, terms, mdp.cfg, reward_objective))
+        rewards.append(select_probe_reward(reward, terms, mdp.cfg, reward_objective, CONTROL_DT))
         done.append(mdp.soft_termination(state, frames))
         predictions.append(state)
         previous = action
