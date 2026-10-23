@@ -8,20 +8,22 @@
 
 ## 已经得到什么结果
 
-**目前尚无多种子效率结论。** 4000次迭代单种子、18段walk/run/sprint中，SuperMimic的物理Return达到0.8035，失败2/18；原参数PPO仍全部失败；调整Actor学习率后，PPO-Sim在1000轮达到0.2528、失败12/18。开发seed0仅用于调参，正式seeds1/2/3已预登记。原生Smoke、短程Pilot和64状态梯度诊断均已完成，冻结WM配对尚未完成。正式结果仍需至少3个训练seed和全部40段动作。
+**目前尚无多种子效率结论。** 开发seed0的六条件均完成4000次迭代和物理评估：在线SuperMimic的物理Return为0.8035、失败2/18；冻结BPTT为0.001907、失败18/18，原参数PPO也全部失败。调整Actor学习率后，PPO-Sim在独立1000轮调参批次达到0.2528、失败12/18。开发seed0不计入正式统计；正式seeds1/2/3已预登记，seed1已开始，seeds2/3串行等待。正式结论仍需至少3个训练seed和全部40段动作。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
-| 长程探索（seed0） | BPTT第4000轮物理Return=0.8035，失败2/18；训练与五次物理评估共1.8824 GPU-hours。PPO基线尚未合格，不能归因或排名 | [已完成物理评估与成本](results/ablation/formal-seed0-partial/evaluations.csv) |
+| 长程探索（seed0） | 六条件4000轮、30次物理评估完成，实际共6.6784 GPU-hours；在线BPTT Return=0.8035，冻结BPTT=0.001907。原PPO参数未合格，不能归因或排名 | [全部物理评估与成本](results/ablation/formal-seed0-complete/evaluations.csv) |
 | PPO参数选择（seed0） | Actor lr=2e-5、1000轮：三次物理复评均值0.252798、失败12/18；尚非完整长程或多seed结论 | [调参范围与预登记](docs/ablation/ppo-qualification.md) |
 | 全部40段链路验收 | 7个训练进程、12次物理评估、480条clip记录，0.197570 GPU-hours；各策略仅训练3轮且全部40段失败，不是全量训练结果 | [40段Smoke数据](results/ablation/all40-smoke-v1/evaluations.csv) |
 | 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
 | Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
 | 目标规模资源测量 | **18段**、4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB；40段另行测量 | [资源估算与执行条件](docs/ablation/runbook.md#全部40段的目标规模资源测量) |
 
-![长程探索的已完成物理评估点，原PPO基线未合格](results/ablation/formal-seed0-partial/return-compute.png)
+![六条件长程探索，开发seed0且原PPO参数未合格](results/ablation/formal-seed0-complete/return-compute.png)
 
 仅绘已完成物理评估点，单seed不绘制标准差带；原PPO参数未合格，不能把曲线差距直接归因于算法。中间横坐标为checkpoint计时加累计复评成本的回溯重建，不是现场在线评估时序；完整方法端点使用进程分配。冻结方法另全额计入WM预训练。
+
+冻结组共享500轮预训练得到的WM和replay，冻结BPTT也未学会跟踪。它提示固定模型/数据覆盖可能成为限制，但尚不能排除模型成熟度和优化设置；不能据此声称在线WM必然优于冻结WM。正式批次保持预登记设置，先检查这一失败是否跨seed复现，再决定后续机制实验。[六条件终点、成本和解释边界](docs/ablation/results.md#开发seed0的六条件矩阵完成)。
 
 ![已训练策略固定库的完整奖励与state-only梯度诊断](results/ablation/trained-policy-fidelity-seed0-v1/paired-objectives.png)
 
