@@ -234,6 +234,31 @@ python -m experiments.ablation.plot_fidelity "$ABLATION_PROBE/gradient-component
 ```
 
 
+## 全部40段的目标规模资源测量
+
+40段Smoke采用32环境、H4，不能代表正式4096环境、H32的资源需求。`qualify_all40.sh`复用已通过Smoke的固定训练源码3526437，单独运行下面三个有限范围campaign；脚本和forecast位于另一个目录，不修改正在使用的执行checkout。
+
+| Campaign | 训练范围 | 物理评估 | 估算 / 硬上限 GPU-hours |
+| --- | --- | --- | --- |
+| PPO-Sim与独立WM预训练 | pretrain 500轮；PPO-Sim 32轮 | PPO初始、最终各一次，全40段 | 0.9549 / 1.05 |
+| 在线PPO-WM | 500轮仅训练WM，再32轮策略更新 | 初始、最终各一次，全40段 | 0.8854 / 1.00 |
+| SuperMimic | 500轮仅训练WM，再32轮策略更新 | 初始、最终各一次，全40段 | 1.0069 / 1.15 |
+
+总估算2.8472 GPU-hours、硬上限3.2，独立于18段正式三seed的96 GPU-hours预算。估算来自18段实测、额外编译余量及每次900秒的40段评估规划额度，**并非已测得的40段耗时或收敛预测**。各阶段预留显存15000/20000/32768 MiB；磁盘合计9 GiB，此外保留24 GiB。GPU2固定UUID，仅用于资源资格；可能与GPU1开发训练重叠，不能把其吞吐当成GPU0正式对照的效率结果。
+
+先准备独立执行目录：checkout精确3526437，并按环境文档提供相同数据/资产。`ABLATION_QUALIFIED_CAMPAIGN`指向该源码已经原生验收的all40 Smoke；脚本核对完整源码/config快照、原生验收和提交身份，每个campaign前检查GPU、磁盘、forecast，再调用现有runner。输出路径必须全新，任一训练/评估失败即停止，不自动重试或扩大预算。
+
+```bash
+# Python环境与ISAACSIM_ASSET_ROOT已按环境文档设置。
+# RECIPE_ROOT是包含本脚本及三个all40-resource-*.json的独立、固定目录。
+export ABLATION_EXECUTION_ROOT=/absolute/path/to/immutable-3526437-checkout
+export ABLATION_QUALIFIED_CAMPAIGN=/absolute/path/to/accepted-all40-smoke
+export ABLATION_RESOURCE_OUTPUT=/absolute/path/to/new-all40-resource-v1
+bash "$RECIPE_ROOT/experiments/ablation/qualify_all40.sh"
+```
+
+每个campaign保存`train.csv`、所有checkpoint、物理`per_clip.csv`、完整费用账本、每秒显存采样、验收和单独的图。独立pretrain的完整成本保留在其所属campaign；它没有被在线两方法共享，也没有虚构成PPO-Sim的必要成本。后续全40段forecast需要这些资源测量、冻结条件资格和成熟策略评估耗时，不能用初始策略很快失败的评估耗时外推成功跟踪成本。这一轮不产生多seed或方法优劣结论。
+
 ## PPO 更新尺度检查与真实轨迹
 
 当前正式模板保留探索矩阵的原始参数，不代表已经调优。Actor 可通过配置中的 `actor_lr` 独立于 `lr` 调整，缺省继承原值，两个学习率均写入训练 CSV。具体失败证据、固定批次 replay 和短程资格配置见 [PPO资格记录](ppo-qualification.md)。

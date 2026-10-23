@@ -1,0 +1,78 @@
+{
+  "status": "bounded_all40_resource_qualification_not_convergence",
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "subset": "all40",
+  "seeds": [
+    0
+  ],
+  "scope": {
+    "methods": [
+      "pretrain",
+      "ppo_sim"
+    ],
+    "iterations": 32,
+    "checkpoint_every": 32,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 1
+  },
+  "projected_campaign_gpu_hours": 0.9548611111111112,
+  "hard_gpu_hours": 1.05,
+  "projected_peak_memory_mib": 15000,
+  "projected_disk_gib": 5,
+  "minimum_disk_reserve_gib": 24,
+  "assumptions": {
+    "training_seconds_allowance": 950,
+    "evaluation_seconds_allowance": 900,
+    "evaluation_processes": 2,
+    "time_margin": 1.25,
+    "policy_update_iterations": 32,
+    "model_only_iterations": 0,
+    "separate_pretrain_iterations": 500
+  },
+  "locomotion_measurements": {
+    "pretrain": {
+      "observations": 30,
+      "measured_iterations": 500,
+      "gpu_uuid": "GPU-2c04d773-3f69-c5a0-b3c9-96f33131637c",
+      "gpu_uuid_source": "process_resource_record",
+      "allocation_seconds": 389.6842110659927,
+      "upper_interval": {
+        "collection_seconds": 0.12279143498744816,
+        "wm_training_seconds": 0.30050236906390637,
+        "imagined_rollout_seconds": 0.0,
+        "policy_optimization_seconds": 0.0,
+        "train_wall_seconds": 0.412252972018905
+      },
+      "cold_setup_compile_io_seconds": 245.9490430119913,
+      "peak_device_memory_mib": 7528.0,
+      "training_seconds": 389.6842110659927
+    },
+    "ppo_sim": {
+      "observations": 30,
+      "measured_iterations": 1000,
+      "gpu_uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+      "gpu_uuid_source": "training_manifest",
+      "allocation_seconds": 2039.3197939589154,
+      "upper_interval": {
+        "collection_seconds": 1.2965490680653602,
+        "wm_training_seconds": 0.0,
+        "imagined_rollout_seconds": 0.0,
+        "policy_optimization_seconds": 0.6405717419693246,
+        "train_wall_seconds": 1.9389124310109764
+      },
+      "cold_setup_compile_io_seconds": 167.1644831309095,
+      "peak_device_memory_mib": 8450.0,
+      "training_seconds": 7856.057086991845
+    }
+  },
+  "measurement_source": "experiments/ablation/configs/confirmatory-locomotion-forecast-seed1.json",
+  "execution_commit": "3526437a50fdc714cc77bc4527ca70124770b08a",
+  "limitations": [
+    "18-motion measurements support a bounded 40-motion qualification only; these are not measured all40 forecasts or confidence bounds.",
+    "900 seconds per physical evaluation is a planning allowance above measured 18-motion mature-policy evaluations (395-407 seconds). Early-failure results cannot qualify mature all40 evaluation cost.",
+    "GPU2 qualification may overlap GPU1 development training; no throughput or return pooling with the same-GPU0 confirmatory comparison.",
+    "Frozen-condition target-size timing and mature all40 evaluation still require qualification before an all40 confirmatory cohort.",
+    "The three stage hard caps sum to 3.2 GPU-hours, independent of the existing 96 GPU-hour locomotion cohort; no automatic extension or retry."
+  ]
+}

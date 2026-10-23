@@ -17,7 +17,7 @@
 | 全部40段链路验收 | 7个训练进程、12次物理评估、480条clip记录，0.197570 GPU-hours；各策略仅训练3轮且全部40段失败，不是全量训练结果 | [40段Smoke数据](results/ablation/all40-smoke-v1/evaluations.csv) |
 | 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
 | Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
-| 目标规模资源测量 | 4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB | [资源估算与执行条件](docs/ablation/runbook.md) |
+| 目标规模资源测量 | **18段**、4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB；40段另行测量 | [资源估算与执行条件](docs/ablation/runbook.md#全部40段的目标规模资源测量) |
 
 ![长程探索的已完成物理评估点，原PPO基线未合格](results/ablation/formal-seed0-partial/return-compute.png)
 

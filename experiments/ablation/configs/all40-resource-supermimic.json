@@ -1,0 +1,60 @@
+{
+  "status": "bounded_all40_resource_qualification_not_convergence",
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "subset": "all40",
+  "seeds": [
+    0
+  ],
+  "scope": {
+    "methods": [
+      "supermimic"
+    ],
+    "iterations": 532,
+    "checkpoint_every": 532,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 1
+  },
+  "projected_campaign_gpu_hours": 1.0069444444444444,
+  "hard_gpu_hours": 1.15,
+  "projected_peak_memory_mib": 32768,
+  "projected_disk_gib": 2,
+  "minimum_disk_reserve_gib": 24,
+  "assumptions": {
+    "training_seconds_allowance": 1100,
+    "evaluation_seconds_allowance": 900,
+    "evaluation_processes": 2,
+    "time_margin": 1.25,
+    "policy_update_iterations": 32,
+    "model_only_iterations": 500,
+    "separate_pretrain_iterations": 0
+  },
+  "locomotion_measurements": {
+    "supermimic": {
+      "observations": 30,
+      "measured_iterations": 4000,
+      "gpu_uuid": "GPU-2c04d773-3f69-c5a0-b3c9-96f33131637c",
+      "gpu_uuid_source": "process_resource_record",
+      "allocation_seconds": 5123.910735565005,
+      "upper_interval": {
+        "collection_seconds": 0.13406218599993736,
+        "wm_training_seconds": 0.2859648149460554,
+        "imagined_rollout_seconds": 1.7637808719882742,
+        "policy_optimization_seconds": 0.5123185989214107,
+        "train_wall_seconds": 2.6493963800603524
+      },
+      "cold_setup_compile_io_seconds": 558.9878209599992,
+      "peak_device_memory_mib": 23638.0,
+      "training_seconds": 5123.910735565005
+    }
+  },
+  "measurement_source": "experiments/ablation/configs/confirmatory-locomotion-forecast-seed1.json",
+  "execution_commit": "3526437a50fdc714cc77bc4527ca70124770b08a",
+  "limitations": [
+    "18-motion measurements support a bounded 40-motion qualification only; these are not measured all40 forecasts or confidence bounds.",
+    "900 seconds per physical evaluation is a planning allowance above measured 18-motion mature-policy evaluations (395-407 seconds). Early-failure results cannot qualify mature all40 evaluation cost.",
+    "GPU2 qualification may overlap GPU1 development training; no throughput or return pooling with the same-GPU0 confirmatory comparison.",
+    "Frozen-condition target-size timing and mature all40 evaluation still require qualification before an all40 confirmatory cohort.",
+    "The three stage hard caps sum to 3.2 GPU-hours, independent of the existing 96 GPU-hour locomotion cohort; no automatic extension or retry."
+  ]
+}
