@@ -60,3 +60,9 @@ def window_contact_groups(labels, start, horizon):
         raise ValueError("Contact window must be fully observed")
     return ["switch_nearby" if any(row[n] == "switch_nearby" for row in window)
             else window[0][n] for n in range(len(window[0]))]
+
+
+def body_contact_signatures(geometry_signatures, geom_body_ids):
+    """Merge contact patches on the same physical link; preserve raw geom sets separately."""
+    return [[tuple(sorted({tuple(sorted((geom_body_ids[a], geom_body_ids[b]))) for a, b in pairs}))
+             for pairs in step] for step in geometry_signatures]

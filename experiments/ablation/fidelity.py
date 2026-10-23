@@ -17,7 +17,7 @@ import numpy as np
 import torch
 
 from .common import Config, append_csv, freeze, identity, motion_files, sha256, write_json
-from .fidelity_math import agreement, contact_groups, reference_quality, window_contact_groups
+from .fidelity_math import agreement, body_contact_signatures, contact_groups, reference_quality, window_contact_groups
 
 
 def contact_signature(env):
@@ -192,7 +192,7 @@ def imagined_rollout(wm, mdp, bank, actions, gamma, reward_objective="full"):
     return returns(torch.stack(rewards), torch.stack(done), gamma), predictions
 
 
-def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directions, gamma, seed, gradient_horizon, reward_objective):
+def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directions, gamma, seed, gradient_horizon, reward_objective, contact_level, geom_body_ids):
     from supermimic.mdp import unflatten_state
     actions = bank["actions"][:gradient_horizon].detach().clone().requires_grad_(True)
     objective, predictions = imagined_rollout(wm, env.mdp, bank, actions, gamma, reward_objective)
@@ -201,10 +201,12 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
         raise FloatingPointError("nonfinite WM action gradient")
     samples = actions.shape[1]
     combined_contacts = bank["prefix_contacts"] + baseline["contacts"]
-    labels = contact_groups(combined_contacts)
+    geometry_labels = contact_groups(combined_contacts)
+    labels = contact_groups(body_contact_signatures(combined_contacts, geom_body_ids)) if contact_level == "body" else geometry_labels
     first = len(bank["prefix_contacts"])
     initial_group = labels[first]
     group = window_contact_groups(labels, first, gradient_horizon)
+    geometry_group = window_contact_groups(geometry_labels, first, gradient_horizon)
     if gradient_horizon != len(bank["actions"]):
         with torch.no_grad():
             _, predictions = imagined_rollout(wm, env.mdp, bank, bank["actions"], gamma, reward_objective)
@@ -215,9 +217,11 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
             continue
         error = wm.state_error(predictions[h - 1], unflatten_state(baseline["states"][h])).detach()
         prediction_groups = window_contact_groups(labels, first, h)
+        geometry_prediction_groups = window_contact_groups(geometry_labels, first, h)
         for n in range(samples):
             row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n], horizon=h,
                        contact_group=prediction_groups[n], initial_contact_group=initial_group[n],
+                       contact_group_level=contact_level, geometry_contact_group=geometry_prediction_groups[n],
                        scaled_mse=float((error[n] / scale).square().mean()))
             row.update({name + "_mse": float(error[n, a:b].square().mean()) for name, (a, b) in segments.items()})
             append_csv(output / "prediction.csv", row)
@@ -255,6 +259,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                                gradient_horizon=gradient_horizon,
                                reward_objective=reward_objective,
                                contact_group=group[n], initial_contact_group=initial_group[n], direction=direction_id,
+                               contact_group_level=contact_level, geometry_contact_group=geometry_group[n],
                                direction_type="wm_gradient" if direction_id == directions else "random_unit_l2",
                                direction_l2_norm=float(direction[:, n].norm()),
                                wm_gradient_l2_norm=float(grad[:, n].norm()),
@@ -275,7 +280,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                 summaries.append(dict(objective=kind, contact_group=label, epsilon=eps,
                                       **agreement([r["fd_derivative"] for r in rows], [r["predicted_derivative"] for r in rows], [r["resolved"] for r in rows])))
     write_json(output / f"summary-{ck_hash[:12]}.json", dict(checkpoint_sha256=ck_hash, gradient_horizon=gradient_horizon,
-        reward_objective=reward_objective, summaries=summaries,
+        reward_objective=reward_objective, contact_group_level=contact_level, summaries=summaries,
         claim="finite-horizon action-space diagnostic; hard FD includes termination discontinuities; neither FD variant is an absolute Jacobian truth"))
 
 
@@ -294,6 +299,8 @@ def main():
                         help="Shorter fixed horizons can isolate stable-contact windows; analyze horizons separately")
     parser.add_argument("--reward-objective", choices=("full", "state_only"), default="full",
                         help="state_only removes the direct action-rate penalty on BOTH sides; it is a diagnostic, not the task score")
+    parser.add_argument("--contact-level", choices=("body", "geometry"), default="body",
+                        help="body merges changing contact patches on a single foot; raw geom-pair groups are always retained")
     parser.add_argument("--epsilons", nargs="+", type=float, default=[0.003, 0.01, 0.03, 0.1])
     parser.add_argument("--probe-seed", type=int, default=9001)
     add_launcher_args(parser)
@@ -341,6 +348,10 @@ def main():
     sim_cfg = make_sim("cuda:0", args)
     with launch_simulation(sim_cfg, args):
         env = TrackingSim(sim_cfg, args.samples, motion, mdp, eval_mode=True)
+        contact_model = env.sim.backend_manager._solver.mj_model
+        geom_body_ids = [int(body) for body in contact_model.geom_bodyid]
+        write_json(output / "contact-map.json", dict(geom_body_ids=geom_body_ids,
+                   body_names=[contact_model.body(i).name for i in range(contact_model.nbody)]))
         if args.bank:
             bank = torch.load(args.bank, map_location="cuda:0", weights_only=False)
             if bank["motion_hashes"] != hashes or bank["actions"].shape[1] != args.samples:
@@ -374,7 +385,8 @@ def main():
             wm.load_state_dict(ck["wm"])
             freeze(wm, True)
             probe_checkpoint(env, wm, bank, baseline, sha256(checkpoint), output, args.epsilons,
-                             args.directions, cfg.gamma, args.probe_seed, args.gradient_horizon, args.reward_objective)
+                             args.directions, cfg.gamma, args.probe_seed, args.gradient_horizon,
+                             args.reward_objective, args.contact_level, geom_body_ids)
         torch.cuda.synchronize()
         elapsed = time.perf_counter() - started
         write_json(output / "probe.json", dict(seconds=elapsed, gpu_hours=elapsed / 3600, args=vars(args),

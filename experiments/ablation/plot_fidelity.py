@@ -26,12 +26,17 @@ def main():
     if len(objectives) != 1:
         raise ValueError("Different reward objectives must be analyzed separately")
     reward_objective = next(iter(objectives))
+    contact_levels = {r.get("contact_group_level", "geometry") for r in gradient}
+    if len(contact_levels) != 1:
+        raise ValueError("Different contact definitions must be analyzed separately")
+    contact_level = next(iter(contact_levels))
     output.mkdir(parents=True, exist_ok=True)
     summaries = []
     for path in sorted(root.glob("summary-*.json")):
         record = json.loads(path.read_text())
         summaries.extend(dict(checkpoint_sha256=record["checkpoint_sha256"],
-                              gradient_horizon=gradient_horizon, reward_objective=reward_objective, **row) for row in record["summaries"])
+                              gradient_horizon=gradient_horizon, reward_objective=reward_objective,
+                              contact_group_level=contact_level, **row) for row in record["summaries"])
     if summaries:
         with (output / "gradient-metrics.csv").open("w", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=list(summaries[0]))
@@ -83,7 +88,7 @@ def main():
                 axes[1, 0].plot(x, y, color=colors[sha], marker=("o", "s", "^")[i % 3],
                                 linestyle=("-", "--", ":")[i % 3], label=f"{sha[:8]} / {label}")
     axes[1, 0].set(xlabel="Perturbation scale", xscale="log", ylim=(0, 1.05),
-                   ylabel="Sign agreement (resolved only)", title="Hard physical objective, contact groups")
+                   ylabel="Sign agreement (resolved only)", title=f"Hard physical objective, {contact_level} contact groups")
     if axes[1, 0].get_legend_handles_labels()[0]:
         axes[1, 0].legend(fontsize=7)
     for sha in hashes:

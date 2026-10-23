@@ -93,6 +93,8 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 分别保存真实硬终止物理回报FD、匹配WM软生存目标的物理FD；报告符号一致率、Pearson（样本/方差不足留空）、正向微小更新的真实return improvement。FD只是尺度依赖的数值参考，不是MuJoCo-Warp解析Ground-truth Jacobian。
 
-接触来自实际MuJoCo-Warp collision/constraint records的geom-pair集合（dist≤0且efc有效），并明确是最后物理substep的记录，不是足高近似或接触力真值。在±2个控制步的接触集合变化附近标记switch_nearby，否则区分stable_contact与flight。同时记录初始局部标签和对应预测/梯度horizon的窗口标签；窗口内任一时刻接近切换都归入switch_nearby，只有全窗口稳定才归stable_contact/flight。保留整段contact signatures供更细分析；某组没有样本就明确留空。
+接触来自实际MuJoCo-Warp collision/constraint records的geom-pair集合（dist≤0且efc有效），并明确是最后物理substep的记录，不是足高近似或接触力真值。保留两个层级：默认 `--contact-level body` 依据实际MuJoCo `geom_bodyid` 合并同一足部link上的接触斑块；`geometry_contact_group` 始终保留细粒度geom-pair变化。严格geom分组的初版64状态探针在1/8/32步均无稳定组；这与同一足部多个collision geom的接触斑块变化有关，不能将其说成每个样本都发生整足落地/离地。
+
+在±2个控制步的相应集合变化附近标记switch_nearby，否则区分stable_contact与flight。记录初始局部标签和对应预测/梯度horizon的窗口标签；窗口内任一时刻接近切换都归入switch_nearby，只有全窗口稳定才归stable_contact/flight。保留整段原始contact signatures及body映射，不混合两个定义的统计；某组没有样本就明确留空。body稳定也不代表接触斑块/约束Jacobian完全不变。
 
 不同checkpoint的Prediction Error与其物理评估return关系只能先报观察性相关：策略成熟度、数据分布和训练时间共同变化。同输入的模型梯度与真实微步改善更直接检验机制；也不能据此宣称低MSE必然导致更高最终policy performance。

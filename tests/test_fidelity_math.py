@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from experiments.ablation.fidelity_math import agreement, contact_groups, reference_quality, window_contact_groups
+from experiments.ablation.fidelity_math import agreement, body_contact_signatures, contact_groups, reference_quality, window_contact_groups
 
 
 class FidelityTests(unittest.TestCase):
@@ -51,6 +51,14 @@ class FidelityTests(unittest.TestCase):
         state_grad, direct_grad = torch.autograd.grad(state_only, (state, action), allow_unused=True)
         self.assertAlmostEqual(float(state_grad), 3.96, places=6)
         self.assertIsNone(direct_grad)
+
+    def test_contact_patch_changes_do_not_imply_a_stance_link_switch(self):
+        geometry = [[((0, 1),)], [((0, 2),)], [((0, 3),)]]
+        bodies = body_contact_signatures(geometry, [0, 10, 10, 20])
+        self.assertEqual(bodies, [[((0, 10),)], [((0, 10),)], [((0, 20),)]])
+        self.assertEqual(contact_groups(bodies, radius=0)[0], ["stable_contact"])
+        self.assertEqual(contact_groups(bodies, radius=0)[1], ["stable_contact"])
+        self.assertEqual(contact_groups(bodies, radius=0)[2], ["switch_nearby"])
 
 
 if __name__ == "__main__":
