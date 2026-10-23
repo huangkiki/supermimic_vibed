@@ -7,6 +7,20 @@ import math
 from pathlib import Path
 import torch
 
+from .analyze import collect_records
+from .common import sha256
+from .run_suite import METHOD_ORDER
+
+
+def validate_run_layout(root, campaign):
+    expected = {f"{method}-seed{seed}" for method in campaign["args"].get("methods", METHOD_ORDER)
+                for seed in campaign["args"]["seeds"]}
+    manifests = sorted(root.glob("*/manifest.json"))
+    actual = {p.parent.name for p in manifests}
+    if not expected or actual != expected:
+        raise ValueError(f"Campaign run coverage differs: missing={expected - actual}, extra={actual - expected}")
+    return manifests
+
 
 def main():
     parser = argparse.ArgumentParser(__doc__)
@@ -17,7 +31,9 @@ def main():
     if campaign["status"] != "completed":
         raise ValueError("campaign incomplete; preserve failure evidence")
     checks = []
-    for manifest_path in sorted(root.glob("*/manifest.json")):
+    evaluation_paths = []
+    repeats = campaign["args"].get("evaluation_repeats", 1)
+    for manifest_path in validate_run_layout(root, campaign):
         run = manifest_path.parent
         manifest = json.loads(manifest_path.read_text())
         cfg = manifest["config"]
@@ -46,15 +62,27 @@ def main():
             assert last["wm"] is None and last["ledger"]["imagined_steps"] == 0
         if cfg["method"] != "pretrain":
             for checkpoint in checkpoints:
-                evaluation = json.loads((run / checkpoint.stem / "evaluation.json").read_text())
-                per_clip = list(csv.DictReader((run / checkpoint.stem / "per_clip.csv").open()))
-                assert len(per_clip) == len(manifest["motions"]) == evaluation["total_clips"]
-                assert {r["motion"] + ".csv" for r in per_clip} == set(manifest["motions"])
-                assert all(math.isfinite(float(r["normalized_return"])) for r in per_clip)
-                assert all(r["failed"] == "True" or int(r["steps"]) == int(r["reference_steps"]) for r in per_clip)
+                for repeat in range(repeats):
+                    dest = run / checkpoint.stem
+                    if repeats > 1:
+                        dest /= f"repeat_{repeat:03d}"
+                    evaluation_path = dest / "evaluation.json"
+                    evaluation = json.loads(evaluation_path.read_text())
+                    assert evaluation["checkpoint_sha256"] == sha256(checkpoint), "evaluation/checkpoint mismatch"
+                    assert evaluation.get("evaluation_repeat_index", 0) == repeat
+                    assert evaluation.get("evaluation_repeat_count", 1) == repeats
+                    per_clip = list(csv.DictReader((dest / "per_clip.csv").open()))
+                    assert len(per_clip) == len(manifest["motions"]) == evaluation["total_clips"]
+                    assert {r["motion"] + ".csv" for r in per_clip} == set(manifest["motions"])
+                    assert all(math.isfinite(float(r["normalized_return"])) for r in per_clip)
+                    assert all(r["failed"] == "True" or int(r["steps"]) == int(r["reference_steps"]) for r in per_clip)
+                    evaluation_paths.append(evaluation_path)
         checks.append(dict(method=cfg["method"], seed=cfg["seed"], iterations=cfg["iterations"],
                            actor_weights_changed=changed, training_and_full_physical_evaluation_valid=True))
+    if evaluation_paths:
+        collect_records(evaluation_paths, root / "campaign.json")
     result = dict(checks=checks, actual_gpu_hours=campaign["actual_gpu_hours"],
+                  evaluation_processes=len(evaluation_paths), evaluation_repeats_per_checkpoint=repeats,
                   scope="execution and recording qualification, not policy convergence or scientific superiority")
     (root / "validation.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))

@@ -93,8 +93,12 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--motion-dir")
     parser.add_argument("--record", action="store_true", help="Save trajectory.npz for the existing tools/render.py")
+    parser.add_argument("--repeat-index", type=int, default=0)
+    parser.add_argument("--repeat-count", type=int, default=1)
     add_launcher_args(parser)
     args = parser.parse_args()
+    if not 0 <= args.repeat_index < args.repeat_count:
+        raise ValueError("Evaluation repeat index must be within the declared repeat count")
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     if (output / "evaluation.json").exists():
@@ -145,6 +149,8 @@ def main():
                       evaluation_manifest=evaluation_manifest,
                       evaluation_seconds=elapsed, evaluation_gpu_hours=elapsed / 3600,
                       evaluation_gpu=torch.cuda.get_device_name(0),
+                      evaluation_gpu_uuid=evaluation_manifest["gpu_uuid"],
+                      evaluation_repeat_index=args.repeat_index, evaluation_repeat_count=args.repeat_count,
                       trajectory_recorded=args.record,
                       protocol="native-full-clips-first-frame-fresh-process-v1", **score)
         write_json(output / "evaluation.json", result)

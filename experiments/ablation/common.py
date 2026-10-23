@@ -133,6 +133,7 @@ def identity(config, *, hash_bootstrap=True):
                    for directory in ("data/g1_description", "data/g1_usd", "data/isaac-assets")
                    for p in sorted((root / directory).rglob("*")) if p.is_file()},
         "gpu": torch.cuda.get_device_name(0), "torch": torch.__version__,
+        "gpu_uuid": "GPU-" + str(torch.cuda.get_device_properties(0).uuid).removeprefix("GPU-"),
         "cuda": torch.version.cuda, "gpu_count": 1,
         "packages": {name: importlib.metadata.version(name) for name in
                      ("mujoco", "mujoco-warp", "warp-lang", "newton", "isaaclab", "isaaclab-newton")},

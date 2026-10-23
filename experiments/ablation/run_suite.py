@@ -15,6 +15,22 @@ import sys
 import time
 
 
+METHOD_ORDER = ("pretrain", "ppo_sim", "ppo_wm_online", "supermimic", "ppo_wm_frozen_hard", "ppo_wm_frozen", "bptt_wm_frozen")
+
+
+def campaign_scope(methods, iterations=None, checkpoint_every=None, ppo_actor_lr=None, evaluation_repeats=1):
+    if not methods or len(set(methods)) != len(methods) or set(methods) - set(METHOD_ORDER):
+        raise ValueError("Select unique known methods")
+    if any("_frozen" in method for method in methods) and "pretrain" not in methods:
+        raise ValueError("Frozen conditions require pretrain in the selected campaign")
+    if any(value is not None and value < 1 for value in (iterations, checkpoint_every, evaluation_repeats)):
+        raise ValueError("Iterations, checkpoint interval and evaluation repeats must be positive")
+    if ppo_actor_lr is not None and (not math.isfinite(ppo_actor_lr) or ppo_actor_lr <= 0):
+        raise ValueError("PPO actor learning rate must be finite and positive")
+    return dict(methods=[method for method in METHOD_ORDER if method in methods], iterations=iterations,
+                checkpoint_every=checkpoint_every, ppo_actor_lr=ppo_actor_lr, evaluation_repeats=evaluation_repeats)
+
+
 def source_snapshot(root):
     return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
             for folder in ("supermimic", "experiments/ablation")
@@ -27,11 +43,13 @@ def gpu_resources(gpu):
     return dict(zip(("name", "uuid", "driver", "memory_total_mib", "memory_free_mib", "utilization_percent"), [x.strip() for x in fields]))
 
 
-def check_forecast(forecast, resources, subset, seeds, budget, free_disk_gib):
+def check_forecast(forecast, resources, subset, seeds, budget, free_disk_gib, scope=None):
     if forecast["gpu"] != resources["name"] or forecast["subset"] != subset:
         raise ValueError("forecast GPU/subset mismatch")
     if forecast["gpu_uuid"] != resources["uuid"] or forecast["seeds"] != seeds:
         raise ValueError("forecast GPU identity/seed matrix mismatch")
+    if scope is not None and forecast.get("scope") != scope:
+        raise ValueError("forecast method, tuning or evaluation scope mismatch")
     for key in ("projected_campaign_gpu_hours", "projected_peak_memory_mib", "projected_disk_gib", "minimum_disk_reserve_gib"):
         if not math.isfinite(forecast[key]) or forecast[key] <= 0:
             raise ValueError(f"Invalid forecast: {key}")
@@ -52,7 +70,16 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=[0])
     parser.add_argument("--subset", choices=("locomotion", "all40"), default="locomotion")
     parser.add_argument("--forecast", help="Required for formal runs: measured forecast JSON")
+    parser.add_argument("--methods", nargs="+", choices=METHOD_ORDER, default=list(METHOD_ORDER))
+    parser.add_argument("--iterations", type=int, help="Policy iterations only; pretrain retains its own budget")
+    parser.add_argument("--checkpoint-every", type=int)
+    parser.add_argument("--ppo-actor-lr", type=float, help="PPO conditions only; does not change BPTT/WM/Critic rates")
+    parser.add_argument("--evaluation-repeats", type=int, default=1, help="Fresh processes per checkpoint, never training seeds")
     args = parser.parse_args()
+    scope = campaign_scope(args.methods, args.iterations, args.checkpoint_every, args.ppo_actor_lr, args.evaluation_repeats)
+    args.methods = scope["methods"]
+    if len(set(args.seeds)) != len(args.seeds) or any(seed < 0 for seed in args.seeds):
+        raise ValueError("Training seeds must be unique and nonnegative")
     if args.max_gpu_hours <= 0 or not args.max_gpu_hours < float("inf"):
         raise ValueError("Explicit finite positive campaign budget required")
     output = Path(args.output).resolve()
@@ -68,10 +95,11 @@ def main():
             raise ValueError("Formal runs require a measured forecast")
         forecast = json.loads(Path(args.forecast).read_text())
         check_forecast(forecast, resources, args.subset, args.seeds, args.max_gpu_hours,
-                       shutil.disk_usage(output).free / 2**30)
+                       shutil.disk_usage(output).free / 2**30,
+                       scope if scope != campaign_scope(METHOD_ORDER) or "scope" in forecast else None)
     source_root = Path(__file__).resolve().parents[2]
     campaign = dict(args=vars(args), resources=resources, commands=[], actual_gpu_hours=0,
-                    forecast=forecast,
+                    forecast=forecast, scope=scope,
                     source_hashes=source_snapshot(source_root),
                     status="running", budget_scope="subprocess allocation time including setup, compilation and evaluation")
     def persist():
@@ -146,10 +174,16 @@ def main():
     try:
         configs = Path(__file__).parent / "configs"
         for seed in args.seeds:
-            for method in ("pretrain", "ppo_sim", "ppo_wm_online", "supermimic", "ppo_wm_frozen_hard", "ppo_wm_frozen", "bptt_wm_frozen"):
+            for method in args.methods:
                 run = output / f"{method}-seed{seed}"
                 raw = json.loads((configs / f"{args.phase}-{method}.json").read_text())
                 raw.update(seed=seed, subset=args.subset)
+                if method != "pretrain":
+                    for key in ("iterations", "checkpoint_every"):
+                        if getattr(args, key) is not None:
+                            raw[key] = getattr(args, key)
+                if method.startswith("ppo") and args.ppo_actor_lr is not None:
+                    raw["actor_lr"] = args.ppo_actor_lr
                 if "_frozen" in method:
                     raw["bootstrap"] = str(output / f"pretrain-seed{seed}" / "bootstrap.pt")
                 config_path = output / f"{method}-seed{seed}.json"
@@ -162,10 +196,15 @@ def main():
                 if method == "pretrain":
                     continue
                 for checkpoint in sorted(run.glob("ckpt_*.pt")):
-                    dest = run / checkpoint.stem
-                    # A distinct cache for the evaluator gives every method the same cold-start convention.
-                    execute([sys.executable, "-m", "experiments.ablation.evaluate", "--checkpoint", str(checkpoint), "--output", str(dest)],
-                            output / f"{method}-seed{seed}-{checkpoint.stem}-eval.log", run / "eval-cache")
+                    for repeat in range(args.evaluation_repeats):
+                        suffix = f"-repeat{repeat}" if args.evaluation_repeats > 1 else ""
+                        dest = run / checkpoint.stem
+                        if args.evaluation_repeats > 1:
+                            dest /= f"repeat_{repeat:03d}"
+                        # A distinct evaluation cache has the same cold-start convention for each method.
+                        execute([sys.executable, "-m", "experiments.ablation.evaluate", "--checkpoint", str(checkpoint),
+                                 "--output", str(dest), "--repeat-index", str(repeat), "--repeat-count", str(args.evaluation_repeats)],
+                                output / f"{method}-seed{seed}-{checkpoint.stem}{suffix}-eval.log", run / "eval-cache")
         campaign["status"] = "completed"
     except Exception as error:
         campaign["status"] = "stopped"

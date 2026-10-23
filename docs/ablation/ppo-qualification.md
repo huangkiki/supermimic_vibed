@@ -71,3 +71,34 @@ Capture 使用真实新仿真数据，不等于恢复训练过程中同一 simul
 关闭录制的两次结果也不同，因此不能将跨 GPU 或单次 on/off 差异全部归因于录制。样本仅四次，尚不能证明录制对数值轨迹没有影响，也不能定位到某个 solver/kernel。静态实现没有改动作、物理参数或评分；这些分数是单独的重复性审计，不替换主曲线的原始评估。
 
 [逐次 CSV](../../results/ablation/ppo-diagnostic-v1/evaluation-repeats.csv)。后续正式结果须把评估重复的波动与训练 seed 间的标准差分开；增加训练 seed 不能自动消除单个 checkpoint 的数值敏感性。当前四次均失败的判定一致，细小 Return 差异不作算法收益证据。
+
+## 有界长程验证与重复评估
+
+下一轮仅调 Actor 学习率（5e-6 与 2e-5），保留 std=0.1、seed0、18段、4096环境、H32、WM/Critic lr=2e-4；每个候选1000次迭代，在0/500/1000各做3次独立进程物理复评。它们是开发调参，尚非最终3个独立训练seed；调参开销另存，不能在最终效率宣称中隐去。两组在同一GPU0串行，记录与原GPU1任务的同主机重叠，不用它们直接比较原GPU1曲线的吞吐。
+
+由原生32轮资格实测，最后10轮为1.975–2.010秒，规划取2.1秒/轮、启动/IO预留180秒，每次物理评估按30–300秒估算。每候选的保守估算加25%余量为1.729 GPU-hours；硬预算1.75，两候选合计最多3.5。显存预留12000MiB，每候选磁盘4GiB，保留20GiB空闲供主任务和系统使用。此估算不保证1000轮有效学习；超预算会停止并保留证据。
+
+运行器现支持 `--methods` 选择条件、`--iterations` 和 `--checkpoint-every` 调整策略预算、`--ppo-actor-lr` 只调整 PPO。冻结条件必须同时选 pretrain，并按依赖顺序执行；pretrain 的迭代数不被策略预算覆盖。任何非默认正式范围都要求 forecast 的 `scope` 与实际命令完全一致。原默认七阶段入口不变。
+
+以下命令用于**本次已资格确认的GPU0**；其他设备不能直接复用写死UUID的forecast。先检查空闲显存、占用和磁盘，再在固定源码的独立目录运行：
+
+```bash
+python -m experiments.ablation.run_suite \
+  --phase formal --methods ppo_sim --iterations 1000 --checkpoint-every 500 \
+  --ppo-actor-lr 0.000005 --evaluation-repeats 3 --seeds 0 --gpu 0 \
+  --max-gpu-hours 1.75 \
+  --forecast experiments/ablation/configs/tuning-forecast-lr5e-6.json \
+  --output logs/ablation/ppo-lr5e-6-v1
+python -m experiments.ablation.validate_run logs/ablation/ppo-lr5e-6-v1
+python -m experiments.ablation.analyze \
+  --evaluations logs/ablation/ppo-lr5e-6-v1/ppo_sim-seed0/ckpt_*/repeat_*/evaluation.json \
+  --campaign logs/ablation/ppo-lr5e-6-v1/campaign.json \
+  --output results/ablation/ppo-lr5e-6-v1
+```
+
+第二组对应 `--ppo-actor-lr 0.00002`、`tuning-forecast-lr2e-5.json` 和新目录 `ppo-lr2e-5-v1`。每组输出保留独立范围，不把两个相同seed的候选混成两条独立seed样本。
+
+每个 checkpoint 的 `evaluations.csv` 先汇总复评均值和 `evaluation_return_std`，以及全部复评成本；`evaluation-repeats.csv` 保留逐次分数。图中标准差带只来自不同训练seed的checkpoint均值，单seed不画带。重复评估缺失、重复编号、不同checkpoint、不同训练账本或不同物理GPU UUID都会拒绝合并。旧数据没有UUID的限制如实保留；新旧身份完整度不同的数据不直接混合。
+
+
+新增入口原生 Smoke 已验证：1个训练进程、2个checkpoint×3次复评=6个物理评估进程，共0.0518834 GPU-hours；每点仍为1个训练seed、18/18失败。费用总和等于campaign账本。实际绘图入口的复评计数错误已用回归测试复现并修正，摘要为6次评估/2个checkpoint；36项CPU测试通过。[Smoke验收](../../results/ablation/repeat-smoke-v1/validation.json) · [全部复评分数](../../results/ablation/repeat-smoke-v1/evaluation-repeats.csv) · [含费用及复评标准差的汇总](../../results/ablation/repeat-smoke-v1/evaluations.csv)。

@@ -14,6 +14,8 @@ def comparison_key(record):
     manifest = record["manifest"]
     cfg = manifest["config"]
     return json.dumps(dict(gpu=record["evaluation_gpu"], train_gpu=manifest["gpu"],
+                           gpu_uuid=record.get("evaluation_gpu_uuid"), train_gpu_uuid=manifest.get("gpu_uuid"),
+                           evaluation_repeats=record.get("evaluation_repeat_count", 1),
                            torch=manifest["torch"], cuda=manifest["cuda"],
                            packages=manifest.get("packages", {}),
                            motions=manifest["motions"], assets=manifest["assets"],
@@ -21,6 +23,31 @@ def comparison_key(record):
                            training_sources=manifest["source_hashes"],
                            evaluation_sources=record.get("evaluation_manifest", {}).get("source_hashes", {}),
                            config={k: cfg[k] for k in ("subset", "horizon", "hist", "goal_frames", "gamma", "lam", "amp", "num_envs", "pi_batch")}), sort_keys=True)
+
+
+def group_repeats(records):
+    """A checkpoint is one observation per training seed, regardless of repeat count."""
+    groups = defaultdict(list)
+    seen = set()
+    for record in records:
+        index, count = record.get("evaluation_repeat_index", 0), record.get("evaluation_repeat_count", 1)
+        if not isinstance(index, int) or not isinstance(count, int) or not 0 <= index < count:
+            raise ValueError("Invalid evaluation repeat index/count")
+        key = (record["method"], record["seed"], record["iteration"])
+        if (*key, index) in seen:
+            raise ValueError(f"Duplicate evaluation {key}, repeat {index}")
+        seen.add((*key, index))
+        if not np.isfinite([record["physical_return"], record["tracking_failure_rate"]]).all():
+            raise ValueError("Nonfinite physical evaluation")
+        groups[key].append(record)
+    for key, members in groups.items():
+        counts = {r.get("evaluation_repeat_count", 1) for r in members}
+        if len(counts) != 1 or len(members) != next(iter(counts)):
+            raise ValueError(f"Missing or inconsistent evaluation repeats for {key}")
+        for field in ("checkpoint_sha256", "train_ledger", "manifest"):
+            if len({json.dumps(r[field], sort_keys=True) for r in members}) != 1:
+                raise ValueError(f"Evaluation repeats do not share one checkpoint: {field}")
+    return groups
 
 
 def collect_records(paths, campaign_path=None):
@@ -31,6 +58,8 @@ def collect_records(paths, campaign_path=None):
         raise ValueError("Mixed GPU/data/physics/precision/evaluation protocols: analyze separately")
     if any(r["evaluation_gpu"] != r["manifest"]["gpu"] for r in records):
         raise ValueError("Training/evaluation GPUs differ")
+    if any(r.get("evaluation_gpu_uuid") != r["manifest"].get("gpu_uuid") for r in records):
+        raise ValueError("Training/evaluation physical GPUs differ or device identity is missing")
     training_costs, evaluation_costs, completions = {}, {}, {}
     if campaign_path:
         root = Path(campaign_path).resolve().parent
@@ -47,23 +76,25 @@ def collect_records(paths, campaign_path=None):
                 completions[run] = json.loads((root / run / "completion.json").read_text())
             elif "experiments.ablation.evaluate" in argv:
                 checkpoint = Path(argv[argv.index("--checkpoint") + 1])
-                evaluation_costs[(checkpoint.parent.name, int(checkpoint.stem.split("_")[-1]))] = command["seconds"]
+                repeat = int(argv[argv.index("--repeat-index") + 1]) if "--repeat-index" in argv else 0
+                key = (checkpoint.parent.name, int(checkpoint.stem.split("_")[-1]), repeat)
+                if key in evaluation_costs:
+                    raise ValueError(f"Duplicate evaluation allocation {key}")
+                evaluation_costs[key] = command["seconds"]
     groups = defaultdict(list)
-    seen = set()
-    for record in records:
-        key = (record["method"], record["seed"], record["iteration"])
-        if key in seen:
-            raise ValueError(f"Duplicate evaluation {key}; keep repeatability audits separate")
-        seen.add(key)
-        groups[key[:2]].append(record)
+    for key, repeats in group_repeats(records).items():
+        groups[key[:2]].append(repeats)
     rows = []
     for (method, seed), group in groups.items():
         eval_seconds, eval_steps = 0., 0
-        for record in sorted(group, key=lambda r: r["iteration"]):
+        for repeats in sorted(group, key=lambda members: members[0]["iteration"]):
+            record = repeats[0]
             run = f"{method}-seed{seed}"
-            eval_seconds += (evaluation_costs[(run, record["iteration"])] if campaign_path
-                             else record["evaluation_seconds"])
-            eval_steps += record.get("evaluation_simulator_steps", 0)
+            eval_seconds += sum(evaluation_costs[(run, r["iteration"], r.get("evaluation_repeat_index", 0))]
+                                if campaign_path else r["evaluation_seconds"] for r in repeats)
+            eval_steps += sum(r.get("evaluation_simulator_steps", 0) for r in repeats)
+            returns = [r["physical_return"] for r in repeats]
+            failures = [r["tracking_failure_rate"] for r in repeats]
             ledger = record["train_ledger"]
             train_seconds = ledger["train_wall_seconds"]
             cost_basis = "checkpoint_snapshot"
@@ -77,7 +108,10 @@ def collect_records(paths, campaign_path=None):
                 elif inherited:
                     train_seconds += inherited - completions[pretrain]["ledger"]["train_wall_seconds"]
             rows.append(dict(method=method, seed=seed, iteration=record["iteration"],
-                             physical_return=record["physical_return"], tracking_failure_rate=record["tracking_failure_rate"],
+                             physical_return=float(np.mean(returns)), tracking_failure_rate=float(np.mean(failures)),
+                             evaluation_repeats=len(repeats),
+                             evaluation_return_std=float(np.std(returns, ddof=1)) if len(repeats) > 1 else None,
+                             evaluation_failure_rate_std=float(np.std(failures, ddof=1)) if len(repeats) > 1 else None,
                              train_wall_seconds=train_seconds, cost_basis=cost_basis,
                              end_to_end_seconds=train_seconds + eval_seconds,
                              total_gpu_hours=(train_seconds + eval_seconds) / 3600,
@@ -124,7 +158,7 @@ def save_csv(path, rows):
     if not rows:
         return
     with Path(path).open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -140,6 +174,11 @@ def main():
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     save_csv(output / "evaluations.csv", rows)
+    raw_evaluations = [json.loads(Path(p).read_text()) for p in args.evaluations]
+    save_csv(output / "evaluation-repeats.csv", [dict(method=r["method"], seed=r["seed"], iteration=r["iteration"],
+             repeat_index=r.get("evaluation_repeat_index", 0), repeat_count=r.get("evaluation_repeat_count", 1),
+             physical_return=r["physical_return"], tracking_failure_rate=r["tracking_failure_rate"],
+             checkpoint_sha256=r["checkpoint_sha256"]) for r in raw_evaluations])
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -179,6 +218,7 @@ def main():
     fig.suptitle(args.title)
     fig.savefig(output / "return-compute.png", dpi=180)
     fig.savefig(output / "return-compute.svg")
+    plt.close(fig)
     save_csv(output / "curve-statistics.csv", aggregate)
     # Cost composition is separate from performance: equal update counts do not
     # establish equal learning, and cold compilation remains in each phase.
@@ -205,8 +245,10 @@ def main():
     ax.legend(fontsize=8, loc="upper left", bbox_to_anchor=(1.01, 1))
     fig.savefig(output / "compute-breakdown.png", dpi=180)
     fig.savefig(output / "compute-breakdown.svg")
-    (output / "analysis.json").write_text(json.dumps(dict(evaluation_count=len(rows),
+    plt.close(fig)
+    (output / "analysis.json").write_text(json.dumps(dict(evaluation_count=len(raw_evaluations), checkpoint_count=len(rows),
         seeds=sorted({r["seed"] for r in rows}), aggregation="sample SD, left hold at common support, no extrapolation",
+        repeated_evaluation="mean and sample SD within each fixed checkpoint; figure bands use training-seed means only",
         accounting="full bootstrap and preceding evaluations charged; --campaign uses complete process allocation for final endpoints",
         intermediate_cost="checkpoint snapshots precede their own serialization/teardown; evaluations are reconstructed as if interleaved",
         caution="equal iterations are not equal compute; frozen WM has constant simulator steps"), indent=2) + "\n")

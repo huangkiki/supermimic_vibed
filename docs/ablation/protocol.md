@@ -100,3 +100,11 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 在±2个控制步的相应集合变化附近标记switch_nearby，否则区分stable_contact与flight。记录初始局部标签和对应预测/梯度horizon的窗口标签；窗口内任一时刻接近切换都归入switch_nearby，只有全窗口稳定才归stable_contact/flight。保留整段原始contact signatures及body映射，不混合两个定义的统计；某组没有样本就明确留空。body稳定也不代表接触斑块/约束Jacobian完全不变。
 
 不同checkpoint的Prediction Error与其物理评估return关系只能先报观察性相关：策略成熟度、数据分布和训练时间共同变化。同输入的模型梯度与真实微步改善更直接检验机制；也不能据此宣称低MSE必然导致更高最终policy performance。
+
+## 固定 checkpoint 的数值重复性（2026-10-23补充）
+
+探索阶段发现：相同物理GPU、同checkpoint、同seed与mean策略，在新进程中复评仍有数值波动，关闭录制的两次也不同。该观察不能定位solver根因，但意味着单次评估不足以判断接近失败下限的细小差异。
+
+新增 `--evaluation-repeats`：每次均为完整motion、独立进程、相同固定起点和物理参数。它测量复评波动，不是新增训练seed，也不声称已分解所有噪声来源。正式统计先对每个checkpoint的重复评估取均值/样本标准差，再对至少3个训练seed的均值报告均值/样本标准差；图中带表示后一种。所有重复进程、初始化、冷编译及仿真steps都计入成本。遗漏重复样本不得静默降低分母。
+
+新manifest额外绑定物理GPU UUID。旧单次评估仍按原协议保留，不能与新重复计费范围混成一条比较曲线。开发调参允许使用另一张同型GPU，但相关记录单列、披露同主机重叠，不用于跨GPU吞吐排名。参见[PPO资格与复现](ppo-qualification.md)。

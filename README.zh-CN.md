@@ -69,6 +69,8 @@ python -m experiments.ablation.validate_run logs/ablation/my-smoke
 
 PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动力学反传。硬/软终止、随机/确定性动作、起点分布等剩余差异在[协议](docs/ablation/protocol.md)中逐项披露。相同学习率不等于相同调参质量。真实批次重放已发现 Actor 更新过大；独立学习率控制通过 KL 检查，尚待长程学习验证，见 [PPO 资格记录](docs/ablation/ppo-qualification.md)。
 
+新运行器支持每个 checkpoint 的多次独立物理复评，单独记录其波动和全部费用；复评次数不能算作训练 seed 数。[重复评估与有界 PPO 调参](docs/ablation/ppo-qualification.md#有界长程验证与重复评估)。
+
 所有方法最终在真实物理模拟器中评估。主要曲线使用完整motion归一化Return，对墙时、GPU-hours和Simulator Steps分别作图；不把imagined return当物理成绩。
 
 ## 查看、复现和继续实验

@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from experiments.ablation.analyze import aggregate_curves, collect_records
+from experiments.ablation.analyze import aggregate_curves, collect_records, main
 
 
 def evaluation(seed=0, iteration=1):
@@ -19,6 +20,26 @@ def evaluation(seed=0, iteration=1):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_plot_entrypoint_reports_raw_repeat_count_after_plotting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = []
+            for iteration in (1, 2):
+                for repeat in range(3):
+                    record = evaluation(iteration=iteration)
+                    record.update(evaluation_repeat_index=repeat, evaluation_repeat_count=3)
+                    path = root / f"{iteration}-{repeat}.json"
+                    path.write_text(json.dumps(record))
+                    paths.append(str(path))
+            output = root / "plots"
+            with patch("sys.argv", ["analyze", "--evaluations", *paths, "--output", str(output)]):
+                main()
+            summary = json.loads((output / "analysis.json").read_text())
+            self.assertEqual(summary["evaluation_count"], 6)
+            self.assertEqual(summary["checkpoint_count"], 2)
+            self.assertEqual(summary["seeds"], [0])
+            self.assertTrue((output / "return-compute.png").exists())
+
     def collect(self, records):
         with tempfile.TemporaryDirectory() as root:
             paths = []
@@ -50,6 +71,48 @@ class AnalysisTests(unittest.TestCase):
         curve = aggregate_curves(rows, "end_to_end_seconds")
         self.assertIsNone(curve[0]["std"])
 
+    def test_repeats_average_within_checkpoint_charge_every_evaluation_and_remain_one_seed(self):
+        records = []
+        for iteration in (1, 2):
+            for index, score in enumerate((.2, .4, .6)):
+                record = evaluation(iteration=iteration)
+                record.update(evaluation_repeat_index=index, evaluation_repeat_count=3,
+                              physical_return=score, evaluation_simulator_steps=7)
+                records.append(record)
+        rows = self.collect(records)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([r["end_to_end_seconds"] for r in rows], [130., 260.])
+        self.assertEqual([r["evaluation_simulator_steps"] for r in rows], [21, 42])
+        self.assertAlmostEqual(rows[0]["physical_return"], .4)
+        self.assertAlmostEqual(rows[0]["evaluation_return_std"], .2)
+        self.assertEqual(rows[0]["evaluation_repeats"], 3)
+        curve = aggregate_curves(rows, "end_to_end_seconds")
+        self.assertEqual(curve[0]["seeds"], 1)
+        self.assertIsNone(curve[0]["std"])
+
+    def test_missing_duplicate_and_wrong_checkpoint_repeats_are_rejected(self):
+        a, b = evaluation(), evaluation()
+        a.update(evaluation_repeat_index=0, evaluation_repeat_count=2)
+        b.update(evaluation_repeat_index=1, evaluation_repeat_count=2)
+        with self.assertRaisesRegex(ValueError, "Missing"):
+            self.collect([a])
+        with self.assertRaisesRegex(ValueError, "Duplicate"):
+            self.collect([a, a])
+        b["checkpoint_sha256"] = "not-the-same-policy"
+        with self.assertRaisesRegex(ValueError, "checkpoint"):
+            self.collect([a, b])
+
+    def test_same_gpu_model_but_different_physical_device_is_not_silently_mixed(self):
+        a, b = evaluation(), evaluation(seed=1)
+        for record, uuid in ((a, "gpu-a"), (b, "gpu-b")):
+            record["manifest"]["gpu_uuid"] = uuid
+            record["evaluation_gpu_uuid"] = uuid
+        with self.assertRaisesRegex(ValueError, "Mixed"):
+            self.collect([a, b])
+        a["evaluation_gpu_uuid"] = "gpu-b"
+        with self.assertRaisesRegex(ValueError, "GPUs differ"):
+            self.collect([a])
+
     def test_mean_and_sample_standard_deviation(self):
         a, b, c = evaluation(0), evaluation(1), evaluation(2)
         a["physical_return"], b["physical_return"], c["physical_return"] = .2, .4, .6
@@ -79,6 +142,29 @@ class AnalysisTests(unittest.TestCase):
             row, = collect_records([path], campaign)
             self.assertEqual(row["end_to_end_seconds"], 152.)
             self.assertEqual(row["cost_basis"], "complete_process_allocation")
+
+    def test_repeated_evaluations_each_charge_their_own_process_allocation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / "ppo_sim-seed0"
+            run.mkdir()
+            (run / "completion.json").write_text(json.dumps(dict(iterations=1)))
+            commands = [dict(command=["python", "-m", "experiments.ablation.train", "--output", str(run)],
+                             seconds=120., returncode=0)]
+            paths = []
+            for index in range(3):
+                record = evaluation()
+                record.update(evaluation_repeat_index=index, evaluation_repeat_count=3)
+                path = run / f"repeat{index}.json"
+                path.write_text(json.dumps(record))
+                paths.append(path)
+                commands.append(dict(command=["python", "-m", "experiments.ablation.evaluate", "--checkpoint",
+                    str(run / "ckpt_000001.pt"), "--repeat-index", str(index)], seconds=12.+index, returncode=0))
+            campaign = root / "campaign.json"
+            campaign.write_text(json.dumps(dict(commands=commands)))
+            row, = collect_records(paths, campaign)
+            self.assertEqual(row["end_to_end_seconds"], 159.)
+            self.assertEqual(row["cumulative_evaluation_seconds"], 39.)
 
 
 if __name__ == "__main__":
