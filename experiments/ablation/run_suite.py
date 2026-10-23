@@ -43,6 +43,29 @@ def gpu_resources(gpu):
     return dict(zip(("name", "uuid", "driver", "memory_total_mib", "memory_free_mib", "utilization_percent"), [x.strip() for x in fields]))
 
 
+def wait_for_idle_gpu(gpu, expected_uuid, timeout=30.):
+    """Allow a bounded NVML sampling-window lag, never ignore another compute PID."""
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("GPU idle timeout must be finite and positive")
+    started, observations = time.monotonic(), []
+    while True:
+        current = gpu_resources(gpu)
+        text = subprocess.check_output(["nvidia-smi", "-i", str(gpu), "--query-compute-apps=pid",
+                                        "--format=csv,noheader,nounits"], text=True).strip()
+        current["compute_pids"] = [int(pid.strip()) for pid in text.splitlines() if pid.strip()]
+        elapsed = time.monotonic() - started
+        observations.append(dict(elapsed_seconds=elapsed, **current))
+        if current["uuid"] != expected_uuid:
+            raise RuntimeError(f"GPU identity changed: {json.dumps(current)}")
+        if current["compute_pids"]:
+            raise RuntimeError(f"GPU has an active compute process: {json.dumps(current)}")
+        if float(current["utilization_percent"]) <= 5:
+            return current, observations
+        if elapsed >= timeout:
+            raise RuntimeError(f"GPU utilization did not settle within {timeout}s: {json.dumps(observations)}")
+        time.sleep(min(.5, timeout - elapsed))
+
+
 def check_forecast(forecast, resources, subset, seeds, budget, free_disk_gib, scope=None):
     if forecast["gpu"] != resources["name"] or forecast["subset"] != subset:
         raise ValueError("forecast GPU/subset mismatch")
@@ -117,7 +140,8 @@ def main():
         environment["TORCHINDUCTOR_CACHE_DIR"] = str(cache / "inductor")
         environment["WARP_CACHE_PATH"] = str(cache / "warp")
         start = time.perf_counter()
-        record = dict(command=command, log=str(log), resources=gpu_resources(args.gpu))
+        current, observations = wait_for_idle_gpu(args.gpu, resources["uuid"], timeout=min(30., remaining))
+        record = dict(command=command, log=str(log), resources=current, preflight_observations=observations)
         if float(record["resources"]["memory_free_mib"]) < 12000:
             raise RuntimeError("Available GPU memory changed; stopping before launch")
         if forecast:

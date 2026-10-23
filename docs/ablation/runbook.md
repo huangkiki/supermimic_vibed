@@ -107,6 +107,21 @@ python -m experiments.ablation.validate_fidelity logs/ablation/fidelity-smoke-v1
 
 每轮campaign运行期间保持源码和配置不变；runner会在每个进程前核验快照并拒绝继续混用代码版本。修改后必须新建campaign目录。安装/资产资格、被排除的运行和独立gradient probe分别保留成本，不塞进某个方法的训练收益。
 
+若所有训练都已完整结束，只有进程间资源检查导致评估未跑完，可以使用独立恢复器，保持原执行checkout和原总预算不变：
+
+```bash
+# 从修复后的工具checkout执行；--execution-root指向原始、不可变的训练checkout。
+python -m experiments.ablation.recover_evaluations \
+  --campaign /original/checkout/logs/ablation/campaign \
+  --execution-root /original/checkout --dry-run
+python -m experiments.ablation.recover_evaluations \
+  --campaign /original/checkout/logs/ablation/campaign \
+  --execution-root /original/checkout
+python -m experiments.ablation.validate_run /original/checkout/logs/ablation/campaign
+```
+
+恢复器拒绝未完成训练、失败/未结束的子进程、变更的执行源码、未记账的输出或耗尽的预算；不重训、不覆盖已有评估。停止现场先保存为`campaign.before-evaluation-recovery-*.json`，恢复器代码哈希另记。原生GPU探针曾复现：进程退出、显存释放且无计算PID时，利用率仍短暂为7%。新资源检查只在无计算PID且UUID相同时限时等待利用率回落，最多30秒；其他计算进程和设备变化仍立即拒绝，不能以“等待”绕过资源门禁。
+
 ## 实测预算与配对梯度统计
 
 ```bash

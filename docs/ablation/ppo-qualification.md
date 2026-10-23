@@ -102,3 +102,13 @@ python -m experiments.ablation.analyze \
 
 
 新增入口原生 Smoke 已验证：1个训练进程、2个checkpoint×3次复评=6个物理评估进程，共0.0518834 GPU-hours；每点仍为1个训练seed、18/18失败。费用总和等于campaign账本。实际绘图入口的复评计数错误已用回归测试复现并修正，摘要为6次评估/2个checkpoint；36项CPU测试通过。[Smoke验收](../../results/ablation/repeat-smoke-v1/validation.json) · [全部复评分数](../../results/ablation/repeat-smoke-v1/evaluation-repeats.csv) · [含费用及复评标准差的汇总](../../results/ablation/repeat-smoke-v1/evaluations.csv)。
+
+## lr=5e-6候选的1000轮结果与调度恢复
+
+同一GPU0、固定执行源码c73d10b、seed0、4096环境，1000轮训练已完成。0/500/1000每点3次物理复评，共1训练+9评估进程，0.681300 GPU-hours。物理Return均值依次0.001491842、0.001717054、0.013085956；第1000轮复评样本标准差2.311e-7，但每次仍18/18提前失败。这表明已有局部学习改善，尚未达到可靠全片段跟踪；一个训练seed和三个复评不能替代多seed结论。第二候选lr=2e-5继续使用相同c73d10b执行代码与原1.75 GPU-hours上限。
+
+第一组在首次复评成功后，被原调度器的单次GPU空闲检查拦下；训练和已有评估均保留。独立原生探针复现了退出后无计算PID却短暂7%利用率的情况，说明单次门禁可能误停；原失败未记录该瞬间资源，因此不能排除历史外部进程。修复后仅在无计算PID、同UUID时有界等待；51项CPU测试通过。
+
+原生恢复器只补8个缺失评估，使用原执行源码和原总预算；训练未重跑，前两条成功进程记录逐字段未变，停止快照SHA256与备份一致，源码/config快照未变。最终完整性、三次复评和总费用验收通过。[恢复证据](../../results/ablation/ppo-lr5e-6-v1/recovery-receipt.json) · [GPU读数探针](../../results/ablation/ppo-lr5e-6-v1/gpu-idle-discriminator.json) · [均值/标准差/费用CSV](../../results/ablation/ppo-lr5e-6-v1/evaluations.csv) · [逐次复评](../../results/ablation/ppo-lr5e-6-v1/evaluation-repeats.csv)。
+
+这里的中间计算曲线使用checkpoint计时加累计复评成本回溯重建，并非现场在线评估完成时序；最终端点使用完整进程分配。恢复前的人工诊断等待没有伪装成GPU运行时间。两候选与GPU1主矩阵存在同主机重叠，不能直接用来比较主方法吞吐。

@@ -1,0 +1,24 @@
+{
+  "status": "native_recovery_validated",
+  "cpu_tests": 51,
+  "original_spend_gpu_hours": 0.6088627595866436,
+  "final_spend_gpu_hours": 0.6812995471913665,
+  "original_budget_gpu_hours": 1.75,
+  "preserved_successful_commands": 2,
+  "new_evaluations": 8,
+  "training_rerun": false,
+  "execution_sources_unchanged": true,
+  "original_snapshot_sha256": "ff9187058e0b9380f2101dfed4da723a4239024025088269420590b3521bfa44",
+  "recovery": [
+    {
+      "time": "2026-10-23T15:57:22.406034+00:00",
+      "backup": "campaign.before-evaluation-recovery-001.json",
+      "orchestrator_sha256": "d3fa5535b78026aa569ea5c3478c602d1dcc2cf0fdc32844d1cc42e7b324e807",
+      "resource_guard_sha256": "64d513c323cf6849c2f2e0b7efafb4d4540f42a835cb7cea7d6bd24ca64a6bf4",
+      "original_spend_gpu_hours": 0.6088627595866436,
+      "missing_evaluations": 8,
+      "scope": "Missing evaluations only; unchanged execution source/config and original total budget"
+    }
+  ],
+  "limits": "Guard failure did not retain its resource sample; a separate native discriminator reproduced utilization above 5% with zero compute PIDs after process exit. It does not exclude a transient historical external process."
+}

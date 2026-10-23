@@ -1,12 +1,39 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from experiments.ablation.run_suite import campaign_scope, check_forecast, source_snapshot
+from experiments.ablation.run_suite import campaign_scope, check_forecast, source_snapshot, wait_for_idle_gpu
 from experiments.ablation.validate_run import validate_run_layout
 
 
 class CampaignIdentityTests(unittest.TestCase):
+    def test_gpu_idle_gate_rechecks_utilization_after_the_previous_process_exits(self):
+        # Native discriminator: no compute PID, all memory released, but NVML
+        # reported 7% before returning to 0% 0.15s later.
+        samples = [dict(uuid='GPU-one', memory_free_mib='40443', utilization_percent=str(v)) for v in (7, 0)]
+        with patch('experiments.ablation.run_suite.gpu_resources', side_effect=samples), \
+             patch('experiments.ablation.run_suite.subprocess.check_output', return_value=''), \
+             patch('experiments.ablation.run_suite.time.sleep'):
+            current, observations = wait_for_idle_gpu(0, 'GPU-one')
+        self.assertEqual(current['utilization_percent'], '0')
+        self.assertEqual(len(observations), 2)
+
+    def test_idle_gate_still_rejects_other_processes_device_changes_and_persistent_load(self):
+        with patch('experiments.ablation.run_suite.gpu_resources', return_value=dict(uuid='GPU-one', utilization_percent='0')), \
+             patch('experiments.ablation.run_suite.subprocess.check_output', return_value='123\n'):
+            with self.assertRaisesRegex(RuntimeError, 'active compute process'):
+                wait_for_idle_gpu(0, 'GPU-one')
+        with patch('experiments.ablation.run_suite.gpu_resources', return_value=dict(uuid='GPU-two', utilization_percent='0')), \
+             patch('experiments.ablation.run_suite.subprocess.check_output', return_value=''):
+            with self.assertRaisesRegex(RuntimeError, 'identity changed'):
+                wait_for_idle_gpu(0, 'GPU-one')
+        with patch('experiments.ablation.run_suite.gpu_resources', return_value=dict(uuid='GPU-one', utilization_percent='90')), \
+             patch('experiments.ablation.run_suite.subprocess.check_output', return_value=''), \
+             patch('experiments.ablation.run_suite.time.monotonic', side_effect=[0., 31.]):
+            with self.assertRaisesRegex(RuntimeError, 'did not settle'):
+                wait_for_idle_gpu(0, 'GPU-one')
+
     def test_empty_or_partially_missing_campaign_cannot_pass_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
