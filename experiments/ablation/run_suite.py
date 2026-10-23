@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import signal
@@ -10,6 +11,12 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+
+
+def source_snapshot(root):
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for folder in ("supermimic", "experiments/ablation")
+            for path in sorted((root / folder).rglob("*")) if path.suffix in (".py", ".json")}
 
 
 def gpu_resources(gpu):
@@ -47,7 +54,9 @@ def main():
             raise ValueError("forecast exceeds the campaign budget")
         if forecast["projected_peak_memory_mib"] > float(resources["memory_free_mib"]) * .85:
             raise ValueError("forecast leaves insufficient memory headroom")
+    source_root = Path(__file__).resolve().parents[2]
     campaign = dict(args=vars(args), resources=resources, commands=[], actual_gpu_hours=0,
+                    source_hashes=source_snapshot(source_root),
                     status="running", budget_scope="subprocess allocation time including setup, compilation and evaluation")
     def persist():
         (output / "campaign.json").write_text(json.dumps(campaign, indent=2) + "\n")
@@ -56,6 +65,8 @@ def main():
                        TORCHINDUCTOR_COMPILE_THREADS="4", PYTHONUNBUFFERED="1")
 
     def execute(command, log, cache):
+        if source_snapshot(source_root) != campaign["source_hashes"]:
+            raise RuntimeError("Source/config changed during campaign; preserve this run and start a new campaign")
         remaining = args.max_gpu_hours * 3600 - campaign["actual_gpu_hours"] * 3600
         if remaining <= 0:
             raise TimeoutError("Campaign GPU-hour budget exhausted")
