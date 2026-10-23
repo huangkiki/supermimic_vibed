@@ -47,6 +47,9 @@ class Experiment:
         self.history = torch.zeros(cfg.num_envs, cfg.hist, OBS_DIM, device=self.device)
         self.wm_rollout = torch.compile(self._wm_rollout) if cfg.compile else self._wm_rollout
         self.imag_step = torch.compile(self._imag_step) if cfg.compile else self._imag_step
+        self.ppo_imag_step = torch.compile(self._ppo_imag_step) if cfg.compile else self._ppo_imag_step
+        self.sample_action = torch.compile(self.actor.sample) if cfg.compile else self.actor.sample
+        self.mean_action = torch.compile(self.pi) if cfg.compile else self.pi
         self.reward_term = torch.compile(self._reward_term) if cfg.compile else self._reward_term
         self.critic_input = torch.compile(self._critic_input) if cfg.compile else self._critic_input
         if cfg.bootstrap:
@@ -79,12 +82,21 @@ class Experiment:
     def _reward_term(self, state, frames, action, previous):
         return self.mdp.reward(state, frames, action, previous), self.mdp.soft_termination(state, frames)
 
-    def _imag_step(self, state, history, frames, xi, xi_n, goal):
-        action = self.pi(history, goal)
+    def _advance_model(self, state, action, history, frames, xi, xi_n):
         next_state = self.wm.step(state, action, xi_n)
         frames = frames + 1
         obs = self.mdp.add_noise(self.mdp.obs(next_state, action, xi, frames))
-        return next_state, action, torch.cat((history[:, 1:], obs[:, None]), 1), frames, self.motion.goal(frames, self.cfg.goal_frames)
+        return next_state, torch.cat((history[:, 1:], obs[:, None]), 1), frames, self.motion.goal(frames, self.cfg.goal_frames)
+
+    def _imag_step(self, state, history, frames, xi, xi_n, goal):
+        action = self.pi(history, goal)
+        state, history, frames, goal = self._advance_model(state, action, history, frames, xi, xi_n)
+        return state, action, history, frames, goal
+
+    def _ppo_imag_step(self, state, history, frames, xi, xi_n, goal):
+        action, logp = self.actor.sample(history, goal)
+        state, history, frames, goal = self._advance_model(state, action, history, frames, xi, xi_n)
+        return state, action, logp, history, frames, goal
 
     def _wm_rollout(self, states, actions, xi):
         from supermimic.mdp import normalize_xi, unflatten_state
@@ -112,9 +124,9 @@ class Experiment:
                 self.pi.obs_norm.update(obs)
                 self.pi.goal_norm.update(goal)
                 if self.ppo:
-                    action, _ = self.actor.sample(self.history, goal)
+                    action, _ = self.sample_action(self.history, goal)
                 else:
-                    action = self.pi(self.history, goal)
+                    action = self.mean_action(self.history, goal)
                     action += self.cfg.initial_std * torch.randn_like(action)
                 # Identical unclipped exploration convention for all experimental methods.
                 out = self.env.step(action)
@@ -182,12 +194,7 @@ class Experiment:
                 goals.append(goal.detach())
                 features.append(self.critic_input(state, frames, xi_n, goal))
                 if self.ppo:
-                    action, lp = self.actor.sample(history, goal)
-                    state = self.wm.step(state, action, xi_n)
-                    frames = frames + 1
-                    obs = self.mdp.add_noise(self.mdp.obs(state, action, xi, frames))
-                    history = torch.cat((history[:, 1:], obs[:, None]), 1)
-                    goal = self.motion.goal(frames, cfg.goal_frames)
+                    state, action, lp, history, frames, goal = self.ppo_imag_step(state, history, frames, xi, xi_n, goal)
                     old_logp.append(lp)
                 else:
                     state, action, history, frames, goal = self.imag_step(state, history, frames, xi, xi_n, goal)
@@ -257,7 +264,7 @@ class Experiment:
             for _ in range(cfg.horizon):
                 _, goal = self.observation()
                 x = self.critic_input(self.env.state(), self.env.f, normalize_xi(self.env.xi), goal)
-                action, logp = self.actor.sample(self.history, goal)
+                action, logp = self.sample_action(self.history, goal)
                 out = self.env.step(action)
                 # env.step resets internally; use returned PRE-reset s1, f, xi for bootstrap.
                 next_goal = self.motion.goal(out["f"] + 1, cfg.goal_frames)

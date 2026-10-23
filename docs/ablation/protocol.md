@@ -61,6 +61,8 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 保存：训练物理步数、imagined policy步数、收集秒数、WM拟合秒数、imagined forward秒数、policy+critic优化秒数、总墙时、GPU-hours、PyTorch峰值显存、实际配置。阶段计时前后 CUDA synchronize。计时包括初始化、数据加载、calibration/warmup和编译；进程级 runner 另记录完整 allocation 时间及失败尝试。
 
+启用compile时，PPO-WM与BPTT的policy→WM→observation想象单步都编译，物理采集的mean/Gaussian actor也编译；避免把eager PPO-WM和compiled BPTT的差值误归因于优化器。Smoke明确关闭compile，Pilot还须验证编译路径。
+
 独立方法成本：`采集 + WM拟合/更新 + 策略/critic + 初始化/编译/IO + 所有此前checkpoint物理评估`。冻结 WM 的预训练全额计入每个方法；实际 campaign 成本只执行一次共享 pretrain，并用 bootstrap SHA 追踪，二者分列。绝不能用 warm WM 的增量训练成本冒充 cold-start PPO-WM 成本。
 
 图包括 Return vs end-to-end wall-clock / total allocated GPU-hours / training simulator steps。物理评估步数单独记录。单GPU时前两条横轴成比例，这是正确现象。冻结WM的 simulator-steps 横坐标恒定，不据此拟合所谓样本效率斜率。
