@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "method": "bptt_wm_frozen",
+      "seed": 0,
+      "iterations": 3,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "ppo_sim",
+      "seed": 0,
+      "iterations": 3,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "ppo_wm_frozen",
+      "seed": 0,
+      "iterations": 3,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "ppo_wm_frozen_hard",
+      "seed": 0,
+      "iterations": 3,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "ppo_wm_online",
+      "seed": 0,
+      "iterations": 3,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "pretrain",
+      "seed": 0,
+      "iterations": 1,
+      "actor_weights_changed": false,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "supermimic",
+      "seed": 0,
+      "iterations": 3,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    }
+  ],
+  "actual_gpu_hours": 0.1975698225000653,
+  "evaluation_processes": 12,
+  "evaluation_repeats_per_checkpoint": 1,
+  "scope": "execution and recording qualification, not policy convergence or scientific superiority"
+}

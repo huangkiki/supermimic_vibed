@@ -120,3 +120,9 @@ python results/ablation/policy-bank-smoke-v1/reproduce.py /path/to/policy-bank-s
 ![四时域误差与物理表现](../../results/ablation/prediction-performance-v2/prediction-performance.png)
 
 [逐点CSV](../../results/ablation/prediction-performance-v2/prediction-performance.csv) · [分析输入收据](../../results/ablation/prediction-performance-v2/analysis-receipt.json)。
+
+## 全部40段的原生 Smoke（2026-10-24）
+
+独立版本3526437、A100 GPU2、seed0完成全部40段输入与六条件链路检查：pretrain 1轮，其余各3轮，共7个训练进程、12次完整物理评估、480条逐clip记录，总0.1975698225 GPU-hours。原生验收核对Actor更新、冻结WM不变、bootstrap成本、checkpoint身份与动作覆盖。所有策略均40/40失败；这仅证明全量动作链路可执行，不是40段正式训练，也不进入18段性能或吞吐比较。
+
+[CSV](../../results/ablation/all40-smoke-v1/evaluations.csv) · [Return/Compute图](../../results/ablation/all40-smoke-v1/return-compute.png) · [验收记录](../../results/ablation/all40-smoke-v1/validation.json)。正式全量扩展仍需4096环境的独立资源测量与至少3个训练seed。
