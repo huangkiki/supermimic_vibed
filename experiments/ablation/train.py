@@ -42,7 +42,7 @@ class Experiment:
         self.opt_pi = torch.optim.Adam(self.actor.parameters() if self.ppo else self.pi.parameters(),
                                        lr=cfg.lr, betas=(0.9, 0.95))
         self.opt_v = torch.optim.Adam(self.critic.parameters(), lr=cfg.lr)
-        self.opt_wm = torch.optim.Adam(self.wm.parameters(), lr=cfg.lr) if self.wm else None
+        self.opt_wm = torch.optim.Adam(self.wm.parameters(), lr=cfg.lr) if self.wm and not self.frozen else None
         self.buffer = ReplayBuffer(cfg.buffer_steps, cfg.num_envs, self.device) if self.wm else None
         self.history = torch.zeros(cfg.num_envs, cfg.hist, OBS_DIM, device=self.device)
         self.wm_rollout = torch.compile(self._wm_rollout) if cfg.compile else self._wm_rollout
@@ -65,7 +65,8 @@ class Experiment:
             self.wm.load_state_dict(ck["wm"])
             self.pi.load_state_dict(ck["pi"])
             self.critic.load_state_dict(ck["critic"])
-            self.opt_wm.load_state_dict(ck["opt_wm"])
+            if self.opt_wm:
+                self.opt_wm.load_state_dict(ck["opt_wm"])
             for key, value in ck["replay"]["data"].items():
                 self.buffer.data[key].copy_(value)
             self.buffer.ptr, self.buffer.size = ck["replay"]["ptr"], ck["replay"]["size"]
