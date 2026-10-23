@@ -8,24 +8,24 @@
 
 ## 已经得到什么结果
 
-**目前尚无收敛后的多种子效率结论。** 已完成三种主方法及冻结WM辅助条件的原生Smoke、100次迭代单种子Pilot和64状态梯度诊断；4000 次迭代单种子矩阵中，原参数PPO-Sim与在线PPO-WM已完成但仍全部失败；BPTT第3000轮物理Return已到0.7517、失败3/18，第4000轮及冻结组继续评估/执行。正式结果仍需至少3个seed和40段动作扩展。
+**目前尚无多种子效率结论。** 4000次迭代单种子、18段walk/run/sprint中，SuperMimic的物理Return达到0.8035，失败2/18；原参数PPO-Sim与在线PPO-WM仍全部失败，PPO基线正在做有界调参。原生Smoke、短程Pilot和64状态梯度诊断均已完成，冻结WM对照仍在执行。正式结果仍需至少3个训练seed和全部40段动作。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
-| 长程探索（seed0） | BPTT第1000/2000/3000轮物理Return=0.376/0.591/0.752，失败8/5/3段；PPO基线仍需调参，不能直接归因 | [已完成物理评估与成本](results/ablation/formal-seed0-partial/evaluations.csv) |
+| 长程探索（seed0） | BPTT第4000轮物理Return=0.8035，失败2/18；训练与五次物理评估共1.8824 GPU-hours。PPO基线尚未合格，不能归因或排名 | [已完成物理评估与成本](results/ablation/formal-seed0-partial/evaluations.csv) |
 | 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
-| Prediction / Gradient Fidelity | 同一批通过数值筛选的一步方向上，完整奖励符号一致率100%，去掉直接动作平滑项后61.4%；来自欠训练模型，不能外推至成熟策略 | [配对统计与限制](docs/ablation/results.md) |
+| Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
 | 目标规模资源测量 | 4096环境下，PPO-Sim / 在线PPO-WM / BPTT实测峰值显存约8.25 / 12.13 / 23.08 GiB | [资源估算与执行条件](docs/ablation/runbook.md) |
 
 ![长程探索的已完成物理评估点，原PPO基线未合格](results/ablation/formal-seed0-partial/return-compute.png)
 
 仅绘已完成物理评估点，单seed不绘制标准差带；原PPO参数未合格，不能把曲线差距直接归因于算法。中间横坐标为checkpoint计时加累计复评成本的回溯重建，不是现场在线评估时序；完整方法端点使用进程分配。冻结方法另全额计入WM预训练。
 
-![完整奖励与state-only辅助目标的配对梯度诊断](results/ablation/paired-components/paired-objectives.png)
+![已训练策略固定库的完整奖励与state-only梯度诊断](results/ablation/trained-policy-fidelity-seed0-v1/paired-objectives.png)
 
-这个诊断说明直接解析的动作惩罚可能掩盖动力学梯度误差。有限差分只是多尺度数值参考；state prediction accuracy、gradient fidelity和最终policy performance分别检验。样本来自参考PD切换到欠训练策略的状态分布，这是关键限制。
+本图固定第4000轮策略采集64状态，比较同一WM的完整奖励与去掉直接动作平滑项的辅助目标。短时域的方向一致性高于H32，长时域结果也更依赖扰动尺度。有限差分只是数值参考；state prediction accuracy、gradient fidelity和最终policy performance分别检验。四个WM阶段的MSE持续下降，但沿梯度微步的物理改善并非单调增加；这仍是单seed探索，不是因果或显著性结论。
 
-为继续检验该干扰，梯度入口新增 `--prefix-controller policy`：从参考起点起由同一策略生成前缀，连续保留观测历史与previous action；原 `reference_pd` 模式保留作控制。状态库保存首步动作重放误差、动作变化和SHA256；full/state_only配对按库内容核验。这仍是存活前缀条件下的参考起点分布，正式结论需要先通过物理评估的collector。四组原生探针验收完成，仍使用欠训练collector，仅证明链路；[验收数据](results/ablation/policy-bank-smoke-v1/qualification.json) · [命令与证据边界](docs/ablation/runbook.md)。
+梯度入口使用 `--prefix-controller policy` 连续保留观测历史与previous action，full/state_only配对按状态库内容SHA256核验；原 `reference_pd` 模式保留作控制。新实验六个探针已完成，共0.188922 GPU-hours，collector的物理失败率仍为2/18。接触稳定组在H32仅有3状态，不能据此作可靠的分组结论。[数据与收据](results/ablation/trained-policy-fidelity-seed0-v1/) · [命令与边界](docs/ablation/runbook.md)。
 
 ### 本次消融的真实失败轨迹
 

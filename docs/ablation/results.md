@@ -15,7 +15,7 @@
 
 ## 4000 迭代探索：PPO 基线尚未合格
 
-2026-10-24 00:08快照：PPO-Sim与在线PPO-WM各4000轮/5次物理评估已完成；BPTT训练4000轮已完成，物理复评已到第3000轮。第4000轮与冻结条件尚未完成。硬件、18段动作和评分协议一致。
+2026-10-24 00:28快照：PPO-Sim、在线PPO-WM和SuperMimic均已完成4000轮训练及各5次物理评估；冻结条件继续执行。硬件、18段动作和评分协议一致。
 
 | 迭代 | 原PPO-Sim Return | 原在线PPO-WM Return | BPTT Return | BPTT失败数/18 |
 |---:|---:|---:|---:|---:|
@@ -23,13 +23,15 @@
 | 1000 | 0.003371 | 0.001674 | 0.376017 | 8 |
 | 2000 | 0.009728 | 0.001717 | 0.590711 | 5 |
 | 3000 | 0.005257 | 0.002987 | 0.751716 | 3 |
-| 4000 | 0.003055 | 0.001697 | 待评估 | 待评估 |
+| 4000 | 0.003055 | 0.001697 | 0.803472 | 2 |
 
 两个原PPO条件每个点均18/18提前失败，不能把这些数值解释为算法排名。PPO-Sim 99.75% 迭代触发 KL 提前停止，通常只有少数 actor minibatch 更新。下一 minibatch 的停止不撤销上一步过大的更新。
 
 ![探索长跑的部分物理曲线，PPO尚未合格](../../results/ablation/formal-seed0-partial/return-compute.png)
 
 [完整成本与评估 CSV](../../results/ablation/formal-seed0-partial/evaluations.csv)。曲线只包含已完成物理评估点；尚未完成的checkpoint不补点。BPTT已有明显物理改善，但PPO基线未合格，不能直接给出优化器因果收益。单seed、旧协议每点一次复评，无标准差带。
+
+SuperMimic端点训练进程5123.91秒、五次物理评估进程合计1652.88秒，总计1.88244 GPU-hours；训练物理步数41,222,144，imagined步数458,752,000，评估物理步数973,548另列。最终checkpoint SHA256为`54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac`。中间点是训练快照加累计复评的回溯成本，实际评估在完整训练后执行；图轴据此标为accounted time，而非分数实际可用时间。
 
 在同一真实 PPO-Sim 批次与 Adam 状态上，仅将 actor 学习率 2e-4 改为 5e-6，更新后的整批精确 KL 从 0.832 降到 0.013，20 次 minibatch 更新完成；归一化更新单独产生的 KL 约 1e-5。该诊断支持步长失配。后续lr=5e-6的1000轮/3次复评候选达到Return=0.013086但仍18/18失败，尚未建立可靠跟踪基线。代码新增独立 `actor_lr` 配置，缺省仍继承原 `lr`。[完整诊断、原始数据与复现命令](ppo-qualification.md)。
 
@@ -55,7 +57,42 @@ H32、ε=.03沿full奖励WM梯度微步的真实硬物理累计回报平均改�
 
 原预算中评估时长按30–300秒估算；BPTT第1000轮的完整物理评估实际396.49秒，超过旧估算上界。下一批正式运行必须根据成功跟踪后的实测时长重新估算，不能复用该旧评估假设。当前14 GPU-hours硬上限仍生效。
 
-长程seed0完成后先检查有效学习和成本，再扩展至少3seed与40段；成熟模型的固定库梯度分析仍待执行。复现见[runbook](runbook.md)，因果边界/剩余算法差异见[protocol](protocol.md)，固定环境见[environment](environment.md)。完整逐步原始日志、接触baseline、数据manifest和实验报告交付于本任务outputs；大模型checkpoint保留在远端专用实验目录，另附SHA/路径清单。没有合并本PR，也没有宣称最终研究完成。
+长程seed0完成后先检查有效学习和成本，再扩展至少3seed与40段；已训练collector的首组固定库梯度分析见下节，多seed结论仍待执行。复现见[runbook](runbook.md)，因果边界/剩余算法差异见[protocol](protocol.md)，固定环境见[environment](environment.md)。完整逐步原始日志、接触baseline、数据manifest和实验报告交付于本任务outputs；大模型checkpoint保留在远端专用实验目录，另附SHA/路径清单。没有合并本PR，也没有宣称最终研究完成。
+
+## 已训练策略的固定库：前向误差降低，长时域梯度仍需独立检验
+
+2026-10-24完成六个新探针：固定预先选定的最终4000轮collector（物理Return=0.803472，仍2/18失败），64个参考起点经16步连续policy前缀，probe seed=9001；同一状态/动作/名义物理参数库比较WM第1000/2000/3000/4000轮。full/state_only × H1/8/32，每探针1024条prediction及10240条gradient记录。GPU2共0.188922 GPU-hours，与主训练同主机重叠，成本另列；不是吞吐排名数据。
+
+执行源码6dd6fd5，bank SHA256=`a79f08f281b288e8f8001aa994fc127789c080e42b67fa809dce1cbeb48d3abb`。全部探针内容身份与记录检查通过；初态最大漂移1.192e-7，首动作重放最大误差9.537e-7。边界/后续动作变化均值0.748/0.626，前缀一轮采集成功；这是参考起点的条件采样，仍不是平稳on-policy分布，也不是未见motion泛化。
+
+| WM迭代 | 1-step MSE | 8-step MSE | 16-step MSE | 32-step MSE | 同checkpoint物理Return |
+|---:|---:|---:|---:|---:|---:|
+| 1000 | 0.007002 | 0.006863 | 0.020342 | 0.115979 | 0.376017 |
+| 2000 | 0.000829 | 0.001645 | 0.003458 | 0.013098 | 0.590711 |
+| 3000 | 0.000513 | 0.000931 | 0.001627 | 0.004460 | 0.751716 |
+| 4000 | 0.000442 | 0.000589 | 0.000730 | 0.003024 | 0.803472 |
+
+MSE来自full-H32的同一固定库预测，采用协议中的固定分量尺度，不是论文原始MSE。四阶段的MSE与策略表现共同改善，但WM、policy和训练数据同时成熟，这个观察不能证明MSE降低导致策略改善。每checkpoint旧协议仅一次物理评估，无评估标准差；四个阶段不是四个独立训练seed。
+
+![同库预测误差与物理表现](../../results/ablation/trained-policy-fidelity-seed0-v1/gradient-components-full-h32/prediction-performance.png)
+
+第4000轮、ε=.03、matched soft目标，full/state_only使用双方均resolved的同一随机方向交集：
+
+| 梯度时域 | 交集方向数/256 | full符号一致率 | state-only符号一致率 | full Pearson | state-only Pearson |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 249 | 0.936 | 0.900 | 0.966 | 0.941 |
+| 8 | 199 | 0.864 | 0.874 | 0.868 | 0.869 |
+| 32 | 140 | 0.664 | 0.664 | 0.094 | 0.295 |
+
+![四扰动尺度下的配对方向统计](../../results/ablation/trained-policy-fidelity-seed0-v1/paired-objectives.png)
+
+短时域的一致性明显高于H32；H32的结果对扰动尺度也敏感，完整图保留四个尺度及各自分母。不能把未resolved方向判作错误，或把筛选后的140个方向称作独立样本。这组结果说明前向误差与方向质量需要分开测量；不证明BPTT训练无效，因为此探针是有限时域动作序列方向、无critic，和训练中的policy参数梯度并不相同。
+
+H32、full目标、ε=.03，沿各WM单位梯度方向微步的真实硬目标累计回报改善均值（64状态、含负改善）依次为+0.00000304、+0.00023420、+0.00096606、+0.00077143。第4000轮同尺度随机单位方向为−0.00004468；其四尺度梯度微步均值为+0.00007150/+0.00003824/+0.00077143/+0.00209790。3000→4000的MSE下降未带来该局部微步指标的单调改善，但没有独立训练seed置信区间，不能声称差异显著。这些值不是全motion归一化Return，也不是重新训练后的policy improvement。
+
+接触分组的状态数：H1稳定/切换=35/29，H8=17/47，H32=3/61。H8、ε=.03、state-only在稳定/切换组的符号一致率为0.922/0.852，双方resolved方向64/135；仅是该条件下的观察。H32稳定组只有3状态，不能据此做可靠的接触因果结论；geom原始接触记录也保留。
+
+[全部阶段/尺度/接触组CSV](../../results/ablation/trained-policy-fidelity-seed0-v1/paired-gradient-metrics.csv) · [MSE与物理Return CSV](../../results/ablation/trained-policy-fidelity-seed0-v1/gradient-components-full-h32/prediction-performance.csv) · [校验、来源与成本收据](../../results/ablation/trained-policy-fidelity-seed0-v1/analysis-receipt.json)。
 
 
 ## 连续策略前缀与状态库内容验收

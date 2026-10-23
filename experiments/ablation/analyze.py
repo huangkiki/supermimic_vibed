@@ -188,7 +188,7 @@ def main():
                    ppo_wm_frozen="#AA3377", bptt_wm_frozen="#CCBB44", ppo_wm_frozen_hard="#66CCEE")
     for ax, x_key, label, scale in zip(axes,
             ("end_to_end_seconds", "total_gpu_hours", "simulator_steps"),
-            ("End-to-end wall-clock (minutes)", "Total allocated GPU-hours", "Training simulator steps"),
+            ("Accounted train + evaluation time (minutes)", "Accounted GPU-hours", "Training simulator steps"),
             (60., 1., 1.)):
         stats = aggregate_curves(rows, x_key)
         aggregate.extend(stats)

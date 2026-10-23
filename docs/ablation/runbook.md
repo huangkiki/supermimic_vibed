@@ -135,6 +135,42 @@ python -m experiments.ablation.compare_fidelity logs/ablation/paired-components 
 
 配对目录使用 `gradient-components-{full,state_only}-h{1,8,32}`。配对分析只在相同随机方向、相同尺度、两侧都resolved的交集上比较，另报各自覆盖率；CSV保留所有checkpoint、尺度与接触组。方向/尺度复用同一状态，不能作为独立随机种子。
 
+已训练collector实验使用固定最终checkpoint4000采集bank，四个WM阶段均复用相同动作序列，不能随WM更换collector。下面复现2026-10-24的六探针配置；先检查GPU/磁盘和checkpoint身份，在新输出目录执行。该轮实测0.188922 GPU-hours，资源预检、0.3 GPU-hours硬上限和完整进程费用见交付包的`run-trained-fidelity.py`与plan；以下命令只说明单探针参数，不自行提供预算监督。
+
+```bash
+ABLATION_TRAIN=logs/ablation/formal-locomotion-seed0-v1/supermimic-seed0
+ABLATION_PROBE=logs/ablation/trained-policy-fidelity-seed0-v1
+# 首次只执行full/H1生成状态库；其余五组增加下方--bank参数。
+python -m experiments.ablation.fidelity \
+  --checkpoints "$ABLATION_TRAIN/ckpt_001000.pt" "$ABLATION_TRAIN/ckpt_002000.pt" \
+    "$ABLATION_TRAIN/ckpt_003000.pt" "$ABLATION_TRAIN/ckpt_004000.pt" \
+  --collector "$ABLATION_TRAIN/ckpt_004000.pt" \
+  --output "$ABLATION_PROBE/gradient-components-full-h1" \
+  --prefix-controller policy --prefix-steps 16 --samples 64 \
+  --directions 4 --epsilons .003 .01 .03 .1 --probe-seed 9001 \
+  --gradient-horizon 1 --reward-objective full
+for ablation_horizon in 1 8 32; do
+  for ablation_objective in full state_only; do
+    if [ "$ablation_horizon:$ablation_objective" = '1:full' ]; then continue; fi
+    python -m experiments.ablation.fidelity \
+      --checkpoints "$ABLATION_TRAIN/ckpt_001000.pt" "$ABLATION_TRAIN/ckpt_002000.pt" \
+        "$ABLATION_TRAIN/ckpt_003000.pt" "$ABLATION_TRAIN/ckpt_004000.pt" \
+      --collector "$ABLATION_TRAIN/ckpt_004000.pt" \
+      --output "$ABLATION_PROBE/gradient-components-$ablation_objective-h$ablation_horizon" \
+      --prefix-controller policy --prefix-steps 16 --samples 64 \
+      --directions 4 --epsilons .003 .01 .03 .1 --probe-seed 9001 \
+      --gradient-horizon "$ablation_horizon" --reward-objective "$ablation_objective" \
+      --bank "$ABLATION_PROBE/gradient-components-full-h1/heldout-bank.pt"
+  done
+done
+python -m experiments.ablation.validate_fidelity "$ABLATION_PROBE"/gradient-components-*/
+python -m experiments.ablation.compare_fidelity "$ABLATION_PROBE" \
+  --output results/ablation/trained-policy-fidelity-seed0-v1
+python -m experiments.ablation.plot_fidelity "$ABLATION_PROBE/gradient-components-full-h32" \
+  --output results/ablation/trained-policy-fidelity-seed0-v1/gradient-components-full-h32 \
+  --evaluations "$ABLATION_TRAIN"/ckpt_00[1234]000/evaluation.json
+```
+
 
 ## PPO 更新尺度检查与真实轨迹
 
