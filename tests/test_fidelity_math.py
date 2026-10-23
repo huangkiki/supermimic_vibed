@@ -37,6 +37,21 @@ class FidelityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             window_contact_groups(labels, 0, 4)
 
+    def test_state_only_objective_cannot_inherit_direct_action_gradient(self):
+        from types import SimpleNamespace
+        import torch
+        from experiments.ablation.fidelity import select_probe_reward
+        state = torch.tensor(2., requires_grad=True)
+        action = torch.tensor(3., requires_grad=True)
+        terms = dict(track=state.square(), joint_limit=state.relu())
+        config = SimpleNamespace(w_joint_limit=-2.)
+        full = terms["track"] - 10. * action.square() - .04 * terms["joint_limit"]
+        self.assertIs(select_probe_reward(full, terms, config, "full"), full)
+        state_only = select_probe_reward(full, terms, config, "state_only")
+        state_grad, direct_grad = torch.autograd.grad(state_only, (state, action), allow_unused=True)
+        self.assertAlmostEqual(float(state_grad), 3.96, places=6)
+        self.assertIsNone(direct_grad)
+
 
 if __name__ == "__main__":
     unittest.main()
