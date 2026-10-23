@@ -145,6 +145,26 @@ python -m experiments.ablation.analyze_cohort \
 
 主阈值Return≥0.8，辅助阈值0.5/0.7均保留失败率≤0.2约束；只选首次实际评估checkpoint，不插值。任一种子未达标，相关未删失平均达标时间和成本比留空，保留达标比例及逐seed最后观察成本。成本比只有双方所有seed均达标时报告样本均值/SD，不能把成功子集当完整矩阵。`time-to-target`在这里指**按账本核算的训练加评估成本**，不是事后复评成绩实际可见的日历时间；原训练先完成再复评的时序限制仍保留。
 
+## 按原预算串行续跑seed 2和3
+
+当前seed1由已记录PID的独立队列等待旧矩阵验收后启动。可从**独立编排checkout**运行`continue_seeds`，待该队列成功后串行完成seed2、seed3，最后执行上面的三seed汇总。运行中的训练checkout和编排checkout均须保持源码/config不变；后续开发使用另一目录。以下变量需指向实际路径，使用前核实对应进程和文件：
+
+```bash
+# EXECUTION_ROOT：完成原生all40-smoke-v1资格的固定训练checkout
+# PLAN / FORECAST：该checkout中已预登记的计划和seed1测量预算
+# RUNTIME：保存已核验seed1队列、PID和脚本的目录
+python -m experiments.ablation.continue_seeds \
+  --execution-root "$EXECUTION_ROOT" --plan "$PLAN" --forecast "$FORECAST" \
+  --predecessor-queue "$RUNTIME/confirmatory-seed1-queue-v3.json" \
+  --predecessor-pid-file "$RUNTIME/confirmatory-seed1-queue-v3.pid" \
+  --predecessor-script "$RUNTIME/queue_confirmatory_seed1_v3.py" \
+  --gpu 0 --wait-seconds 151200 --output "$RUNTIME/confirmatory-seeds23-v1"
+```
+
+等待中的状态文件不能单独证明任务存活：入口核验PID、启动时间和完整argv，允许活进程写JSON时的短暂不完整观测；实际失败、进程消失或PID复用均停止后续启动。前一seed需原范围、原上限、完整费用和原生资格全部通过。seed2/3每次启动前都重新核验同一GPU、可用显存、磁盘和剩余总预算；冻结原训练参数，仅改变seed。单seed上限32、总96 GPU-hours不变，等待时间不冒充GPU占用。资源不足不自动删除文件、放宽预留、重启训练或新增预算。
+
+结果保存在各自`confirmatory-locomotion-seed{1,2,3}-v2`目录。外部队列保存原子更新的`queue.json`、每批资源预检和子进程PID/log，最终`cohort-analysis/`只在全部三seed完成后生成。若队列停止，先检查已存在的campaign与实际进程，保留成功项和失败账本，不重新运行已完成seed。
+
 ## 实测预算与配对梯度统计
 
 ```bash
