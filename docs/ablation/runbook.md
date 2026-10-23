@@ -234,6 +234,27 @@ python -m experiments.ablation.plot_fidelity "$ABLATION_PROBE/gradient-component
 ```
 
 
+## 汇总独立训练seed的梯度分析
+
+`confirmatory-gradient-plan.json`预登记正式seeds1/2/3：每seed使用最终SuperMimic collector的64状态库，在该库上比较WM第1000/2000/3000/4000轮、full/state_only、H1/8/32以及四种扰动尺度。探针使用同一GPU2、fp32、关闭TF32和固定物理reset协议；每次启动仍需重新检查资源。开发seed0六探针实测0.188922 GPU-hours，预留25%为0.236153/seed，登记硬上限0.3/seed、合计0.9。探针费用独立记录，不进入策略训练效率排名。当前尚无正式三seed探针结果。
+
+从独立分析checkout执行下列命令；不要为使用新汇总器而更新运行中的训练checkout。`SEED1/2/3`是三个完整训练campaign目录，`PROBE1/2/3`是分别包含六探针和`campaign.json`的已完成目录。当前命令仅经合成单元测试和已有单seed数据兼容检查，尚未在真实三seed数据上运行。
+
+```bash
+python -m experiments.ablation.analyze_fidelity_cohort \
+  --training-plan experiments/ablation/configs/confirmatory-locomotion-plan.json \
+  --probe-plan experiments/ablation/configs/confirmatory-gradient-plan.json \
+  --training-campaigns "$SEED1/campaign.json" "$SEED2/campaign.json" "$SEED3/campaign.json" \
+  --probe-campaigns "$PROBE1" "$PROBE2" "$PROBE3" \
+  --output results/ablation/confirmatory-gradient-cohort
+```
+
+入口先复用严格的训练cohort验收，检查完整物理复评、逐clip分数和成本；再验证每个探针的原生bank哈希验收、原始CSV、训练/探针GPU身份、物理reset/精度、源码、WM/collector内容哈希和六次成功分配账本。不同训练seed必须有各自的collector/bank，同一seed六探针必须共享同一bank。分析只读原始验收文件，不覆盖旧收据。
+
+输出四组逐seed与跨seedCSV：方向符号/相关性及resolved计数、真实微步改善与随机方向对照、Prediction Error–物理Return、各seed内部的阶段相关性；另有三组PNG/SVG和`fidelity-cohort.json`来源/费用收据。标准差是独立训练seed之间的样本SD，三个seed等权。任一seed某接触组为空或相关系数无法定义时，跨seed均值/SD留空并报告defined-seed数量，不静默缩小分母。
+
+Prediction Error仅采用预先指定的`full-h32`探针中1/8/16/32步记录；六个重放探针的微小数值差异不算六组独立样本。微步收益在同一epsilon、同一状态上配对梯度方向与全部随机方向，要求所有起点可重放且方向非零；先对每状态的随机方向取均值，再对状态取均值，最后按训练seed汇总。未通过FD尺度/噪声解析的方向仍保留记录；FD方向一致性使用full/state_only共同resolved交集，微步收益另报告重复return噪声。阶段相关性在每seed的四个checkpoint内部计算，不把checkpoint、状态、方向或物理复评当作额外训练seed，不报告因果或显著性结论。
+
 ## 全部40段的目标规模资源测量
 
 40段Smoke采用32环境、H4，不能代表正式4096环境、H32的资源需求。`qualify_all40.sh`复用已通过Smoke的固定训练源码3526437，单独运行下面三个有限范围campaign；脚本和forecast位于另一个目录，不修改正在使用的执行checkout。

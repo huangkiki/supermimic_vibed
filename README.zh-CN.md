@@ -84,6 +84,8 @@ PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动�
 
 Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全部复评，分别展示1/8/16/32步误差；缺失复评会拒绝绘图，单次评估不伪造标准差。[旧Pilot的四时域关联图与CSV](results/ablation/prediction-performance-v2/)仍显示全部策略跟踪失败，只是观察性关联，不能证明低MSE带来更好控制。
 
+正式梯度汇总入口`analyze_fidelity_cohort`按独立训练seed等权统计，保留未解析方向、接触组覆盖和无法定义的相关系数。它先验收完整训练与物理评估，再检查每seed六个探针、状态库和checkpoint身份及探针费用；当前尚无真实三seed梯度结果。[统计规则与运行命令](docs/ablation/runbook.md#汇总独立训练seed的梯度分析)。
+
 所有方法最终在真实物理模拟器中评估。主要曲线使用完整motion归一化Return，对墙时、GPU-hours和Simulator Steps分别作图；不把imagined return当物理成绩。
 
 ## 查看、复现和继续实验

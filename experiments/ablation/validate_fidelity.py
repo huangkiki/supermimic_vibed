@@ -10,7 +10,7 @@ from collections import Counter
 from pathlib import Path
 
 
-def validate(root):
+def validate(root, *, write_receipt=True):
     root = Path(root)
     receipt = json.loads((root / "probe.json").read_text())
     args = receipt["args"]
@@ -40,8 +40,10 @@ def validate(root):
     checkpoints = set(receipt["checkpoint_sha256"].values())
     samples = set(range(args["samples"]))
     epsilons = set(args["epsilons"])
-    prediction = list(csv.DictReader((root / "prediction.csv").open()))
-    gradient = list(csv.DictReader((root / "gradient.csv").open()))
+    with (root / "prediction.csv").open() as stream:
+        prediction = list(csv.DictReader(stream))
+    with (root / "gradient.csv").open() as stream:
+        gradient = list(csv.DictReader(stream))
     prediction_keys = {(r["checkpoint_sha256"], int(r["sample"]), int(r["horizon"])) for r in prediction}
     expected_prediction = {(ck, n, h) for ck in checkpoints for n in samples for h in (1, 8, 16, 32)}
     if prediction_keys != expected_prediction or len(prediction_keys) != len(prediction):
@@ -77,7 +79,8 @@ def validate(root):
                   max_initial_state_drift=max(float(r["initial_state_max_drift"]) for r in gradient),
                   resolved_rows=sum(r["resolved"] == "True" for r in gradient),
                   scope="Recording completeness and numerical bookkeeping; not model accuracy or independent-sample significance")
-    (root / "validation.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
+    if write_receipt:
+        (root / "validation.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     return result
 
 
