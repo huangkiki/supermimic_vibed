@@ -126,6 +126,25 @@ python -m experiments.ablation.validate_run /original/checkout/logs/ablation/cam
 
 2026-10-24的旧seed0矩阵在5.581506 GPU-hours后被原资源门禁拦住：所有已启动子进程均成功，剩余冻结软目标PPO的4次评估，以及从未开始的冻结BPTT训练与5次评估。原执行版本30739d2与14 GPU-hours上限保留，外部恢复器单独记录版本；原退出码1和被依赖门禁阻止的seed1队列也保留。该次退出没有保存失败瞬间的GPU采样，不能确定其瞬时原因；当前空闲不证明当时无其他负载。
 
+## 汇总独立的三个正式训练seed
+
+三个独立campaign均完成训练、物理复评和`validate_run`后，用以下命令合并；当前尚未有完整三seed结果，不应提前运行并把局部结果当成正式统计：
+
+```bash
+python -m experiments.ablation.analyze_cohort \
+  --plan experiments/ablation/configs/confirmatory-locomotion-plan.json \
+  --campaigns logs/ablation/confirmatory-locomotion-seed1-v2 \
+              logs/ablation/confirmatory-locomotion-seed2-v2 \
+              logs/ablation/confirmatory-locomotion-seed3-v2 \
+  --output results/ablation/confirmatory-locomotion-v2
+```
+
+入口要求预登记的完整seed/method/checkpoint/repeat矩阵、同一物理GPU/源码/输入/评估协议、原生tensor/checkpoint验收记录、完整训练CSV与进程计费，并重新核对逐clip评分。缺seed、混入开发seed0、重复分配、漏掉复评、改变参数或冻结组共享模型不同都会拒绝合并。该汇总不重新运行物理实验，不能替代原生验收。
+
+除Return/Compute曲线外，生成`final-seed-statistics.csv`（各训练seed复评均值的总体均值和样本SD）、`target-observations.csv`（每seed首次达标或最后观察到的删失成本）、`target-summary.csv`（达标分子/分母及未删失时的成本均值/SD）、`paired-target-costs.csv`（同seed的基线/候选GPU成本比）和`cohort.json`（预登记与原账本哈希、去重实际成本）。独立冻结方法曲线各付全额预训练；实际campaign合计只计一次共享预训练。
+
+主阈值Return≥0.8，辅助阈值0.5/0.7均保留失败率≤0.2约束；只选首次实际评估checkpoint，不插值。任一种子未达标，相关未删失平均达标时间和成本比留空，保留达标比例及逐seed最后观察成本。成本比只有双方所有seed均达标时报告样本均值/SD，不能把成功子集当完整矩阵。`time-to-target`在这里指**按账本核算的训练加评估成本**，不是事后复评成绩实际可见的日历时间；原训练先完成再复评的时序限制仍保留。
+
 ## 实测预算与配对梯度统计
 
 ```bash

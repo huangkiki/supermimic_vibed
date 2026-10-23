@@ -45,7 +45,7 @@ PPO-WM的有限想象窗口用discount×survival作为样本权重；PPO-Sim按�
 
 原入口采集时对动作请求做[-20,20]裁剪；新增实验的所有条件统一使用未裁剪请求，并保留物理执行器限幅。这是显式适配，不是原入口的逐位复现；本轮没有记录裁剪触发频率，不能声称这个差异无影响。
 
-PPO 用未裁剪 Normal(mean, exp(log_std))，记录真正采样动作的 log-prob。执行器原有物理限幅继续生效。初始 std=0.1 是为与原 WM 采集噪声对齐的实验选择，**不是已验证最优的 PPO 设置**；必要时对0.1/0.3/1.0、clip/epoch/KL 做等预算开发集敏感性试验。所有主网络宽度不变。PPO actor/critic 与对应 BPTT 使用相同学习率、critic 轮次、gamma/lambda；PPO新增 clipping、KL停止和可配置 entropy。
+PPO 用未裁剪 Normal(mean, exp(log_std))，记录真正采样动作的 log-prob。执行器原有物理限幅继续生效。初始 std=0.1 是为与原 WM 采集噪声对齐的实验选择，**不是已验证最优的 PPO 设置**；必要时对0.1/0.3/1.0、clip/epoch/KL 做等预算开发集敏感性试验。所有主网络宽度不变。早期参考配置共享学习率；seed0参数选择后，正式验证仅将PPO Actor学习率固定为2e-5，BPTT Actor、所有Critic和WM保持2e-4。critic轮次、gamma/lambda保留；PPO新增clipping、KL停止和可配置entropy。调参成本与结构差异见[PPO资格记录](ppo-qualification.md)。
 
 PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/action/old log-prob/target 全部 detach。物理 term 禁止 bootstrap；timeout 允许从 reset 前 s1 bootstrap，但 GAE trace 在任何 reset 截断。冻结机制组只冻结 WM；critic 可以更新自己的归一化。
 
@@ -53,7 +53,7 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 源数据版本 `lvhaidong/LAFAN1_Retargeting_Dataset@ce1572906efe6157840e8474d5a0d7aa87481e74`，40 CSV、264705 原始帧；本次从已有缓存重新验证79个源文件，并与该固定版本的实时 Hugging Face 对象核对（31个LFS SHA-256、48个Git blob SHA-1）；检查所有 CSV 的36列格式。完整动作清单随每个运行 manifest 保存。
 
-第一轮为全部12个 walk、4个 run、2个 sprint（18段）；这只是与论文类别对齐，论文未公开逐文件名单。随后 `subset=all40`。正式种子0/1/2，模型、策略、critic 分别使用 seed+111/+222/+333，使增加 WM 或 Gaussian 模块不会改变初始 mean 权重。
+第一轮为全部12个 walk、4个 run、2个 sprint（18段）；这只是与论文类别对齐，论文未公开逐文件名单。随后 `subset=all40`。seed0用于开发和参数选择，正式验证使用独立seeds1/2/3；早期0/1/2候选矩阵不再作为正式统计计划。模型、策略、critic分别使用seed+111/+222/+333，使增加WM或Gaussian模块不会改变初始mean权重。
 
 每个 checkpoint 在新物理进程中：每段从第一帧开始，无动作/观测噪声、无DR、摩擦1；用 mean policy；完整播放或训练失败条件终止。报告：逐 clip 的 reward sum、按完整参考长度归一化的 return、实际生存步数和 failure。主聚合是 clip 等权均值，另报按帧加权结果。训练 motion 的评测衡量覆盖，不是未见动作泛化。所有硬件/输入/模型资产哈希/精度/核心代码与评估协议不同的记录拒绝放在同一组图中。
 

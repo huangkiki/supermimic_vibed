@@ -76,6 +76,8 @@ PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动�
 
 新运行器支持每个 checkpoint 的多次独立物理复评，单独记录其波动和全部费用；复评次数不能算作训练 seed 数。[重复评估与有界 PPO 调参](docs/ablation/ppo-qualification.md#有界长程验证与重复评估)。
 
+分批完成的seeds1/2/3通过`analyze_cohort`统一汇总：核对预登记、完整原始CSV和进程费用，再输出训练seed间均值/样本SD、达标比例及逐seed成本。未达标seed保留删失，相关平均达标时间和成本比留空。该入口已有测试，目前真实三seed结果仍未齐备。[跨campaign汇总命令与计时边界](docs/ablation/runbook.md#汇总独立的三个正式训练seed)。
+
 两个1000轮PPO候选均完成，各9次物理复评：lr=5e-6/2e-5最终Return均值0.013086/0.252798，失败18/12段，合计1.6260 GPU-hours。恢复器在原执行源码和原预算下补齐资源门禁中断的评估，未重训。正式验证选用2e-5、排除开发seed0；六条件×seeds1/2/3的保守估算为94.17 GPU-hours，分批上限32/seed，总上限96。这是计划预算，不是已经运行的结果。[结果、预登记与运行命令](docs/ablation/ppo-qualification.md#两候选完成与正式参数冻结)。
 
 Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全部复评，分别展示1/8/16/32步误差；缺失复评会拒绝绘图，单次评估不伪造标准差。[旧Pilot的四时域关联图与CSV](results/ablation/prediction-performance-v2/)仍显示全部策略跟踪失败，只是观察性关联，不能证明低MSE带来更好控制。

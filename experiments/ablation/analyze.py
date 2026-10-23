@@ -163,18 +163,11 @@ def save_csv(path, rows):
         writer.writerows(rows)
 
 
-def main():
-    parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument("--evaluations", nargs="+", required=True)
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--campaign", help="Use process allocation for evaluations, pretraining and final endpoints")
-    parser.add_argument("--title", default="Physical simulator evaluation — pilot, not convergence evidence")
-    args = parser.parse_args()
-    rows = collect_records(args.evaluations, args.campaign)
-    output = Path(args.output)
+def write_analysis(rows, raw_evaluations, output, title):
+    """Render already validated records; shared by single and multi-campaign entrypoints."""
+    output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     save_csv(output / "evaluations.csv", rows)
-    raw_evaluations = [json.loads(Path(p).read_text()) for p in args.evaluations]
     save_csv(output / "evaluation-repeats.csv", [dict(method=r["method"], seed=r["seed"], iteration=r["iteration"],
              repeat_index=r.get("evaluation_repeat_index", 0), repeat_count=r.get("evaluation_repeat_count", 1),
              physical_return=r["physical_return"], tracking_failure_rate=r["tracking_failure_rate"],
@@ -215,7 +208,7 @@ def main():
         ax.set(xlabel=label, ylabel="Full-clip normalized physical return", ylim=(lower, upper))
         ax.grid(alpha=.2)
     axes[0].legend(fontsize=8)
-    fig.suptitle(args.title)
+    fig.suptitle(title)
     fig.savefig(output / "return-compute.png", dpi=180)
     fig.savefig(output / "return-compute.svg")
     plt.close(fig)
@@ -252,6 +245,18 @@ def main():
         accounting="full bootstrap and preceding evaluations charged; --campaign uses complete process allocation for final endpoints",
         intermediate_cost="checkpoint snapshots precede their own serialization/teardown; evaluations are reconstructed as if interleaved",
         caution="equal iterations are not equal compute; frozen WM has constant simulator steps"), indent=2) + "\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(__doc__)
+    parser.add_argument("--evaluations", nargs="+", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--campaign", help="Use process allocation for evaluations, pretraining and final endpoints")
+    parser.add_argument("--title", default="Physical simulator evaluation — pilot, not convergence evidence")
+    args = parser.parse_args()
+    rows = collect_records(args.evaluations, args.campaign)
+    raw = [json.loads(Path(p).read_text()) for p in args.evaluations]
+    write_analysis(rows, raw, args.output, args.title)
 
 
 if __name__ == "__main__":
