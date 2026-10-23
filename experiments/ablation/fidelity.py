@@ -151,7 +151,10 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
     samples = actions.shape[1]
     combined_contacts = bank["prefix_contacts"] + baseline["contacts"]
     labels = contact_groups(combined_contacts)
-    group = labels[len(bank["prefix_contacts"])]
+    first = len(bank["prefix_contacts"])
+    initial_group = labels[first]
+    group = ["switch_nearby" if any(row[n] == "switch_nearby" for row in labels[first:])
+             else initial_group[n] for n in range(samples)]
     scale = torch.tensor([.3] * 3 + [.4] * 3 + [1.] * 3 + [3.14] * 3 + [1.] * 29 + [10.] * 29, device=env.device)
     segments = dict(position=(0, 3), orientation=(3, 6), linear_velocity=(6, 9), angular_velocity=(9, 12), joint_position=(12, 41), joint_velocity=(41, 70))
     for h in (1, 8, 16, 32):
@@ -160,7 +163,8 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
         error = wm.state_error(predictions[h - 1], unflatten_state(baseline["states"][h])).detach()
         for n in range(samples):
             row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n], horizon=h,
-                       contact_group=group[n], scaled_mse=float((error[n] / scale).square().mean()))
+                       contact_group=group[n], initial_contact_group=initial_group[n],
+                       scaled_mse=float((error[n] / scale).square().mean()))
             row.update({name + "_mse": float(error[n, a:b].square().mean()) for name, (a, b) in segments.items()})
             append_csv(output / "prediction.csv", row)
     repeat = physical_rollout(env, bank, actions.detach(), gamma)
@@ -187,7 +191,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
                     resolved[:] = False
                 for j, (eps, plus, minus) in enumerate(measurements):
                     row = dict(checkpoint_sha256=ck_hash, sample=n, motion=bank["motion_names"][n],
-                               contact_group=group[n], direction=direction_id,
+                               contact_group=group[n], initial_contact_group=initial_group[n], direction=direction_id,
                                direction_type="wm_gradient" if direction_id == directions else "random_unit_l2",
                                epsilon=eps, objective=kind, predicted_derivative=float(predicted[n]),
                                fd_derivative=float(derivatives[j, n]), resolved=bool(resolved[j]),

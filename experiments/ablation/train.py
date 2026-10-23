@@ -6,8 +6,10 @@ The original supermimic/train.py and its defaults are deliberately untouched.
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 from dataclasses import asdict
 import json
+import math
 from pathlib import Path
 import time
 
@@ -336,31 +338,43 @@ def main():
     kin = G1Kinematics("cuda:0")
     motion = MotionLib([str(p) for p in motion_files(cfg)], kin, "cuda:0")
     mdp = MDP(kin, motion, torch.tensor(default_joint_pos_list(), device="cuda:0"))
-    sim_cfg = make_sim("cuda:0", args)
-    with launch_simulation(sim_cfg, args):
-        env = TrackingSim(sim_cfg, cfg.num_envs, motion, mdp, gamma=cfg.gamma)
+    frozen = cfg.method.endswith("_frozen")
+    sim_cfg = None if frozen else make_sim("cuda:0", args)
+    context = nullcontext() if frozen else launch_simulation(sim_cfg, args)
+    with context:
+        env = None if frozen else TrackingSim(sim_cfg, cfg.num_envs, motion, mdp, gamma=cfg.gamma)
         experiment = Experiment(cfg, env, mdp, motion, ledger, manifest)
         if not cfg.bootstrap:
             experiment.collect_model_data(cfg.warmup_steps)
         experiment.save(output / "ckpt_000000.pt", 0, manifest)
         status = "completed"
         completed = 0
+        step_accumulator = 0.
         for i in range(1, cfg.iterations + 1):
             if time.perf_counter() - started >= cfg.max_wall_seconds:
                 status = "budget_exhausted"
                 break
+            fraction = min((i - 1) / cfg.lr_decay_iters, 1.)
+            lr = cfg.lr * (.03 + .97 * .5 * (1 + math.cos(math.pi * fraction)))
+            for optimizer in (experiment.opt_pi, experiment.opt_v, experiment.opt_wm):
+                if optimizer:
+                    for group in optimizer.param_groups:
+                        group["lr"] = lr
             wm_loss = None
             result = dict(policy_loss=None, value_loss=None, approx_kl=None, actor_updates=0, critic_updates=0, kl_stopped=False)
             if cfg.method == "ppo_sim":
                 result = experiment.optimize_simulator()
             else:
                 if not experiment.frozen:
-                    experiment.collect_model_data(cfg.collect_steps)
+                    step_accumulator += cfg.collect_steps
+                    collected = int(step_accumulator)
+                    step_accumulator -= collected
+                    experiment.collect_model_data(collected)
                     wm_loss = experiment.fit_world_model()
                 if cfg.method != "pretrain" and (cfg.bootstrap or experiment.frozen or i > cfg.wm_only_iters):
                     result = experiment.optimize_imagined()
             completed = i
-            row = dict(iteration=i, method=cfg.method, seed=cfg.seed, wm_loss=wm_loss, **result, **ledger.snapshot())
+            row = dict(iteration=i, method=cfg.method, seed=cfg.seed, lr=lr, wm_loss=wm_loss, **result, **ledger.snapshot())
             append_csv(output / "train.csv", row)
             print(json.dumps(row, allow_nan=False), flush=True)
             if i % cfg.checkpoint_every == 0:

@@ -47,7 +47,7 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 ## 数据、种子与评估
 
-源数据版本 `lvhaidong/LAFAN1_Retargeting_Dataset@ce1572906efe6157840e8474d5a0d7aa87481e74`，40 CSV、264705 原始帧；本次从已有缓存重新验证79个源文件 SHA，并检查所有 CSV 的36列格式。完整动作清单随每个运行 manifest 保存。
+源数据版本 `lvhaidong/LAFAN1_Retargeting_Dataset@ce1572906efe6157840e8474d5a0d7aa87481e74`，40 CSV、264705 原始帧；本次从已有缓存重新验证79个源文件，并与该固定版本的实时 Hugging Face 对象核对（31个LFS SHA-256、48个Git blob SHA-1）；检查所有 CSV 的36列格式。完整动作清单随每个运行 manifest 保存。
 
 第一轮为全部12个 walk、4个 run、2个 sprint（18段）；这只是与论文类别对齐，论文未公开逐文件名单。随后 `subset=all40`。正式种子0/1/2，模型、策略、critic 分别使用 seed+111/+222/+333，使增加 WM 或 Gaussian 模块不会改变初始 mean 权重。
 
@@ -81,6 +81,6 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 分别保存真实硬终止物理回报FD、匹配WM软生存目标的物理FD；报告符号一致率、Pearson（样本/方差不足留空）、正向微小更新的真实return improvement。FD只是尺度依赖的数值参考，不是MuJoCo-Warp解析Ground-truth Jacobian。
 
-接触来自实际MuJoCo-Warp collision/constraint records的geom-pair集合（dist≤0且efc有效），并明确是最后物理substep的记录，不是足高近似或接触力真值。在±2个控制步的接触集合变化附近标记switch_nearby，否则区分stable_contact与flight。按初始局部分组报告，同时保留整段contact signatures供更细分析。
+接触来自实际MuJoCo-Warp collision/constraint records的geom-pair集合（dist≤0且efc有效），并明确是最后物理substep的记录，不是足高近似或接触力真值。在±2个控制步的接触集合变化附近标记switch_nearby，否则区分stable_contact与flight。同时记录初始局部标签和整段32步窗口标签；窗口内任一时刻接近切换都归入switch_nearby，只有全窗口稳定才归stable_contact/flight。保留整段contact signatures供更细分析；某组没有样本就明确留空。
 
 不同checkpoint的Prediction Error与其物理评估return关系只能先报观察性相关：策略成熟度、数据分布和训练时间共同变化。同输入的模型梯度与真实微步改善更直接检验机制；也不能据此宣称低MSE必然导致更高最终policy performance。

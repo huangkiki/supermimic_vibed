@@ -35,8 +35,9 @@ class Config:
     pi_batch: int = 512
     warmup_steps: int = 64
     wm_only_iters: int = 50
-    collect_steps: int = 3
+    collect_steps: float = 2.5
     lr: float = 2e-4
+    lr_decay_iters: int = 250000
     gamma: float = 0.99
     lam: float = 0.95
     initial_std: float = 0.1
@@ -67,6 +68,13 @@ class Config:
             raise ValueError("finite positive time budget and supported precision required")
         if self.ppo_wm_survival not in ("hard", "soft"):
             raise ValueError("ppo_wm_survival must be hard or soft")
+        if not 0 < self.gamma < 1 or not 0 <= self.lam <= 1 or not 0 < self.clip < 1:
+            raise ValueError("invalid discount/GAE/clipping range")
+        if self.seed < 0 or self.wm_only_iters < 0 or self.lr_decay_iters < 1:
+            raise ValueError("invalid seed/warmup/decay schedule")
+        for key in ("lr", "initial_std", "collect_steps"):
+            if not math.isfinite(getattr(self, key)) or getattr(self, key) <= 0:
+                raise ValueError(f"{key} must be finite and positive")
         if self.method.endswith("_frozen") and not self.bootstrap:
             raise ValueError("frozen methods require the SAME pretrain checkpoint")
         if self.method == "ppo_sim" and self.bootstrap:

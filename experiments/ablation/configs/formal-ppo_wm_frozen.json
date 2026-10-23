@@ -11,7 +11,7 @@
   "pi_batch": 4096,
   "warmup_steps": 64,
   "wm_only_iters": 500,
-  "collect_steps": 3,
+  "collect_steps": 2.5,
   "ppo_epochs": 5,
   "minibatches": 4,
   "compile": true,
