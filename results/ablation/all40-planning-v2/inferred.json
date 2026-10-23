@@ -1,0 +1,130 @@
+{
+  "status": "calibrated_planning_not_convergence",
+  "scope": {
+    "methods": [
+      "pretrain",
+      "ppo_sim",
+      "ppo_wm_online",
+      "supermimic",
+      "ppo_wm_frozen_hard",
+      "ppo_wm_frozen",
+      "bptt_wm_frozen"
+    ],
+    "iterations": 4000,
+    "checkpoint_every": 1000,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 3
+  },
+  "seeds": [
+    1
+  ],
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "subset": "all40",
+  "measurements": {
+    "ppo_sim": {
+      "observations": 30,
+      "measured_iterations": 32,
+      "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+      "gpu_uuid_source": "training_manifest",
+      "allocation_seconds": 172.95727689703926,
+      "upper_interval": {
+        "collection_seconds": 1.296061253058724,
+        "wm_training_seconds": 0.0,
+        "imagined_rollout_seconds": 0.0,
+        "policy_optimization_seconds": 0.6489539520116523,
+        "train_wall_seconds": 1.9463655080180615
+      },
+      "timing_field": "train_wall_seconds",
+      "peak_device_memory_mib": 8710.0,
+      "training_seconds": 7896.135612712707,
+      "cold_setup_compile_io_seconds": 165.99460983206518
+    },
+    "ppo_wm_online": {
+      "observations": 30,
+      "measured_iterations": 532,
+      "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+      "gpu_uuid_source": "training_manifest",
+      "allocation_seconds": 425.8299427559832,
+      "upper_interval": {
+        "collection_seconds": 0.11440439405851066,
+        "wm_training_seconds": 0.27371627395041287,
+        "imagined_rollout_seconds": 0.3058043000055477,
+        "policy_optimization_seconds": 0.6700964849442244,
+        "train_wall_seconds": 1.3544283899245784
+      },
+      "timing_field": "train_wall_seconds",
+      "peak_device_memory_mib": 12718.0,
+      "training_seconds": 5122.987599014421,
+      "cold_setup_compile_io_seconds": 256.1841361760162
+    },
+    "supermimic": {
+      "observations": 30,
+      "measured_iterations": 532,
+      "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+      "gpu_uuid_source": "training_manifest",
+      "allocation_seconds": 714.2751291430322,
+      "upper_interval": {
+        "collection_seconds": 0.11458156805019826,
+        "wm_training_seconds": 0.28607488598208874,
+        "imagined_rollout_seconds": 0.5005909450119361,
+        "policy_optimization_seconds": 0.46900820499286056,
+        "train_wall_seconds": 1.3133682860061526
+      },
+      "timing_field": "train_wall_seconds",
+      "peak_device_memory_mib": 23918.0,
+      "training_seconds": 5269.03634501237,
+      "cold_setup_compile_io_seconds": 545.165951386909
+    },
+    "pretrain": {
+      "observations": 30,
+      "measured_iterations": 500,
+      "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+      "gpu_uuid_source": "training_manifest",
+      "allocation_seconds": 290.1728011269588,
+      "upper_interval": {
+        "collection_seconds": 0.1218499670503661,
+        "wm_training_seconds": 0.27555962302722037,
+        "imagined_rollout_seconds": 0.0,
+        "policy_optimization_seconds": 0.0,
+        "train_wall_seconds": 0.3976234409492463
+      },
+      "timing_field": "train_wall_seconds",
+      "peak_device_memory_mib": 7916.0,
+      "training_seconds": 290.1728011269588,
+      "cold_setup_compile_io_seconds": 155.38703567301854
+    }
+  },
+  "measurement_gpu_uuids": [
+    "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9"
+  ],
+  "evaluation_processes": 90,
+  "assumed_evaluation_seconds_per_checkpoint": 1500.0,
+  "projected_training_gpu_hours": 8.70040818367299,
+  "projected_evaluation_gpu_hours": 37.5,
+  "projected_campaign_gpu_hours": 57.75051022959124,
+  "pretrain_iterations": 500,
+  "pretrain_seconds_estimate": 290.1728011269588,
+  "frozen_training_seconds_estimates": {
+    "ppo_wm_frozen_hard": 4159.787275975104,
+    "ppo_wm_frozen": 4159.787275975104,
+    "bptt_wm_frozen": 4423.562551406096
+  },
+  "frozen_cost_basis": "inferred_online_policy_phases",
+  "projected_peak_memory_mib": 28701.6,
+  "projected_disk_gib": 12.0,
+  "minimum_disk_reserve_gib": 12.0,
+  "sources": {
+    "ppo_sim": "all40-resource-v1/ppo_sim/ppo_sim-seed0",
+    "ppo_wm_online": "all40-resource-v1/ppo_wm_online/ppo_wm_online-seed0",
+    "supermimic": "all40-resource-v1/supermimic/supermimic-seed0",
+    "pretrain": "all40-frozen-resource-v1/pretrain-seed0"
+  },
+  "limitations": [
+    "Frozen training throughput inferred from measured online policy phases",
+    "The actual campaign shares pretrain once; each standalone curve must charge it in full",
+    "Evaluation allowance and 25 percent time / 20 percent memory reserves are not confidence intervals",
+    "Mixed probe devices are disclosed for planning only; the actual comparison uses the target UUID",
+    "Finite training does not guarantee convergence; seed0 development data do not become independent validation"
+  ]
+}

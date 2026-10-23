@@ -284,6 +284,8 @@ bash "$RECIPE_ROOT/experiments/ablation/qualify_all40.sh"
 
 ## 全部40段冻结条件的资源资格
 
+已完成的冻结三条件可直接用于后续预算：`forecast`同时接受`--frozen-ppo-hard-run`、`--frozen-ppo-soft-run`、`--frozen-bptt-run`，并要求`--pretrain-run`指向它们共同使用的预训练进程。冻结组使用`actual_run_seconds`而非含继承成本的`train_wall_seconds`；完整预训练在campaign合计中只计一次。仅凭CSV/JSON即可[复算全40段规划及核对输入哈希](all40-planning.md)，不需要恢复bootstrap或启动GPU。当前正式18段预算不变。
+
 本次资格已完成：实际0.340834 GPU-hours，4次训练、6次物理评估，最终策略均40/40失败。[实测记录与费用](results.md#全部40段冻结wm资源资格完成)。以下是复现入口，不表示现在需要重复启动；正式18段三seed矩阵运行期间不追加此类GPU测量。
 
 使用上述已验收的固定3526437执行目录，新增一个独立输出campaign。新500轮pretrain由hard/soft PPO及BPTT三条件共享，各32轮策略，六次物理评估。预估2.4141 GPU-hours、硬上限2.5，峰值28701.6 MiB、磁盘5 GiB加24 GiB保留；预计值由40段在线方法实测phase推导，后续以本次直接测量替代。独立预训练成本不能从总账扣除。

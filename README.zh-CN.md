@@ -95,6 +95,8 @@ Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全
 
 ## 查看、复现和继续实验
 
+全40段预算工具已接入冻结三条件的直接实测，区分进程自身耗时与继承的预训练成本。保持相同预训练和评估额度，单seed规划从57.75调整到59.17 GPU-hours；这不是实际训练花费，成熟策略评估耗时尚待验证，也没有启动新的长训练。[规划依据与CPU复算命令](docs/ablation/all40-planning.md)。
+
 - [实验配置](experiments/ablation/configs)：Smoke / Pilot / 正式参数；seed0用于开发，正式seeds1/2/3，18段walk/run/sprint后扩至全部40段。
 - [运行手册](docs/ablation/runbook.md)：训练、独立复评、预算估算、固定库预测误差和梯度诊断。
 - [已归档bootstrap清单](results/ablation/checkpoint-storage/retired-bootstraps.csv)：三份已完成预训练文件经SHA256验证后归档，活动训练文件仍在原位。重跑旧冻结组的原生验收前，需按[恢复说明](docs/ablation/runbook.md#已完成checkpoint的归档与恢复)恢复完整bootstrap及replay。
