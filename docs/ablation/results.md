@@ -2,7 +2,16 @@
 
 本PR已完成原生Smoke、100迭代单seed Pilot、18段及40段全部六条件的4096规模资源资格、64状态探索性梯度诊断及开发seed0的六条件4000轮矩阵。尚无完整三seed或40段正式结果；正式seed1正在运行，seeds2/3串行等待。
 
-训练/Pilot固定提交555a051；初版数值探针e410334；配对full/state_only探针8d02575；长程运行器30739d2。原supermimic目录未修改。先前26项CPU回归测试及对应CI通过；新增独立Actor学习率后29项原生CPU测试通过，原生状态/FK/reset资格通过。
+训练/Pilot固定提交555a051；初版数值探针e410334；配对full/state_only探针8d02575；开发seed0长程运行器30739d2；正式训练和40段资源资格固定3526437；已训练collector探针固定6dd6fd5。原supermimic目录未修改。各批次来源和费用以链接中的收据为准；当前代码测试见PR的对应提交CI，历史原生状态/FK/reset资格与CPU测试不替代正式实验结果。
+
+| 研究问题 | 已有证据 | 尚缺的证据 |
+|---|---|---|
+| WM高吞吐能否抵消学习成本和偏差？ | 40段短程资格测得imagined rollout高吞吐，同时完整成本包含模型预热和更新 | 相同物理表现下的正式多seed端到端成本；短程策略均失败，不能据吞吐排名 |
+| 同一WM下BPTT比PPO高效多少？ | 冻结辅助组共享WM、replay和初始网络，内容身份已验收 | 原开发PPO参数未合格，冻结BPTT也未学会跟踪；需正式独立seed结果，仍须保留模型成熟度限制 |
+| Prediction Error能否代表Gradient Fidelity？ | 固定库同时测得多步MSE、方向一致率、相关性及真实微步改善；长时域和扰动尺度影响明显 | 独立训练seed复验；动作序列方向探针不能替代带critic的完整policy参数梯度 |
+| 更低Prediction Error是否带来更好Policy？ | 已训练collector的四阶段MSE与物理Return共同改善，但梯度微步收益不单调 | 排除policy、数据与训练时间共同变化的因果证据；四个checkpoint不是四个seed |
+
+下文的完整开发矩阵、短程资格和梯度探针分别解释。早期三方法快照与完整六条件数据来自同一批运行，不重复相加计算成本。现行全40段预算只见[直接实测规划](all40-planning.md)，未采用的历史估算保留在原始文件中。
 
 ## 统一短程物理评估
 
@@ -13,9 +22,9 @@
 
 [评估与完整成本CSV](../../results/ablation/pilot-v1/evaluations.csv)。冻结方法曲线各自计入全部预训练；实际campaign只执行一次共享pretrain。中间成本点为重建快照，最终点使用完整进程分配时间。单seed无标准差带。
 
-## 4000 迭代探索：PPO 基线尚未合格
+## 4000 迭代探索中的PPO参数诊断
 
-2026-10-24 00:28快照：PPO-Sim、在线PPO-WM和SuperMimic均已完成4000轮训练及各5次物理评估；冻结条件继续执行。硬件、18段动作和评分协议一致。
+下表提取已经完成的开发seed0六条件矩阵中的三主方法，用于说明原PPO参数的问题。硬件、18段动作和评分协议一致；完整六条件终点与费用见下一节。
 
 | 迭代 | 原PPO-Sim Return | 原在线PPO-WM Return | BPTT Return | BPTT失败数/18 |
 |---:|---:|---:|---:|---:|
@@ -27,9 +36,7 @@
 
 两个原PPO条件每个点均18/18提前失败，不能把这些数值解释为算法排名。PPO-Sim 99.75% 迭代触发 KL 提前停止，通常只有少数 actor minibatch 更新。下一 minibatch 的停止不撤销上一步过大的更新。
 
-![探索长跑的部分物理曲线，PPO尚未合格](../../results/ablation/formal-seed0-partial/return-compute.png)
-
-[完整成本与评估 CSV](../../results/ablation/formal-seed0-partial/evaluations.csv)。曲线只包含已完成物理评估点；尚未完成的checkpoint不补点。BPTT已有明显物理改善，但PPO基线未合格，不能直接给出优化器因果收益。单seed、旧协议每点一次复评，无标准差带。
+[完整成本与评估CSV](../../results/ablation/formal-seed0-complete/evaluations.csv)。BPTT已有明显物理改善，但原PPO基线未合格，不能直接给出优化器因果收益。单seed、旧协议每点一次复评，无标准差带。[早期三条件快照](../../results/ablation/formal-seed0-partial/evaluations.csv)仅作历史追溯，不是另一组独立实验。
 
 SuperMimic端点训练进程5123.91秒、五次物理评估进程合计1652.88秒，总计1.88244 GPU-hours；训练物理步数41,222,144，imagined步数458,752,000，评估物理步数973,548另列。最终checkpoint SHA256为`54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac`。中间点是训练快照加累计复评的回溯成本，实际评估在完整训练后执行；图轴据此标为accounted time，而非分数实际可用时间。
 
@@ -56,7 +63,7 @@ SuperMimic端点训练进程5123.91秒、五次物理评估进程合计1652.88�
 
 冻结BPTT使用500轮预训练的固定WM/replay，训练过程中没有新增模型拟合和物理采集。即使采用BPTT，它也未得到有效物理跟踪；固定模型及数据覆盖可能限制效果，但本组实验不能区分模型成熟度、分布偏移和优化设置的影响。原PPO参数未合格，不能把表中差距直接归因于BPTT收益或给出算法加速比。正式seeds1/2/3沿用已经预登记的设置和预算，独立复验，不以该开发结果调整正式批次。
 
-截至02:52，正式seed1在GPU0完成500轮WM预训练，PPO-Sim训练进程已启动；seeds2/3等待。正式训练源码固定3526437，与分析代码分离，旧seed0不计入正式均值/标准差。此状态不表示seed1已有最终策略成绩。
+正式seeds1/2/3使用固定3526437训练源码，与分析代码分离；旧seed0不计入正式均值/标准差。实际完成范围由各批次的训练、物理复评和进程账本共同确定，不能从队列配置或已写出的checkpoint推断整批实验完成。
 
 seed1的PPO-Sim前段与GPU2的40段资源测试在同一主机重叠运行。物理GPU身份一致性门禁不能证明CPU/磁盘完全隔离；现有证据也不能量化这部分干扰。保留原始费用和该运行范围，不从时间中扣除估算干扰，不事后删除seed；后续效率结论需报告这一限制，并检查各训练seed的成本一致性。
 
@@ -89,9 +96,9 @@ seed1的PPO-Sim前段与GPU2的40段资源测试在同一主机重叠运行。�
 python results/ablation/all40-resource-v1/reproduce.py /path/to/all40-resource-v1
 ```
 
-三种冻结条件仍需在目标规模直接测量；下一次有限资格共享一份新500轮pretrain，各32轮策略、初始和最终物理评估，预计2.4141 GPU-hours、硬上限2.5，显存预留28701.6 MiB、磁盘5 GiB加24 GiB保留。该估算逐项包含六次900秒物理评估额度，不把已有短失败评估视作成熟策略耗时。命令见[运行手册](runbook.md#全部40段冻结条件的资源资格)。
+三种冻结条件的目标规模资格也已完成，实际0.340834 GPU-hours；共享一份新的500轮pretrain，各32轮策略更新及初始/最终物理评估。其预训练成本与上表的独立预训练分开记录，详见[冻结组实测](#全部40段冻结wm资源资格完成)。复现命令见[运行手册](runbook.md#全部40段冻结条件的资源资格)，不表示需要重跑已完成批次。
 
-40段与18段最长参考轨迹均为13655步，但40个仿真槽的实际吞吐尚不能由18段直接推断。把未来每次完整评估暂按1500秒、六条件/五checkpoint/三复评计算，4000轮单seed的规划值约57.79 GPU-hours（其中评估预留37.5 GPU-hours，再统一加25%余量）。这是保守容量情景，尚未作为正式运行预算，也不是成功跟踪耗时测量；冻结条件和成熟40段策略的实测仍是后续执行门禁。
+40段与18段最长参考轨迹均为13655步，但成功跟踪时40个仿真槽的实际吞吐不能由18段直接推断。接入冻结组直接实测后，六条件各4000轮、五个checkpoint、每点三次复评的单seed规划为59.174996 GPU-hours；其中每次评估1500秒仍是假设额度。该规划未采用、未启动，不是已花费时间或性能预测。旧约57.79 GPU-hours还使用不同预训练来源，不能直接把差额归因于算法；[同口径对照和CPU复算](all40-planning.md)保留全部依据。成熟40段策略的物理评估耗时与新的资源预检仍是正式扩展的前提。
 
 ## 奖励项对梯度诊断的混杂
 
@@ -115,7 +122,7 @@ H32、ε=.03沿full奖励WM梯度微步的真实硬物理累计回报平均改�
 
 历史评估时长按30–300秒估算，但BPTT第1000轮的完整物理评估实际396.49秒。新PPO候选复评实际395–407秒，在线PPO-WM的500轮预热加32轮完整更新资格共0.161523 GPU-hours；已据此将18段正式seeds1/2/3重新估算为94.17 GPU-hours，分seed上限32、合计96，显存预留27.7 GiB。当前正式seed1已启动，seeds2/3串行等待，每批重查资源。详见[PPO资格与预算](ppo-qualification.md#两候选完成与正式参数冻结)。
 
-已训练collector的首组固定库梯度分析见下节，多seed结论仍待执行。复现见[runbook](runbook.md)，因果边界/剩余算法差异见[protocol](protocol.md)，固定环境见[environment](environment.md)。完整原始日志、接触baseline、数据manifest和报告交付于本任务outputs。活动checkpoint保留远端；完成的Smoke/Pilot共49文件已逐文件SHA256校验后归档到本机数据盘，释放远端6.099 GiB，256个其他文件哈希未变。交付目录提供当前位置清单、校验及恢复命令，日志中的历史路径不改写。没有合并本PR，也没有宣称最终研究完成。
+已训练collector的首组固定库梯度分析见下节，多seed结论仍待执行。复现见[runbook](runbook.md)，因果边界/剩余算法差异见[protocol](protocol.md)，固定环境见[environment](environment.md)。完整原始日志、接触baseline、数据manifest和报告交付于本任务outputs。活动checkpoint保留远端；旧Smoke/Pilot的49文件及三份已完成bootstrap分两批经SHA256校验归档，共52文件、17.360 GiB。两次归档不重叠，源文件释放记录与其余文件未变的验收分别保存。[bootstrap清单](../../results/ablation/checkpoint-storage/retired-bootstraps.csv)和[选择性恢复命令](runbook.md#已完成checkpoint的归档与恢复)明确哪些原生重验需要先恢复；日志历史路径不改写，CSV/JSON分析无需恢复大型权重。没有合并本PR，也没有宣称最终研究完成。
 
 ## 已训练策略的固定库：前向误差降低，长时域梯度仍需独立检验
 
@@ -183,7 +190,7 @@ python results/ablation/policy-bank-smoke-v1/reproduce.py /path/to/policy-bank-s
 
 独立版本3526437、A100 GPU2、seed0完成全部40段输入与六条件链路检查：pretrain 1轮，其余各3轮，共7个训练进程、12次完整物理评估、480条逐clip记录，总0.1975698225 GPU-hours。原生验收核对Actor更新、冻结WM不变、bootstrap成本、checkpoint身份与动作覆盖。所有策略均40/40失败；这仅证明全量动作链路可执行，不是40段正式训练，也不进入18段性能或吞吐比较。
 
-[CSV](../../results/ablation/all40-smoke-v1/evaluations.csv) · [Return/Compute图](../../results/ablation/all40-smoke-v1/return-compute.png) · [验收记录](../../results/ablation/all40-smoke-v1/validation.json)。正式全量扩展仍需4096环境的独立资源测量与至少3个训练seed。
+[CSV](../../results/ablation/all40-smoke-v1/evaluations.csv) · [Return/Compute图](../../results/ablation/all40-smoke-v1/return-compute.png) · [验收记录](../../results/ablation/all40-smoke-v1/validation.json)。4096环境的[主方法](#全部40段目标规模资源实测)与[冻结条件](#全部40段冻结wm资源资格完成)资源测量已完成；正式全量扩展仍需成熟策略评估耗时、资源预检与至少3个独立训练seed。
 
 ## 全部40段冻结WM资源资格完成
 
