@@ -1,0 +1,18 @@
+{
+  "status": "actual_archive_round_trip_and_reproduction_passed",
+  "raw_files": 37,
+  "byte_identical_outputs": [
+    "evaluations.csv",
+    "evaluation-repeats.csv",
+    "curve-statistics.csv",
+    "per-clip-evaluations.csv",
+    "process-allocations.csv",
+    "qualification.json",
+    "analysis.json"
+  ],
+  "missing_last_repeat_rejected_before_output": true,
+  "archive_sha256": "f20777e4ec5c538a70e85583a205a8207a041afd879c9a9fd582589dffed3ba6",
+  "plot_visual_inspection": "Return/compute, cost composition and repeat variability PNGs inspected; labels and legends readable; single training seed and repeat SD distinguished",
+  "execution_scope": "Local CPU data analysis only; no additional physics rollout or GPU workload",
+  "native_full_cohort_qualification": "pending complete six-method three-seed experiments"
+}

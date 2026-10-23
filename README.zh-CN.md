@@ -10,10 +10,13 @@
 
 **目前尚无多种子效率结论。** 开发seed0的六条件均完成4000次迭代和物理评估：在线SuperMimic的物理Return为0.8035、失败2/18；冻结BPTT为0.001907、失败18/18，原参数PPO也全部失败。调整Actor学习率后，PPO-Sim在独立1000轮调参批次达到0.2528、失败12/18。开发seed0不计入正式统计；正式seeds1/2/3已预登记，seed1已开始，seeds2/3串行等待。正式结论仍需至少3个训练seed和全部40段动作。
 
+正式seed1的PPO-Sim现已完成4000轮和15次物理复评：最终Return为**0.405212 ± 0.008721**，失败数三次为7/5/6段，完整训练加评估**3.481735 GPU-hours**。这里的SD来自同一checkpoint的三次复评；完整三训练seed对照尚未完成。[完整数据、复评差异及CPU复算命令](docs/ablation/confirmatory-seed1-ppo.md)。
+
 [研究问题与证据边界](docs/ablation/results.md)逐项说明WM吞吐、同模型优化器收益、预测误差和梯度可靠性已经测到了什么、还缺什么。短程资源资格、单seed观察和正式多seed结论分别报告；历史预算不作为当前运行额度。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
+| 正式seed1 PPO-Sim | 4000轮、15次物理复评、270条clip记录；最终Return均值0.405212、复评SD0.008721，完整方法3.481735 GPU-hours。仅一个训练seed | [完整曲线与原始数据](docs/ablation/confirmatory-seed1-ppo.md) |
 | 长程探索（seed0） | 六条件4000轮、30次物理评估完成，实际共6.6784 GPU-hours；在线BPTT Return=0.8035，冻结BPTT=0.001907。原PPO参数未合格，不能归因或排名 | [全部物理评估与成本](results/ablation/formal-seed0-complete/evaluations.csv) |
 | PPO参数选择（seed0） | Actor lr=2e-5、1000轮：三次物理复评均值0.252798、失败12/18；尚非完整长程或多seed结论 | [调参范围与预登记](docs/ablation/ppo-qualification.md) |
 | 全部40段链路验收 | 7个训练进程、12次物理评估、480条clip记录，0.197570 GPU-hours；各策略仅训练3轮且全部40段失败，不是全量训练结果 | [40段Smoke数据](results/ablation/all40-smoke-v1/evaluations.csv) |
@@ -21,6 +24,10 @@
 | Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
 | 全40段目标规模资源测量 | 4096环境/H32，三方法各32轮策略更新完成；峰值显存8.51 / 12.42 / 23.36 GiB，含独立预训练总0.533098 GPU-hours。均40/40失败，只用于资源资格 | [实测成本与吞吐](results/ablation/all40-resource-v1/) |
 | 全40段冻结WM资源测量 | hard/soft PPO与BPTT各32轮；含共享预训练总0.340834 GPU-hours。初始Actor/Critic/WM逐张量一致，最终WM及归一化状态不变；均40/40失败 | [物理评估、费用与冻结验收](results/ablation/all40-frozen-resource-v1/) |
+
+![正式seed1 PPO-Sim完整曲线，仅一个训练seed](results/ablation/confirmatory-seed1-ppo-v1/return-compute.png)
+
+该曲线只包含PPO-Sim，不与开发seed0或其他GPU数据混合排名；最终复评波动另见[三次复评图](results/ablation/confirmatory-seed1-ppo-v1/evaluation-repeatability.png)。
 
 ![六条件长程探索，开发seed0且原PPO参数未合格](results/ablation/formal-seed0-complete/return-compute.png)
 
@@ -77,7 +84,7 @@ python -m experiments.ablation.validate_run logs/ablation/my-smoke
 | `ppo_wm_frozen` | 固定WM、软终止PPO | 与下行进行同WM优化器配对 |
 | `bptt_wm_frozen` | 同一WM/replay/初始mean/critic，BPTT | 相同模型上模型梯度的收益 |
 
-PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动力学反传。硬/软终止、随机/确定性动作、起点分布等剩余差异在[协议](docs/ablation/protocol.md)中逐项披露。相同学习率不等于相同调参质量。真实批次重放已发现 Actor 更新过大；独立学习率控制通过 KL 检查，尚待长程学习验证，见 [PPO 资格记录](docs/ablation/ppo-qualification.md)。
+PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动力学反传。硬/软终止、随机/确定性动作、起点分布等剩余差异在[协议](docs/ablation/protocol.md)中逐项披露。相同学习率不等于相同调参质量。真实批次重放已发现 Actor 更新过大；独立学习率控制通过 KL 检查，正式seed1已完成PPO-Sim长程记录，完整多seed验证仍待完成，见 [PPO 资格记录](docs/ablation/ppo-qualification.md)。
 
 新运行器支持每个 checkpoint 的多次独立物理复评，单独记录其波动和全部费用；复评次数不能算作训练 seed 数。[重复评估与有界 PPO 调参](docs/ablation/ppo-qualification.md#有界长程验证与重复评估)。
 
