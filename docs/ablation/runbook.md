@@ -195,7 +195,7 @@ python -m experiments.ablation.run_suite \
   --forecast forecast-confirmatory-seed1.json --output logs/ablation/confirmatory-locomotion-seed1-v2
 ```
 
-上面的UUID是本次已检查的GPU0；其他机器必须重新测量、估算与预检，不直接改名冒用。seed2/3各用匹配seed的新forecast和新输出目录，同一不可变执行版本；三批上限合计96 GPU-hours。先完成旧矩阵和all40 Smoke，再执行第一批，避免本项目主动安排的测量重叠。预登记端点、删失与开发seed排除规则见[PPO资格](ppo-qualification.md#两候选完成与正式参数冻结)。
+上面的UUID是本次已检查的GPU0；其他机器必须重新测量、估算与预检，不直接改名冒用。seed2/3各用匹配seed的新forecast和新输出目录，同一不可变执行版本；三批上限合计96 GPU-hours。第一批在旧矩阵和all40 Smoke验收后开始。实际seed1的PPO-Sim前段与GPU2的40段资源资格有同主机重叠，GPU0本身未共享给其他训练；这不等于整个主机隔离。保留完整实测时间，不减去推测的干扰成本、不事后剔除较慢seed，最终时间收益必须披露这一限制。预登记端点、删失与开发seed排除规则见[PPO资格](ppo-qualification.md#两候选完成与正式参数冻结)。
 
 已训练collector实验使用固定最终checkpoint4000采集bank，四个WM阶段均复用相同动作序列，不能随WM更换collector。下面复现2026-10-24的六探针配置；先检查GPU/磁盘和checkpoint身份，在新输出目录执行。该轮实测0.188922 GPU-hours，资源预检、0.3 GPU-hours硬上限和完整进程费用见交付包的`run-trained-fidelity.py`与plan；以下命令只说明单探针参数，不自行提供预算监督。
 
