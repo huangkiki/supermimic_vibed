@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "method": "bptt_wm_frozen",
+      "seed": 0,
+      "iterations": 32,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "ppo_wm_frozen",
+      "seed": 0,
+      "iterations": 32,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "ppo_wm_frozen_hard",
+      "seed": 0,
+      "iterations": 32,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    },
+    {
+      "method": "pretrain",
+      "seed": 0,
+      "iterations": 500,
+      "actor_weights_changed": false,
+      "training_and_full_physical_evaluation_valid": true
+    }
+  ],
+  "actual_gpu_hours": 0.34083401138832814,
+  "evaluation_processes": 6,
+  "evaluation_repeats_per_checkpoint": 1,
+  "scope": "execution and recording qualification, not policy convergence or scientific superiority"
+}

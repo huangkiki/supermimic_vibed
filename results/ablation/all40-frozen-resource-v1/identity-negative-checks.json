@@ -1,0 +1,1 @@
+{"equal_state": "accepted", "mismatches_rejected": ["weight", "normalization", "dtype", "missing_key"], "cpu_only": true, "script_sha256": "93be414c72686102a1c1f831e11b16c1548ee266eb08e4bbc8aa432366e3ed65"}

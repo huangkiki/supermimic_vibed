@@ -1,6 +1,6 @@
 # 已验证的阶段结果（更新至2026-10-24）
 
-本PR已完成原生Smoke、100迭代单seed Pilot、18段及40段三主方法的4096规模资源资格、64状态探索性梯度诊断及开发seed0的六条件4000轮矩阵。尚无完整三seed或40段正式结果；正式seed1已启动，seeds2/3串行等待，40段冻结条件资源资格正在执行。
+本PR已完成原生Smoke、100迭代单seed Pilot、18段及40段全部六条件的4096规模资源资格、64状态探索性梯度诊断及开发seed0的六条件4000轮矩阵。尚无完整三seed或40段正式结果；正式seed1正在运行，seeds2/3串行等待。
 
 训练/Pilot固定提交555a051；初版数值探针e410334；配对full/state_only探针8d02575；长程运行器30739d2。原supermimic目录未修改。先前26项CPU回归测试及对应CI通过；新增独立Actor学习率后29项原生CPU测试通过，原生状态/FK/reset资格通过。
 
@@ -184,3 +184,21 @@ python results/ablation/policy-bank-smoke-v1/reproduce.py /path/to/policy-bank-s
 独立版本3526437、A100 GPU2、seed0完成全部40段输入与六条件链路检查：pretrain 1轮，其余各3轮，共7个训练进程、12次完整物理评估、480条逐clip记录，总0.1975698225 GPU-hours。原生验收核对Actor更新、冻结WM不变、bootstrap成本、checkpoint身份与动作覆盖。所有策略均40/40失败；这仅证明全量动作链路可执行，不是40段正式训练，也不进入18段性能或吞吐比较。
 
 [CSV](../../results/ablation/all40-smoke-v1/evaluations.csv) · [Return/Compute图](../../results/ablation/all40-smoke-v1/return-compute.png) · [验收记录](../../results/ablation/all40-smoke-v1/validation.json)。正式全量扩展仍需4096环境的独立资源测量与至少3个训练seed。
+
+## 全部40段冻结WM资源资格完成
+
+2026-10-24 03:26核验：固定3526437源码、同一A100 GPU2、4096环境、H32、k8、seed0，新pretrain500轮，hard/soft PPO和BPTT各32轮策略更新。4次训练、6次物理评估共240条clip记录全部通过原生验收；实际0.340834 GPU-hours，低于预估2.4141和硬上限2.5。该短批次不是正式效果实验。
+
+| 冻结条件 | 策略训练进程秒数 | 两次物理评估秒数 | 含完整预训练的独立GPU-hours | 峰值显存MiB | 最终物理Return |
+|---|---:|---:|---:|---:|---:|
+| PPO hard | 153.899 | 68.351 | 0.142340 | 10030 | 0.00164279 |
+| PPO soft | 152.633 | 65.519 | 0.141202 | 10030 | 0.00164184 |
+| BPTT soft | 429.462 | 66.965 | 0.218500 | 23030 | 0.00047451 |
+
+各策略均40/40失败。共享预训练花290.173秒（0.080604 GPU-hours），每条独立方法曲线全额计入；三个端点成本之和减去两份重复预训练，等于实际campaign总账。训练进程时间包含首次编译和初始化，不能用暖态吞吐替换完整费用。最后30轮hard/soft PPO每轮均20次Actor更新，BPTT每轮1次；完整暖态迭代均值分别0.916/0.903/0.835秒。不同更新器的一次迭代不代表相同优化工作量。
+
+额外CPU验收直接读取实际checkpoint：三条件初始Actor的26个、Critic的9个、WM的20个state_dict张量逐项与同一bootstrap完全相等；最终WM及归一化状态也完全相等。bootstrap完整文件SHA256一致，初始log-std相等，物理采集与WM训练账本无新增。共同输入replay文件不意味着三条件采到了相同rollout。CPU检查未初始化CUDA；改动权重、归一化统计、dtype或缺键均会拒绝。模型内容的冻结验收与方法控制效果分开报告。
+
+![冻结WM短批次物理评分与完整费用](../../results/ablation/all40-frozen-resource-v1/return-compute.png)
+
+[评估CSV](../../results/ablation/all40-frozen-resource-v1/evaluations.csv) · [进程费用CSV](../../results/ablation/all40-frozen-resource-v1/process-allocations.csv) · [原生资格](../../results/ablation/all40-frozen-resource-v1/validation.json) · [实际张量身份收据](../../results/ablation/all40-frozen-resource-v1/frozen-identity.json)。此批与正式seed1在同主机重叠，保留时间干扰限制；没有独立训练seed标准差。当前资格结束后，正式18段三seed矩阵运行期间不再主动追加GPU资源测试。40段正式训练仍待成熟策略评估耗时和剩余资源核验。

@@ -284,6 +284,8 @@ bash "$RECIPE_ROOT/experiments/ablation/qualify_all40.sh"
 
 ## 全部40段冻结条件的资源资格
 
+本次资格已完成：实际0.340834 GPU-hours，4次训练、6次物理评估，最终策略均40/40失败。[实测记录与费用](results.md#全部40段冻结wm资源资格完成)。以下是复现入口，不表示现在需要重复启动；正式18段三seed矩阵运行期间不追加此类GPU测量。
+
 使用上述已验收的固定3526437执行目录，新增一个独立输出campaign。新500轮pretrain由hard/soft PPO及BPTT三条件共享，各32轮策略，六次物理评估。预估2.4141 GPU-hours、硬上限2.5，峰值28701.6 MiB、磁盘5 GiB加24 GiB保留；预计值由40段在线方法实测phase推导，后续以本次直接测量替代。独立预训练成本不能从总账扣除。
 
 先核验前一资源recipe的`exit.txt=0`、三份原生`validation.json`、执行源码未变及当前GPU/磁盘可用；运行器还会在每个子进程前重新检查资源。`FROZEN_FORECAST`指向新增配置的绝对路径，保持在独立recipe目录，不能把新分析源码覆盖进执行目录：
@@ -322,3 +324,18 @@ MUJOCO_GL=egl python tools/render.py \
 
 
 按条件选择运行、独立 PPO 学习率、三次物理复评和包含全部评估成本的有界长程命令见 [PPO资格](ppo-qualification.md#有界长程验证与重复评估)。非默认正式范围必须有匹配的 `forecast.scope`，缺失评估重复会使验收失败。
+
+冻结资格完成并通过`validate_run`后，可在保存checkpoint的原生环境中追加CPU身份验收：
+
+```bash
+python results/ablation/all40-frozen-resource-v1/verify_initial_conditions.py \
+  /path/to/all40-frozen-resource-v1 \
+  --output /path/to/all40-frozen-resource-v1/frozen-identity.json
+python -m experiments.ablation.analyze \
+  --evaluations /path/to/all40-frozen-resource-v1/*/ckpt_*/evaluation.json \
+  --campaign /path/to/all40-frozen-resource-v1/campaign.json \
+  --output /path/to/all40-frozen-resource-v1/analysis \
+  --title 'All40 frozen resource qualification only; 32 policy iterations'
+```
+
+身份脚本使用CPU加载和流式SHA256，检查本次固定范围（pretrain500、三条件各32轮）；它不重训、不启动物理仿真，也不将同一bootstrap误称为相同采样轨迹。必须使用实际checkpoint，日志或文件名不能替代张量验收。

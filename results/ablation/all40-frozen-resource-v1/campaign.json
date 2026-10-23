@@ -1,0 +1,595 @@
+{
+  "args": {
+    "phase": "formal",
+    "output": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1",
+    "gpu": 2,
+    "max_gpu_hours": 2.5,
+    "seeds": [
+      0
+    ],
+    "subset": "all40",
+    "forecast": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-forecast.json",
+    "methods": [
+      "pretrain",
+      "ppo_wm_frozen_hard",
+      "ppo_wm_frozen",
+      "bptt_wm_frozen"
+    ],
+    "iterations": 32,
+    "checkpoint_every": 32,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 1
+  },
+  "resources": {
+    "name": "NVIDIA A100-PCIE-40GB",
+    "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+    "driver": "570.133.20",
+    "memory_total_mib": "40960",
+    "memory_free_mib": "40443",
+    "utilization_percent": "0"
+  },
+  "commands": [
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.train",
+        "--config",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/pretrain-seed0.json",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/pretrain-seed0"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/pretrain-seed0-train.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04509737901389599,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 7916.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 290.1728011269588
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.train",
+        "--config",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0.json",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0-train.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.050405671005137265,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 10030.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 153.89890381298028
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.evaluate",
+        "--checkpoint",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0/ckpt_000000.pt",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0/ckpt_000000",
+        "--repeat-index",
+        "0",
+        "--repeat-count",
+        "1"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0-ckpt_000000-eval.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04652308998629451,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "32",
+          "compute_pids": []
+        },
+        {
+          "elapsed_seconds": 0.5890810140408576,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "56",
+          "compute_pids": []
+        },
+        {
+          "elapsed_seconds": 1.1324846090283245,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 2372.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 47.14688387897331
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.evaluate",
+        "--checkpoint",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0/ckpt_000032.pt",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0/ckpt_000032",
+        "--repeat-index",
+        "0",
+        "--repeat-count",
+        "1"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen_hard-seed0-ckpt_000032-eval.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04787642206065357,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "9",
+          "compute_pids": []
+        },
+        {
+          "elapsed_seconds": 0.594571728957817,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 2444.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 21.20445711200591
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.train",
+        "--config",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0.json",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0-train.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04764064005576074,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 10030.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 152.63332548399922
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.evaluate",
+        "--checkpoint",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0/ckpt_000000.pt",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0/ckpt_000000",
+        "--repeat-index",
+        "0",
+        "--repeat-count",
+        "1"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0-ckpt_000000-eval.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "1",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04818329703994095,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "1",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 2372.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 45.67602402204648
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.evaluate",
+        "--checkpoint",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0/ckpt_000032.pt",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0/ckpt_000032",
+        "--repeat-index",
+        "0",
+        "--repeat-count",
+        "1"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/ppo_wm_frozen-seed0-ckpt_000032-eval.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04734565503895283,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 2444.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 19.84343589004129
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.train",
+        "--config",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0.json",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0-train.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04556559806223959,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 23030.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 429.46156616602093
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.evaluate",
+        "--checkpoint",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0/ckpt_000000.pt",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0/ckpt_000000",
+        "--repeat-index",
+        "0",
+        "--repeat-count",
+        "1"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0-ckpt_000000-eval.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "0",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04358703794423491,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "17",
+          "compute_pids": []
+        },
+        {
+          "elapsed_seconds": 0.5851693699369207,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "100",
+          "compute_pids": []
+        },
+        {
+          "elapsed_seconds": 1.1277355299098417,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 2372.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 47.48891916300636
+    },
+    {
+      "command": [
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+        "-m",
+        "experiments.ablation.evaluate",
+        "--checkpoint",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0/ckpt_000032.pt",
+        "--output",
+        "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0/ckpt_000032",
+        "--repeat-index",
+        "0",
+        "--repeat-count",
+        "1"
+      ],
+      "log": "/home/huangyue/work/supermimic-ablation-20261023/runtime/all40-frozen-resource-v1/bptt_wm_frozen-seed0-ckpt_000032-eval.log",
+      "resources": {
+        "name": "NVIDIA A100-PCIE-40GB",
+        "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+        "driver": "570.133.20",
+        "memory_total_mib": "40960",
+        "memory_free_mib": "40443",
+        "utilization_percent": "1",
+        "compute_pids": []
+      },
+      "preflight_observations": [
+        {
+          "elapsed_seconds": 0.04483542707748711,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "1",
+          "compute_pids": []
+        }
+      ],
+      "peak_device_memory_used_mib": 2444.0,
+      "memory_sampling_seconds": 1.0,
+      "returncode": 0,
+      "seconds": 19.47612434194889
+    }
+  ],
+  "actual_gpu_hours": 0.34083401138832814,
+  "forecast": {
+    "status": "bounded_resource_planning_not_convergence",
+    "execution_commit": "3526437a50fdc714cc77bc4527ca70124770b08a",
+    "gpu": "NVIDIA A100-PCIE-40GB",
+    "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+    "subset": "all40",
+    "seeds": [
+      0
+    ],
+    "scope": {
+      "methods": [
+        "pretrain",
+        "ppo_wm_frozen_hard",
+        "ppo_wm_frozen",
+        "bptt_wm_frozen"
+      ],
+      "iterations": 32,
+      "checkpoint_every": 32,
+      "ppo_actor_lr": 2e-05,
+      "evaluation_repeats": 1
+    },
+    "projected_campaign_gpu_hours": 2.4140541089593173,
+    "hard_gpu_hours": 2.5,
+    "projected_peak_memory_mib": 28701.6,
+    "projected_disk_gib": 5,
+    "minimum_disk_reserve_gib": 24,
+    "pretrain_seconds": 401.45678702695295,
+    "frozen_training_seconds": {
+      "ppo_wm_frozen_hard": 287.4129612944089,
+      "ppo_wm_frozen": 287.4129612944089,
+      "bptt_wm_frozen": 576.1931241870625
+    },
+    "evaluation_processes": 6,
+    "assumed_evaluation_seconds": 900,
+    "projected_training_seconds": 1552.4758338028332,
+    "projected_evaluation_seconds": 5400,
+    "measurement_source": "results/ablation/all40-resource-v1/qualification.json",
+    "purpose": "Qualify 4096-env frozen PPO hard/soft and frozen BPTT on one shared all40 WM/replay; 32 policy iterations only",
+    "limitations": [
+      "Frozen cost inferred from measured online policy phases; this probe will measure it directly",
+      "900 seconds per full-clip evaluation is a planning allowance; prior 32-iteration policies failed all clips quickly",
+      "25 percent time and 20 percent memory reserves are engineering margins, not confidence intervals",
+      "Separate independent bootstrap is fully charged; previously trained resource WM is not loaded",
+      "No extension to locomotion confirmatory budgets; no three-seed/all40 performance inference"
+    ]
+  },
+  "scope": {
+    "methods": [
+      "pretrain",
+      "ppo_wm_frozen_hard",
+      "ppo_wm_frozen",
+      "bptt_wm_frozen"
+    ],
+    "iterations": 32,
+    "checkpoint_every": 32,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 1
+  },
+  "source_hashes": {
+    "supermimic/buffer.py": "cb59cea95d37fec4085168f9801808f03d946cf16d44a4c79beb12d7d97aa04c",
+    "supermimic/env.py": "51c200510d0cca25e4ae83c15623bd1921b6d0a6db6592bb26a81125cde75eaa",
+    "supermimic/evaluate.py": "5b8923a8c46dcbf2b19e048729ab0039b9ffe1a45777f83eb355df14b245bb36",
+    "supermimic/kinematics.py": "0a3d416b5456cc768c083198b11b59116fd64c9148ce5c7b738c80a83c986eb5",
+    "supermimic/mdp.py": "f19186f70e259ee37b2d8dd6b9beb1ae0c2fd875b67902bb5544779b9792d074",
+    "supermimic/motion.py": "610e2da4812828fffca265544e0c1dd6ea467984220c26126384a88658f2dab3",
+    "supermimic/networks.py": "72bdb2bf11f927663dec82ef00f75123dfe810cba9879fee455faac4042b1efe",
+    "supermimic/robot.py": "db3c9adfe2ce9975bbf6b114b4c78466bfe4275ee1a4d569f5c947d505782924",
+    "supermimic/rotations.py": "f0d75dd6d8398220aff7f2910e7ef4a559bf33368fa3324a6d405ee2304be8de",
+    "supermimic/train.py": "6f364bb904fb173a6d76f6da2af4bbe0eeb7dd51dd8370d35c7f067b117218c6",
+    "experiments/ablation/__init__.py": "d8e9fcf263335f732c984282ad51de5ad2fe66a85458d8835c9a7c19d826ec24",
+    "experiments/ablation/analyze.py": "f9b5d9816d6a9b4719d3e111ff9b38449bef22d04d564eb7611b70f97c2aa2d3",
+    "experiments/ablation/common.py": "c7bf5cc33b162e3c712a50b77ff4103e9f13acf50a0adb91efe4ef81a45e7156",
+    "experiments/ablation/compare_fidelity.py": "8fe7782f4b8aa5751fefab5fd261ace0e4e2eca5dd0277cdb9b8c4a900770c40",
+    "experiments/ablation/configs/confirmatory-locomotion-forecast-123.json": "e26950bd781343f2b8feb38cd2bbf69037613f000281f99b9130f1bb9fbef005",
+    "experiments/ablation/configs/confirmatory-locomotion-forecast-seed1.json": "8b6205caf5fc7c8ee78d4409f8170c437cbf0d03e9383a26341ce7fa5209b2ff",
+    "experiments/ablation/configs/confirmatory-locomotion-plan.json": "996f8eae5683abd1a137647a3fc21b1d31501ce8b7e984231ed875af5981be01",
+    "experiments/ablation/configs/formal-bptt_wm_frozen.json": "a33b00e50b21833d044b8a4ae45f5651c7cfc5a8da556f4b3076b043d40af6f7",
+    "experiments/ablation/configs/formal-ppo_sim.json": "f89f1bb411607775a82cd970e5c4893c03c9fb4267b4e3b4d9b648c7fc4a218b",
+    "experiments/ablation/configs/formal-ppo_wm_frozen.json": "974ffb37c883d79c773500b38498769f92fba3b284425b8a77707b4745288287",
+    "experiments/ablation/configs/formal-ppo_wm_frozen_hard.json": "751d8eedf85b014d1010df345f33dedad7b93a5acaed64a97aed0602a6c3b613",
+    "experiments/ablation/configs/formal-ppo_wm_online.json": "65d848f51f6dac8e77d49331c7db16a99b10fdb79aff671562d39f12fb251a66",
+    "experiments/ablation/configs/formal-pretrain.json": "4f8b0d8d8d27b3592abfb92c3cd530d6330f419379409f1b2431018571a54ae5",
+    "experiments/ablation/configs/formal-supermimic.json": "68965811c24529f75526d6f8d603ec088df9da1ec1e2728f60ceef7d321892b1",
+    "experiments/ablation/configs/matrix.json": "bd5e708ca3cdb0d6f09ac8ebb7c59fa36f81c2fb3a4d96219da40f1237073ab3",
+    "experiments/ablation/configs/pilot-bptt_wm_frozen.json": "723c415430f6cf8f4833aa0438ff39dfb4322b0a383b742d57e15ac436028997",
+    "experiments/ablation/configs/pilot-ppo_sim.json": "cb1a35dc6758425633f622e1d9e0489a0e7982cf615a2abeee93698066d1f0a7",
+    "experiments/ablation/configs/pilot-ppo_wm_frozen.json": "02b142f5f37bcdfdf442d2b32040367fa422097c2a51059f4d109e744108976d",
+    "experiments/ablation/configs/pilot-ppo_wm_frozen_hard.json": "1769903c149be5eda894623b2864dbc684b9fcaf1c1d035297ef592af79b27f8",
+    "experiments/ablation/configs/pilot-ppo_wm_online.json": "31db76811244468a6a36f9cabdbd0cebb2daad1e1cbd8073aae21b2cc4c1ba5d",
+    "experiments/ablation/configs/pilot-pretrain.json": "c4e7d52298a7803cb1bdadaea108860b74d1df22ec991b2b05c50f2284e83395",
+    "experiments/ablation/configs/pilot-supermimic.json": "21034ec81d1928d1c6e9b91b7da9b1f2d7895136f5c57f7e8ddb235ed1a5e881",
+    "experiments/ablation/configs/qualification-ppo_sim.json": "a1358cc028ef106f2a2d95c56326697d9905613d5c67fb56961522ae0a570d80",
+    "experiments/ablation/configs/smoke-bptt_wm_frozen.json": "7dcc5aacd3d988b414fb1869c3a40376baf6eb264bda4166c08a2c1ebd1b08fa",
+    "experiments/ablation/configs/smoke-ppo_sim.json": "a038607efa708779f628883441e4bfae81448c5e411e87fdc8d78244f7620966",
+    "experiments/ablation/configs/smoke-ppo_wm_frozen.json": "6a6d91929bf06cddd50194d8f6ea7f0063194ece8b0088736c692704314b5f8c",
+    "experiments/ablation/configs/smoke-ppo_wm_frozen_hard.json": "635e339ee4762b2ec092df9623f3c1d048a4bef29edfb5fc7499fbcf9a53af7b",
+    "experiments/ablation/configs/smoke-ppo_wm_online.json": "73361edf527f6b332e7a0072b332b6610687dc2a18df97a45b72ed23189edb4a",
+    "experiments/ablation/configs/smoke-pretrain.json": "ffb6a6a93deb81c56024c13c5ae01a1163f360714861c9644a05139ae975db25",
+    "experiments/ablation/configs/smoke-supermimic.json": "2ccff286ee72d2a4a860e2f5bc61b9e3ab71ca835a57cd94186df1466b23c531",
+    "experiments/ablation/configs/tuned-wm-probe-forecast.json": "3088518a92dbb06c4373903c079b3a662b1506b43b8a1c77ef48358c968a676c",
+    "experiments/ablation/configs/tuning-forecast-lr2e-5.json": "f448e589713de8b6667c80ab1724a0323a6b65a3efc70773c7f5c2fb6a8937e7",
+    "experiments/ablation/configs/tuning-forecast-lr5e-6.json": "c7143ce82567229e3e3ecb1efba729082f90a369ee05a7a7999e223123492b4c",
+    "experiments/ablation/diagnose_ppo.py": "9a082c1d51e6ef6ce3c78e60563aac5517f6dee5d877edd315462fa4eeaf733a",
+    "experiments/ablation/evaluate.py": "e30f02fdc72748a5b07a2ae9fdd0a71b4254194d89a6eb6ca81a5e2ebaeed610",
+    "experiments/ablation/fidelity.py": "e9451409e0acb790e82705dce0c0044543aa8d86e6f32011800d8fa0be13e2e1",
+    "experiments/ablation/fidelity_math.py": "c5c29463b8b290dad932c9a19d9b39a6c02c4daa21f7f15639b035ef62f0ce99",
+    "experiments/ablation/forecast.py": "468662fabaf8c871b165bc1c063df3703e29781dfa9ccd0eed084299e163c234",
+    "experiments/ablation/plot_fidelity.py": "15e197f7ea99b003d6cbe92dc59e63c823edc117b911f28c3d5238c2494911c8",
+    "experiments/ablation/ppo.py": "189642100491df32cf91016272dc1ba7fc137c0e931922bf201fe488711a6525",
+    "experiments/ablation/recover_evaluations.py": "d3fa5535b78026aa569ea5c3478c602d1dcc2cf0fdc32844d1cc42e7b324e807",
+    "experiments/ablation/run_suite.py": "64d513c323cf6849c2f2e0b7efafb4d4540f42a835cb7cea7d6bd24ca64a6bf4",
+    "experiments/ablation/train.py": "5d02788ff555199d9687ab6d9b51441c12df06620ff0628f5de95c1652571216",
+    "experiments/ablation/validate_fidelity.py": "ce6213a855ad2be24727ec2d5222e0cc823fff9512a3926d9fdc23897dd29f03",
+    "experiments/ablation/validate_run.py": "d0447db3aa483d059bdc240cfe856a06a77a9a0559abfed2e8b6159053d21b0b"
+  },
+  "status": "completed",
+  "budget_scope": "subprocess allocation time including setup, compilation and evaluation"
+}
