@@ -35,6 +35,8 @@
 
 系统比较报告完整实现的效率。BPTT 的软终止、PPO 的随机动作、Dyna replay starts 与 PPO-Sim 连续 rollout 等差异仍存在，不能把系统差值全部归因于某一个因素。
 
+PPO-WM的有限想象窗口用discount×survival作为样本权重；PPO-Sim按常规连续rollout等权PPO更新。两者均使用相同gamma/lambda，但其状态取样和权重不同。这是当前系统比较的一个剩余混杂；若要把差异进一步归因于WM本身，需要另外统一起点分布与权重的物理短窗口对照。
+
 ### 相同 WM 的优化器机制比较
 
 另行运行的辅助条件 `bptt_wm_frozen` 与 `ppo_wm_frozen`（soft） 加载**相同 seed 的同一 bootstrap.pt**，共享 WM、其归一化、replay、初始 deterministic mean、critic、H、goal/history、reward 和软生存权重。两者各自更新 policy/critic；policy rollout 没有进入 WM 的参数更新。

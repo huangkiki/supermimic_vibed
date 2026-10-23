@@ -2,6 +2,8 @@
 
 在原仓库规定的 Isaac Lab `46d6cc3d7b115906fad12efd372fbf69f4e3d3ed` 原生环境中，从仓库根目录运行。先按原 README 准备 G1 MJCF/USD 和完整40段数据。实验代码不要求改动原训练入口。GPU、软件构建、资产和 motion SHA 会保存在每次运行的 manifest。
 
+本次A100隔离安装、CUDA构建与依赖约束见 [environment.md](environment.md)。
+
 ## 算法测试
 
 ```bash
