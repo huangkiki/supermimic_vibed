@@ -26,16 +26,38 @@ def compare(full_path, state_path):
     for key in ("collector_sha256", "checkpoint_sha256", "gpu", "precision", "reset_protocol"):
         if receipts[0][key] != receipts[1][key]:
             raise ValueError(f"Probe identity mismatch: {key}")
-    for key in ("bank", "gradient_horizon", "samples", "directions", "epsilons", "contact_level", "probe_seed"):
+    bank_hashes = [r.get("bank_sha256") for r in receipts]
+    if any(digest is not None for digest in bank_hashes):
+        if bank_hashes[0] != bank_hashes[1] or not isinstance(bank_hashes[0], str) or len(bank_hashes[0]) != 64:
+            raise ValueError("Paired bank content hash mismatch or missing identity")
+        bank_identity = "sha256"
+    else:
+        paths = [r["args"].get("bank") for r in receipts]
+        if not paths[0] or paths[0] != paths[1]:
+            raise ValueError("Unidentified banks cannot form a paired experiment")
+        # Retain old exploratory receipts, explicitly weaker than content identity.
+        bank_identity = "legacy_path_only"
+    for key, default in (("prefix_controller", "reference_pd"), ("prefix_steps", 16)):
+        if receipts[0]["args"].get(key, default) != receipts[1]["args"].get(key, default):
+            raise ValueError(f"Paired bank prefix mismatch: {key}")
+    if receipts[0].get("manifest", {}).get("gpu_uuid") != receipts[1].get("manifest", {}).get("gpu_uuid"):
+        raise ValueError("Paired physical GPU UUID mismatch")
+    for key in ("gradient_horizon", "samples", "directions", "epsilons", "contact_level", "probe_seed"):
         if receipts[0]["args"][key] != receipts[1]["args"][key]:
             raise ValueError(f"Paired probe setting mismatch: {key}")
     if [r["args"]["reward_objective"] for r in receipts] != ["full", "state_only"]:
         raise ValueError("Expected full and state_only probe folders in that order")
-    tables = [list(csv.DictReader((p / "gradient.csv").open())) for p in roots]
+    tables = []
+    for p in roots:
+        with (p / "gradient.csv").open() as stream:
+            tables.append(list(csv.DictReader(stream)))
     def key(row):
         return (row["checkpoint_sha256"], row["objective"], float(row["epsilon"]),
                 int(row["sample"]), int(row["direction"]))
     keyed = [{key(r): r for r in rows if r["direction_type"] == "random_unit_l2"} for rows in tables]
+    if any(len(table) != sum(r["direction_type"] == "random_unit_l2" for r in rows)
+           for table, rows in zip(keyed, tables)):
+        raise ValueError("Duplicate paired direction records")
     if keyed[0].keys() != keyed[1].keys():
         raise ValueError("Paired direction grid differs")
     if any(keyed[0][k]["contact_group"] != keyed[1][k]["contact_group"] for k in keyed[0]):
@@ -52,6 +74,8 @@ def compare(full_path, state_path):
                 continue
             paired = [k for k in keys if all(d[k]["resolved"] == "True" for d in keyed)]
             row = dict(checkpoint_sha256=sha, iteration=iterations[sha], gradient_horizon=args["gradient_horizon"],
+                       bank_identity=bank_identity, bank_sha256=bank_hashes[0],
+                       prefix_controller=args.get("prefix_controller", "reference_pd"),
                        physical_objective=objective, epsilon=eps, contact_group=group,
                        contact_level=args["contact_level"], total_directions=len(keys),
                        unique_states=len({k[3] for k in keys}), paired_resolved=len(paired))
@@ -98,8 +122,8 @@ def main():
             ax.set_xscale("log")
             ax.grid(alpha=.2)
     axes[0, 0].legend()
-    fig.suptitle(f"Full reward can mask dynamics-gradient error — checkpoint {final}\n"
-                 "Same resolved intersection per scale; 64 states, 4 directions/state; exploratory, one training seed")
+    fig.suptitle(f"Full and state-only reward gradients — checkpoint {final}\n"
+                 "Same resolved intersection per scale; sample counts and bank provenance in CSV")
     fig.savefig(output / "paired-objectives.png", dpi=180)
     fig.savefig(output / "paired-objectives.svg")
 

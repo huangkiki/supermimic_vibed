@@ -114,14 +114,26 @@ def physical_rollout(env, bank, actions, gamma, contacts=False, reward_objective
                 soft_return=returns(reward_tensor, torch.stack(soft), gamma), contacts=signatures)
 
 
+def collector_action(env, pi, cfg, history):
+    """Advance the collector's observation history once per physical action."""
+    obs = env.mdp.obs(env.state(), env.a_prev, env.xi, env.f)
+    history = obs[:, None].repeat(1, cfg.hist, 1) if history is None else torch.cat((history[:, 1:], obs[:, None]), 1)
+    return pi(history, env.motion.goal(env.f, cfg.goal_frames)), history
+
+
 @torch.no_grad()
-def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
-    """Independent reference starts + fixed reference-PD prefix, then collector-policy actions.
+def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed, prefix_controller="reference_pd"):
+    """Independent reference starts, declared roll-in, then fixed collector actions.
 
     This data is never inserted into a training replay buffer. It is held out as
     transitions, not as unseen motions: the motions remain the training library.
+    A policy prefix carries observation history through the probe boundary. It
+    still starts from reference states and is conditioned on surviving the prefix;
+    it is not a stationary on-policy state distribution.
     """
     from supermimic.mdp import flatten_state
+    if prefix_controller not in ("reference_pd", "policy"):
+        raise ValueError("Unknown held-out prefix controller")
     generator = torch.Generator(device=env.device).manual_seed(seed)
     motion = env.motion
     clip = torch.arange(samples, device=env.device) % len(motion.names)
@@ -132,17 +144,21 @@ def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
         return motion.clip_start[clip] + (torch.rand(samples, device=env.device, generator=generator) * available).long()
     bank = dict(reset_frames=draw_frames(), probe_seed=seed, collector_seed=cfg.seed)
     attempts = torch.ones(samples, device=env.device, dtype=torch.long)
-    # Keep the clip assignment fixed; reject starts whose reference-PD prefix
+    # Keep the clip assignment fixed; reject starts whose declared prefix
     # has already failed. Post-failure states are not an active control task.
-    for _ in range(64):
+    for sampling_round in range(1, 65):
         bank["prefix_actions"] = []
         env.reset(torch.arange(env.N, device=env.device), bank["reset_frames"])
         env.done_eval.zero_()
         env.failed_eval.zero_()
         env.refresh()
         prefix_contacts = []
+        history = None
         for _ in range(prefix_steps):
-            action = (motion.q[env.f + 1] - env.default_q) / env.alpha
+            if prefix_controller == "policy":
+                action, history = collector_action(env, pi, cfg, history)
+            else:
+                action = (motion.q[env.f + 1] - env.default_q) / env.alpha
             bank["prefix_actions"].append(action.clone())
             env.step(action)
             prefix_contacts.append(contact_signature(env))
@@ -157,16 +173,18 @@ def collect_bank(env, pi, cfg, samples, horizon, prefix_steps, seed):
         raise RuntimeError("Could not collect live held-out starts for every clip within 64 attempts")
     bank["prefix_actions"] = torch.stack(bank["prefix_actions"])
     bank["start_sampling_attempts"] = attempts
-    bank["prefix_rule"] = "fixed reference-PD prefix; no hard failure during prefix; per-clip rejection, maximum 64 attempts"
+    bank["sampling_rounds"] = sampling_round
+    bank["prefix_controller"] = prefix_controller
+    bank["prefix_steps"] = prefix_steps
+    bank["prefix_rule"] = f"{prefix_controller} prefix; no hard failure during prefix; per-clip frame rejection, maximum 64 batch replays"
     bank["state"] = flatten_state(env.state())
     bank["frames"] = env.f.clone()
     bank["xi"] = env.xi.clone()
     bank["previous_action"] = env.a_prev.clone()
-    actions, history = [], None
+    bank["history_before_probe"] = history.clone() if history is not None else None
+    actions = []
     for _ in range(horizon):
-        obs = env.mdp.obs(env.state(), env.a_prev, env.xi, env.f)
-        history = obs[:, None].repeat(1, cfg.hist, 1) if history is None else torch.cat((history[:, 1:], obs[:, None]), 1)
-        action = pi(history, motion.goal(env.f, cfg.goal_frames))
+        action, history = collector_action(env, pi, cfg, history)
         actions.append(action)
         env.step(action)
     bank["actions"] = torch.stack(actions)
@@ -295,6 +313,8 @@ def main():
     parser.add_argument("--bank", help="reuse an existing bank; never retrain on it")
     parser.add_argument("--samples", type=int, default=64)
     parser.add_argument("--prefix-steps", type=int, default=16)
+    parser.add_argument("--prefix-controller", choices=("reference_pd", "policy"), default="reference_pd",
+                        help="policy carries the same collector and history through the probe boundary; reference_pd retains the original switch control")
     parser.add_argument("--directions", type=int, default=4)
     parser.add_argument("--gradient-horizon", type=int, choices=(1, 8, 16, 32), default=32,
                         help="Shorter fixed horizons can isolate stable-contact windows; analyze horizons separately")
@@ -317,7 +337,7 @@ def main():
     import supermimic.networks as networks
     from supermimic.env import TrackingSim, make_sim
     from supermimic.kinematics import G1Kinematics
-    from supermimic.mdp import MDP, OBS_DIM
+    from supermimic.mdp import MDP, OBS_DIM, unflatten_state
     from supermimic.motion import MotionLib
     from supermimic.networks import Policy, WorldModel
     from supermimic.robot import default_joint_pos_list
@@ -354,17 +374,51 @@ def main():
         write_json(output / "contact-map.json", dict(geom_body_ids=geom_body_ids,
                    body_names=[contact_model.body(i).name for i in range(contact_model.nbody)]))
         if args.bank:
+            bank_path = Path(args.bank)
+            bank_digest = sha256(bank_path)
             bank = torch.load(args.bank, map_location="cuda:0", weights_only=False)
             if bank["motion_hashes"] != hashes or bank["actions"].shape[1] != args.samples:
                 raise ValueError("bank identity/batch mismatch")
             if bank["collector_sha256"] != sha256(args.collector) or bank["asset_hashes"] != collector["manifest"]["assets"]:
                 raise ValueError("bank collector/asset mismatch")
+            if bank.get("prefix_controller", "reference_pd") != args.prefix_controller or len(bank["prefix_actions"]) != args.prefix_steps:
+                raise ValueError("bank prefix controller/length mismatch")
         else:
-            bank = collect_bank(env, pi, cfg, args.samples, 32, args.prefix_steps, args.probe_seed)
+            bank = collect_bank(env, pi, cfg, args.samples, 32, args.prefix_steps, args.probe_seed, args.prefix_controller)
             bank.update(motion_hashes=hashes, collector_sha256=sha256(args.collector),
                         asset_hashes=collector["manifest"]["assets"],
                         held_out="independently generated transitions; same training motions; never fed to training")
-            torch.save(bank, output / "heldout-bank.pt")
+            bank_path = output / "heldout-bank.pt"
+            torch.save(bank, bank_path)
+            bank_digest = sha256(bank_path)
+        boundary_delta = (bank["actions"][0] - bank["previous_action"]).norm(dim=-1)
+        following_delta = (bank["actions"][1:] - bank["actions"][:-1]).norm(dim=-1).mean(0)
+        with torch.no_grad():
+            obs = mdp.obs(unflatten_state(bank["state"]), bank["previous_action"], bank["xi"], bank["frames"])
+            history = bank.get("history_before_probe")
+            if args.prefix_controller == "policy" and history is None:
+                raise ValueError("Policy-prefix bank is missing collector history")
+            probe_history = (obs[:, None].repeat(1, cfg.hist, 1) if history is None
+                             else torch.cat((history[:, 1:], obs[:, None]), 1))
+            replay_action = pi(probe_history, motion.goal(bank["frames"], cfg.goal_frames))
+            boundary_replay_error = float((replay_action - bank["actions"][0]).abs().max())
+        if not np.isfinite(boundary_replay_error) or boundary_replay_error > 1e-5:
+            raise ValueError(f"Collector boundary history/action does not reproduce: {boundary_replay_error}")
+        write_json(output / "bank.json", dict(bank_sha256=bank_digest, bank_path=str(bank_path),
+                   collector_sha256=sha256(args.collector), prefix_controller=args.prefix_controller,
+                   prefix_steps=args.prefix_steps, samples=args.samples,
+                   boundary_action_delta_l2_mean=float(boundary_delta.mean()),
+                   following_action_delta_l2_mean=float(following_delta.mean()),
+                   boundary_action_replay_max_error=boundary_replay_error,
+                   sampling_rounds=bank.get("sampling_rounds"),
+                   sampling_scope="reference starts conditioned on surviving the declared prefix; not stationary on-policy sampling"))
+        for sample in range(args.samples):
+            append_csv(output / "bank-diagnostics.csv", dict(
+                sample=sample, motion=bank["motion_names"][sample],
+                prefix_controller=args.prefix_controller, prefix_steps=args.prefix_steps,
+                sampling_attempts=int(bank["start_sampling_attempts"][sample]),
+                boundary_action_delta_l2=float(boundary_delta[sample]),
+                following_action_delta_l2_mean=float(following_delta[sample])))
         baseline = physical_rollout(env, bank, bank["actions"], cfg.gamma, contacts=True, reward_objective=args.reward_objective)
         torch.save(baseline, output / "physical-baseline.pt")
         # Retain evidence even if the initial-state qualification fails.
@@ -389,9 +443,12 @@ def main():
                              args.directions, cfg.gamma, args.probe_seed, args.gradient_horizon,
                              args.reward_objective, args.contact_level, geom_body_ids)
         torch.cuda.synchronize()
+        if sha256(bank_path) != bank_digest:
+            raise RuntimeError("Held-out bank changed during the probe")
         elapsed = time.perf_counter() - started
         write_json(output / "probe.json", dict(seconds=elapsed, gpu_hours=elapsed / 3600, args=vars(args),
                    gpu=torch.cuda.get_device_name(0), collector_sha256=sha256(args.collector),
+                   bank_sha256=bank_digest, prefix_controller=args.prefix_controller,
                    checkpoint_sha256={str(p): sha256(p) for p in args.checkpoints},
                    manifest=probe_manifest, peak_torch_memory_bytes=torch.cuda.max_memory_allocated(),
                    reset_protocol="native physical state restore, nominal xi, Newton solver reset flags=0 before each rollout",

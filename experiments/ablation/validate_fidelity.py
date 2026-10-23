@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 from collections import Counter
@@ -13,6 +14,29 @@ def validate(root):
     root = Path(root)
     receipt = json.loads((root / "probe.json").read_text())
     args = receipt["args"]
+    bank_identity = "legacy_path_only"
+    if receipt.get("bank_sha256"):
+        bank_receipt = json.loads((root / "bank.json").read_text())
+        if bank_receipt["bank_sha256"] != receipt["bank_sha256"]:
+            raise ValueError("Bank content identity differs between receipts")
+        if bank_receipt["prefix_controller"] != args["prefix_controller"] or bank_receipt["prefix_steps"] != args["prefix_steps"]:
+            raise ValueError("Bank prefix differs from probe settings")
+        bank_path = Path(bank_receipt["bank_path"])
+        bank_identity = "sha256_recorded"
+        if bank_path.is_file():
+            with bank_path.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            if digest != receipt["bank_sha256"]:
+                raise ValueError("Bank file changed since probe")
+            bank_identity = "sha256_verified"
+        with (root / "bank-diagnostics.csv").open() as stream:
+            diagnostics = list(csv.DictReader(stream))
+        if len(diagnostics) != args["samples"] or {int(r["sample"]) for r in diagnostics} != set(range(args["samples"])):
+            raise ValueError("Missing or duplicate bank diagnostics")
+        for row in diagnostics:
+            for key in ("boundary_action_delta_l2", "following_action_delta_l2_mean"):
+                if not math.isfinite(float(row[key])) or float(row[key]) < 0:
+                    raise ValueError("Invalid action-continuity recording")
     checkpoints = set(receipt["checkpoint_sha256"].values())
     samples = set(range(args["samples"]))
     epsilons = set(args["epsilons"])
@@ -48,6 +72,7 @@ def validate(root):
     groups = Counter(r["contact_group"] for r in gradient if r["checkpoint_sha256"] == first
                      and int(r["direction"]) == 0 and r["objective"] == "soft" and float(r["epsilon"]) == min(epsilons))
     result = dict(status="recording_checks_passed", checkpoints=len(checkpoints), samples=len(samples),
+                  bank_identity=bank_identity,
                   prediction_rows=len(prediction), gradient_rows=len(gradient), contact_samples=dict(groups),
                   max_initial_state_drift=max(float(r["initial_state_max_drift"]) for r in gradient),
                   resolved_rows=sum(r["resolved"] == "True" for r in gradient),

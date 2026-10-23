@@ -101,6 +101,14 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 不同checkpoint的Prediction Error与其物理评估return关系只能先报观察性相关：策略成熟度、数据分布和训练时间共同变化。同输入的模型梯度与真实微步改善更直接检验机制；也不能据此宣称低MSE必然导致更高最终policy performance。
 
+## 状态库的控制器切换与内容身份（2026-10-23补充）
+
+原有 `--prefix-controller reference_pd` 保留参考PD前缀，再在探针边界初始化策略观测历史。这是明确的控制器切换分布。新增 `--prefix-controller policy` 从参考起点开始就执行固定collector的mean策略，并跨探针边界连续保留观测历史和previous action。两模式使用相同参考帧抽样seed，但存活筛选可能导致不同重采样；它们是不同状态分布，不能逐状态当作完全配对的因果对照。
+
+policy模式仍是“参考起点、存活前缀条件下”的roll-in，不能叫作平稳on-policy分布，也不自动代表成熟策略。正式研究需要先独立验证collector的物理表现。参考PD控制保留；同一bank内部的full/state_only探针才严格共享相同状态和动作序列。
+
+`bank-diagnostics.csv`逐状态记录前缀末动作到首探针动作的L2变化、后续动作变化与采样尝试数；`bank.json`记录采样方式、状态库SHA256和首动作从所存观测历史重放的误差。每次probe结束再次核对bank文件未变。新配对按内容哈希识别bank，相同内容可迁移路径；相同路径但内容变化、缺失一侧哈希、前缀或物理GPU UUID不一致会拒绝合并。旧探针仅有共享路径的证据保留为 `legacy_path_only`，不能冒充已在运行时验证内容哈希，也不能与新哈希记录混配。
+
 ## 固定 checkpoint 的数值重复性（2026-10-23补充）
 
 探索阶段发现：相同物理GPU、同checkpoint、同seed与mean策略，在新进程中复评仍有数值波动，关闭录制的两次也不同。该观察不能定位solver根因，但意味着单次评估不足以判断接近失败下限的细小差异。

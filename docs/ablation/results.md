@@ -54,3 +54,20 @@ H32、ε=.03沿full奖励WM梯度微步的真实硬物理累计回报平均改�
 4096环境实测峰值PPO-Sim8450MiB、在线PPO-WM12422MiB、BPTT23638MiB。BPTT补测最后10次更新1.135–1.203秒，cold编译成本另保留。单seed六条件4000迭代预计8.52–10.77 GPU-hours，3seed25.55–32.30；加入25%余量分别13.46/40.38。冻结吞吐与评估时长含明确规划假设，4000迭代不保证收敛。
 
 长程seed0完成后先检查有效学习和成本，再扩展至少3seed与40段；成熟模型的固定库梯度分析仍待执行。复现见[runbook](runbook.md)，因果边界/剩余算法差异见[protocol](protocol.md)，固定环境见[environment](environment.md)。完整逐步原始日志、接触baseline、数据manifest和实验报告交付于本任务outputs；大模型checkpoint保留在远端专用实验目录，另附SHA/路径清单。没有合并本PR，也没有宣称最终研究完成。
+
+
+## 连续策略前缀与状态库内容验收
+
+新增policy roll-in保持同一collector、previous action和观测历史跨越探针边界，reference_pd保留原切换控制。四个原生探针（两模式×full/state_only）均完成，18起点/模式、checkpoint100、H1、1个随机方向、eps=.01/.03，合计0.0338113 GPU-hours；每探针72条prediction、144条gradient记录。首动作从保存的状态/历史重放，最大误差2.384e-7；物理初态最大漂移1.192e-7。44项CPU测试通过。
+
+参考PD模式的边界动作L2变化均值9.8799、后续变化均值0.3391；policy模式分别0.3210/0.2359。两组存活筛选分别重放3/2轮，状态分布不同，不能把这两个均值之差当作同状态因果效应或策略性能改善；collector仍欠训练。这组证据只验证连续历史、记录、内容身份和原生FD链路，不替代成熟策略实验。运行在GPU2，与主训练同主机重叠，成本单列。
+
+配对检查的旧路径判断缺陷已由回归测试复现：同一路径但不同内容未被拒绝、两个未标识新库被当作配对。修复后新记录必须匹配bank SHA256、前缀和物理GPU UUID；旧路径证据显式标记legacy_path_only，不补造历史哈希。
+
+![状态库动作连续性](../../results/ablation/policy-bank-smoke-v1/bank-continuity.png)
+
+[验收摘要](../../results/ablation/policy-bank-smoke-v1/qualification.json) · [逐状态动作变化](../../results/ablation/policy-bank-smoke-v1/bank-diagnostics.csv) · [同库配对梯度统计](../../results/ablation/policy-bank-smoke-v1/paired-gradient-metrics.csv)。原始探针收据、状态库、CSV和日志保留在交付数据包。解包后可重绘：
+
+```bash
+python results/ablation/policy-bank-smoke-v1/reproduce.py /path/to/policy-bank-smoke-v1
+```

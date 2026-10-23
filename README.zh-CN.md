@@ -24,6 +24,8 @@
 
 这个诊断说明直接解析的动作惩罚可能掩盖动力学梯度误差。有限差分只是多尺度数值参考；state prediction accuracy、gradient fidelity和最终policy performance分别检验。样本来自参考PD切换到欠训练策略的状态分布，这是关键限制。
 
+为继续检验该干扰，梯度入口新增 `--prefix-controller policy`：从参考起点起由同一策略生成前缀，连续保留观测历史与previous action；原 `reference_pd` 模式保留作控制。状态库保存首步动作重放误差、动作变化和SHA256；full/state_only配对按库内容核验。这仍是存活前缀条件下的参考起点分布，正式结论需要先通过物理评估的collector。四组原生探针验收完成，仍使用欠训练collector，仅证明链路；[验收数据](results/ablation/policy-bank-smoke-v1/qualification.json) · [命令与证据边界](docs/ablation/runbook.md)。
+
 ### 本次消融的真实失败轨迹
 
 ![PPO-Sim第4000次迭代物理复评：walk1_subject1在2.42秒终止](results/ablation/ppo-diagnostic-v1/ppo-sim-failure.gif)

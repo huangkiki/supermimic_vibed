@@ -88,7 +88,9 @@ python -m experiments.ablation.fidelity \
   --output logs/ablation/fidelity-smoke-v1
 ```
 
-后续checkpoint用 `--bank .../heldout-bank.pt`，`--samples`与原库一致。库从不参与模型训练。`prediction.csv`与`gradient.csv`保存逐样本、checkpoint、horizon/方向/尺度/接触标签与数值参考有效性。`physical-baseline.pt`保留完整物理状态序列和contact signatures。具体数学目标、单位、噪声筛选与证据边界见 [protocol.md](protocol.md)。
+后续checkpoint用 `--bank .../heldout-bank.pt`，`--samples`、`--prefix-controller`和`--prefix-steps`与原库一致。库从不参与模型训练。`prediction.csv`与`gradient.csv`保存逐样本、checkpoint、horizon/方向/尺度/接触标签与数值参考有效性。`physical-baseline.pt`保留完整物理状态序列和contact signatures。具体数学目标、单位、噪声筛选与证据边界见 [protocol.md](protocol.md)。
+
+若要避免参考PD在探针边界切换为策略，生成库时添加 `--prefix-controller policy --prefix-steps 16`，并使用新输出目录。此模式跨边界保留同一collector的观测历史；复用时同样传这两个参数。查看 `bank-diagnostics.csv` 的首步/后续动作变化及拒绝采样次数，不能仅凭模式名称认定动作连续或策略成熟。`bank.json`保存库SHA256和首动作重放误差；新配对需要两边相同SHA256，相同路径不再足以证明内容相同。
 
 对同一库的稳定接触短窗口，另外运行 `--gradient-horizon 8`（必要时1），输出到新目录；不同梯度horizon单独分析。缩短梯度窗口不会缩短1/8/16/32步状态预测评估。
 
