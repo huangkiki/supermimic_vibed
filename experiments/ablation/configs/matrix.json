@@ -18,7 +18,7 @@
     "ppo_wm_frozen",
     "bptt_wm_frozen"
   ],
-  "status": "formal_not_started",
+  "status": "candidate_templates; execution status is recorded in campaign.json",
   "selection": "all walk/run/sprint prefixes = 18 clips; all40 = complete source",
   "formal_requires": "successful native smoke, measured resource forecast and finite campaign budget"
 }
