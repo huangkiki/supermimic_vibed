@@ -89,6 +89,8 @@ Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全
 
 正式梯度汇总入口`analyze_fidelity_cohort`按独立训练seed等权统计，保留未解析方向、接触组覆盖和无法定义的相关系数。它先验收完整训练与物理评估，再检查每seed六个探针、状态库和checkpoint身份及探针费用；当前尚无真实三seed梯度结果。[统计规则与运行命令](docs/ablation/runbook.md#汇总独立训练seed的梯度分析)。
 
+正式探针执行入口`run_fidelity_cohort`读取预登记方案，在完整训练cohort验收后顺序运行三个seed的18个探针，同seed共享一份状态库，并执行资源检查及0.3/seed、总0.9 GPU-hours上限。当前仅完成CPU控制流程和真实未完成训练记录的拒绝验证，尚未启动正式GPU探针。[执行与干跑命令](docs/ablation/runbook.md#执行独立训练seed的梯度探针)。
+
 所有方法最终在真实物理模拟器中评估。主要曲线使用完整motion归一化Return，对墙时、GPU-hours和Simulator Steps分别作图；不把imagined return当物理成绩。
 
 40段资源测试的最后30个更新中，两种PPO均每轮完成20个Actor minibatch更新。PPO-Sim物理采集约10.21万steps/s，在线PPO-WM imagined rollout约43.60万steps/s；同时包含模型采集、拟合及策略优化的暖态迭代分别1.919/1.292秒。短批次端到端费用分别0.06827/0.13630 GPU-hours，在线WM需支付模型学习及初始化成本。它们均未学会跟踪，因此这些测量仍不能说明谁更快达到同一策略质量。冻结三条件资源资格也已完成，独立方法曲线各付全额预训练，campaign总账只计一次。正式18段三seed矩阵运行期间不再主动追加GPU资源探针。[费用定义与后续资源门禁](docs/ablation/results.md#全部40段目标规模资源实测)。

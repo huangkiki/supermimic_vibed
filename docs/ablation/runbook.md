@@ -234,6 +234,33 @@ python -m experiments.ablation.plot_fidelity "$ABLATION_PROBE/gradient-component
 ```
 
 
+## 执行独立训练seed的梯度探针
+
+`run_fidelity_cohort`从预登记方案读取三个seed、四个WM阶段、full/state_only、H1/8/32和扰动尺度，顺序运行18个探针。它必须先通过全部正式训练及物理复评的cohort验收，核对真实checkpoint字节；不会在训练仍进行时启动。当前入口已通过CPU控制流程测试，以及真实未完成训练记录的拒绝检查；尚未运行正式三seed GPU探针。
+
+在独立、固定的分析checkout中准备相同原生环境、数据和资产，设置三个已完成训练campaign目录`SEED1/2/3`，再执行：
+
+```bash
+PROBE_ROOT=logs/ablation/confirmatory-gradient-v1
+probe_args=(
+  --training-plan experiments/ablation/configs/confirmatory-locomotion-plan.json
+  --probe-plan experiments/ablation/configs/confirmatory-gradient-plan.json
+  --training-campaigns "$SEED1/campaign.json" "$SEED2/campaign.json" "$SEED3/campaign.json"
+  --gpu 2 --output "$PROBE_ROOT"
+)
+python -m experiments.ablation.run_fidelity_cohort "${probe_args[@]}" --dry-run
+python -m experiments.ablation.run_fidelity_cohort "${probe_args[@]}"
+PROBE1="$PROBE_ROOT/seed1"
+PROBE2="$PROBE_ROOT/seed2"
+PROBE3="$PROBE_ROOT/seed3"
+```
+
+`--dry-run`核验完整训练矩阵与checkpoint SHA后打印命令，不查询GPU、不创建输出或启动进程；通过它不表示资源已合格。实际执行前及每个探针前重新检查GPU UUID、型号、空闲、显存和磁盘。预登记保留每seed0.3、总0.9 GPU-hours；时间预估0.236153/seed，显存预估4096 MiB并要求至少8192 MiB空闲，磁盘每seed1 GiB加20 GiB保留。这些资源余量沿用已验收的开发探针方案，不是正式三seed实测峰值。
+
+每seed首个`full-h1`探针生成状态库，随后五个探针使用同一文件；每次启动前重验源码、方案、训练收据、checkpoint及已生成状态库的哈希。不同训练seed各自建库。失败、超时、输入变化或资源不足即停止，保留原目录，不自动重跑或重置账本。中断会终止本次探针自己的进程组，终止清理的实际耗时也计入费用；不隐藏可能的清理超额，不继续启动后续探针。
+
+输出包含根目录`suite.json`、各`seedN/campaign.json`、六组原始CSV和状态库原生验收。GPU费用只计实际探针子进程分配，包含启动、编译和清理；CPU验收与预检时间另包含在总墙时中。所有seed完成并通过严格联合验收后，才可使用下面的汇总命令生成正式图表。正在运行的训练checkout不需要更新。
+
 ## 汇总独立训练seed的梯度分析
 
 `confirmatory-gradient-plan.json`预登记正式seeds1/2/3：每seed使用最终SuperMimic collector的64状态库，在该库上比较WM第1000/2000/3000/4000轮、full/state_only、H1/8/32以及四种扰动尺度。探针使用同一GPU2、fp32、关闭TF32和固定物理reset协议；每次启动仍需重新检查资源。开发seed0六探针实测0.188922 GPU-hours，预留25%为0.236153/seed，登记硬上限0.3/seed、合计0.9。探针费用独立记录，不进入策略训练效率排名。当前尚无正式三seed探针结果。
