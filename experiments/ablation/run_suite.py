@@ -5,7 +5,9 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import os
+import shutil
 import signal
 from pathlib import Path
 import subprocess
@@ -25,6 +27,22 @@ def gpu_resources(gpu):
     return dict(zip(("name", "uuid", "driver", "memory_total_mib", "memory_free_mib", "utilization_percent"), [x.strip() for x in fields]))
 
 
+def check_forecast(forecast, resources, subset, seeds, budget, free_disk_gib):
+    if forecast["gpu"] != resources["name"] or forecast["subset"] != subset:
+        raise ValueError("forecast GPU/subset mismatch")
+    if forecast["gpu_uuid"] != resources["uuid"] or forecast["seeds"] != seeds:
+        raise ValueError("forecast GPU identity/seed matrix mismatch")
+    for key in ("projected_campaign_gpu_hours", "projected_peak_memory_mib", "projected_disk_gib", "minimum_disk_reserve_gib"):
+        if not math.isfinite(forecast[key]) or forecast[key] <= 0:
+            raise ValueError(f"Invalid forecast: {key}")
+    if forecast["projected_campaign_gpu_hours"] > budget:
+        raise ValueError("forecast exceeds the campaign budget")
+    if forecast["projected_peak_memory_mib"] > float(resources["memory_free_mib"]) * .85:
+        raise ValueError("forecast leaves insufficient memory headroom")
+    if forecast["projected_disk_gib"] + forecast["minimum_disk_reserve_gib"] > free_disk_gib:
+        raise ValueError("forecast leaves insufficient disk space")
+
+
 def main():
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("--phase", choices=("smoke", "pilot", "formal"), required=True)
@@ -42,20 +60,18 @@ def main():
     if (output / "campaign.json").exists():
         raise FileExistsError("Existing campaign: preserve it and select a new output directory")
     resources = gpu_resources(args.gpu)
+    forecast = None
     if float(resources["memory_free_mib"]) < 12000:
         raise RuntimeError("Less than 12 GiB available; resource qualification is required")
     if args.phase == "formal":
         if not args.forecast:
             raise ValueError("Formal runs require a measured forecast")
         forecast = json.loads(Path(args.forecast).read_text())
-        if forecast["gpu"] != resources["name"] or forecast["subset"] != args.subset:
-            raise ValueError("forecast GPU/subset mismatch")
-        if forecast["projected_campaign_gpu_hours"] > args.max_gpu_hours:
-            raise ValueError("forecast exceeds the campaign budget")
-        if forecast["projected_peak_memory_mib"] > float(resources["memory_free_mib"]) * .85:
-            raise ValueError("forecast leaves insufficient memory headroom")
+        check_forecast(forecast, resources, args.subset, args.seeds, args.max_gpu_hours,
+                       shutil.disk_usage(output).free / 2**30)
     source_root = Path(__file__).resolve().parents[2]
     campaign = dict(args=vars(args), resources=resources, commands=[], actual_gpu_hours=0,
+                    forecast=forecast,
                     source_hashes=source_snapshot(source_root),
                     status="running", budget_scope="subprocess allocation time including setup, compilation and evaluation")
     def persist():
@@ -76,6 +92,14 @@ def main():
         record = dict(command=command, log=str(log), resources=gpu_resources(args.gpu))
         if float(record["resources"]["memory_free_mib"]) < 12000:
             raise RuntimeError("Available GPU memory changed; stopping before launch")
+        if forecast:
+            current = record["resources"]
+            if current["uuid"] != forecast["gpu_uuid"] or float(current["utilization_percent"]) > 5:
+                raise RuntimeError("Qualified GPU is not idle or its identity changed")
+            if forecast["projected_peak_memory_mib"] > float(current["memory_free_mib"]) * .85:
+                raise RuntimeError("Available GPU memory no longer satisfies the measured forecast")
+            if shutil.disk_usage(output).free / 2**30 < forecast["minimum_disk_reserve_gib"]:
+                raise RuntimeError("Disk reserve exhausted; stopping before launch")
         campaign["commands"].append(record)
         persist()
         with log.open("w") as stream:

@@ -100,7 +100,8 @@ def main():
             axes[1, 1].plot(epsilons, means, marker="o", linestyle=style, color=colors[sha],
                             label=f"{sha[:8]} / {'gradient' if kind == 'wm_gradient' else 'random'}")
     axes[1, 1].axhline(0, color="gray", linewidth=.7)
-    axes[1, 1].set(xlabel="Action-sequence step size (unit L2 direction)", ylabel="Actual hard simulator return improvement",
+    score_label = "Physical task return improvement" if reward_objective == "full" else "State-only physical score improvement"
+    axes[1, 1].set(xlabel="Action-sequence step size (unit L2 direction)", ylabel=score_label,
                    title="One small step along the WM gradient")
     axes[1, 1].legend(fontsize=7)
     for ax in axes.flat:

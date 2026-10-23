@@ -1,6 +1,6 @@
 # SuperMimic：World Model 与优化器消融协议
 
-状态：实现与原生运行资格验证进行中。正式多种子结果尚未产生；本文件是预先声明的协议，不是结果。
+状态：实现、原生 Smoke、100迭代单种子 Pilot 和64状态探索性梯度诊断已完成；正式多种子结果尚未产生。本文件区分原协议与诊断后新增的控制条件，数值见 results.md。
 
 ## 研究基线与论文边界
 
@@ -42,6 +42,8 @@ PPO-WM的有限想象窗口用discount×survival作为样本权重；PPO-Sim按�
 另行运行的辅助条件 `bptt_wm_frozen` 与 `ppo_wm_frozen`（soft） 加载**相同 seed 的同一 bootstrap.pt**，共享 WM、其归一化、replay、初始 deterministic mean、critic、H、goal/history、reward 和软生存权重。两者各自更新 policy/critic；policy rollout 没有进入 WM 的参数更新。
 
 该配对的主要剩余差异是策略优化器与随机/确定性动作。它估计冻结模型下的算法收益，不与在线 WM 的成本混算。单独的 `ppo_wm_frozen_hard` 条件用于硬终止敏感性分析，不能混入同目标机制曲线。
+
+原入口采集时对动作请求做[-20,20]裁剪；新增实验的所有条件统一使用未裁剪请求，并保留物理执行器限幅。这是显式适配，不是原入口的逐位复现；本轮没有记录裁剪触发频率，不能声称这个差异无影响。
 
 PPO 用未裁剪 Normal(mean, exp(log_std))，记录真正采样动作的 log-prob。执行器原有物理限幅继续生效。初始 std=0.1 是为与原 WM 采集噪声对齐的实验选择，**不是已验证最优的 PPO 设置**；必要时对0.1/0.3/1.0、clip/epoch/KL 做等预算开发集敏感性试验。所有主网络宽度不变。PPO actor/critic 与对应 BPTT 使用相同学习率、critic 轮次、gamma/lambda；PPO新增 clipping、KL停止和可配置 entropy。
 
@@ -85,7 +87,7 @@ PPO rollout 和重复 epochs 期间不更新归一化统计；收集到的 obs/a
 
 本版本实现**动作序列方向**，尚非完整 policy 参数方向。默认32步有限时域、gamma=.99、无critic，避免将critic梯度混进动力学梯度。可用 `--gradient-horizon 1/8/16/32` 另行评估短窗口，使稳定接触阶段不被整个32步窗口内的其他切换混淆；不同horizon代表不同目标，必须分开报告。状态预测仍固定评估1/8/16/32步。WM梯度用fp32且关闭TF32；这种诊断精度与训练精度分开记录。方向为每样本整段动作的单位L2随机方向，另测单位L2预测梯度方向。
 
-必须另查直接解析奖励的混杂：原奖励包含 `w_action_rate * ||a-a_prev||² * dt`，其动作梯度即使WM动力学很差也可能准确。默认 `--reward-objective full` 保留完整任务回报；辅助 `--reward-objective state_only` 在WM和物理两侧同时去掉这个动作平滑项，保留state tracking、joint-limit与终止目标。两种诊断分别报告，后者不是主任务成绩，不改任何训练或正式评估reward。高full-gradient一致性不能独自证明WM提供了可信动力学梯度。
+初版 full-reward 探针完成后，新增以下辅助控制（非事前主假设检验）：必须另查直接解析奖励的混杂：原奖励包含 `w_action_rate * ||a-a_prev||² * dt`，其动作梯度即使WM动力学很差也可能准确。默认 `--reward-objective full` 保留完整任务回报；辅助 `--reward-objective state_only` 在WM和物理两侧同时去掉这个动作平滑项，保留state tracking、joint-limit与终止目标。两种诊断分别报告，后者不是主任务成绩，不改任何训练或正式评估reward。高full-gradient一致性不能独自证明WM提供了可信动力学梯度。
 
 中心有限差分：`[J(a+eps*v)-J(a-eps*v)]/(2eps)`；eps=0.003/0.01/0.03/0.1。固定前缀只用于构建留出状态及接触历史；每次FD通过原生pose/velocity/joint写入API直接恢复该状态、参考帧和previous action，并用固定Newton `reset(flags=0)`清零求解器warm-start等内部缓冲。ξ固定为物理评估的名义参数，外来不同ξ的bank会被拒绝。该重置是明确的数值参考约定，不更改训练入口。
 

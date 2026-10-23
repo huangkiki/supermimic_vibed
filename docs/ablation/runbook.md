@@ -46,7 +46,7 @@ python -m experiments.ablation.analyze \
 
 ## 正式矩阵
 
-`experiments/ablation/configs/matrix.json` 给出种子0/1/2及18/40段范围。formal JSON是待资格确认的候选配置，不是已运行结果。必须先在目标4096环境规模做一至数次完整更新的显存/时间测量，保存forecast和来源。runner对formal要求 `--forecast`，且预计总GPU-hours不超过显式预算、预计峰值显存低于可用显存的85%。
+`experiments/ablation/configs/matrix.json` 给出种子0/1/2及18/40段范围。formal JSON的4096环境规模已通过短时资源资格；4000迭代仍是候选学习预算，不是已运行结果。必须先在目标4096环境规模做一至数次完整更新的显存/时间测量，保存forecast和来源。runner对formal要求 `--forecast`，且预计总GPU-hours不超过显式预算、预计峰值显存低于可用显存的85%，核对GPU UUID/种子矩阵并保留磁盘空间。每个进程前再次检查资源。
 
 ```bash
 python -m experiments.ablation.run_suite \
@@ -60,7 +60,7 @@ python -m experiments.ablation.run_suite \
   --forecast measured-forecast-all40.json
 ```
 
-`BUDGET` 必须替换为基于实测并获授权的数值。forecast包含 `gpu`、`subset`、`projected_campaign_gpu_hours`、`projected_peak_memory_mib`，并应保留原始计时日志和配置身份；手填一个通过门槛的数字不能代替资源资格。
+`BUDGET` 必须替换为基于实测并获授权的数值。forecast包含 `gpu`、`gpu_uuid`、`subset`、`seeds`、`projected_campaign_gpu_hours`、`projected_peak_memory_mib`、`projected_disk_gib`、`minimum_disk_reserve_gib`，并应保留原始计时日志和配置身份；手填一个通过门槛的数字不能代替资源资格。
 
 ## 单方法与独立复评
 
@@ -98,6 +98,20 @@ python -m experiments.ablation.fidelity \
 python -m experiments.ablation.plot_fidelity logs/ablation/fidelity-smoke-v1 \
   --output results/ablation/fidelity-smoke-v1 \
   --evaluations logs/ablation/pilot-v1/supermimic-seed0/ckpt_*/evaluation.json
+python -m experiments.ablation.validate_fidelity logs/ablation/fidelity-smoke-v1
 ```
 
 每轮campaign运行期间保持源码和配置不变；runner会在每个进程前核验快照并拒绝继续混用代码版本。修改后必须新建campaign目录。安装/资产资格、被排除的运行和独立gradient probe分别保留成本，不塞进某个方法的训练收益。
+
+## 实测预算与配对梯度统计
+
+```bash
+python -m experiments.ablation.forecast \
+  --cold-probe logs/ablation/resource-probe-v1 \
+  --warm-bptt logs/ablation/resource-warm-bptt-v1 \
+  --seeds 0 --output forecast-seed0.json
+python -m experiments.ablation.compare_fidelity logs/ablation/paired-components \
+  --output results/ablation/paired-components
+```
+
+配对目录使用 `gradient-components-{full,state_only}-h{1,8,32}`。配对分析只在相同随机方向、相同尺度、两侧都resolved的交集上比较，另报各自覆盖率；CSV保留所有checkpoint、尺度与接触组。方向/尺度复用同一状态，不能作为独立随机种子。
