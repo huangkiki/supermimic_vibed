@@ -116,12 +116,16 @@ def score_gradient(actor, rollout, *, clip=.2):
     """
     if not isinstance(actor, FixedGaussianPolicy) or rollout['std'] != actor.std:
         raise ValueError('The policy distribution must match the sampling distribution')
-    history, goals, actions = (rollout[key].detach().flatten(0, 1) for key in ('obs', 'goal', 'action'))
+    history, goals, actions = (rollout[key].detach() for key in ('obs', 'goal', 'action'))
     with torch.enable_grad():
-        mean = actor.mean_policy(history, goals)
-        log_prob = actor.log_prob(mean, actions).reshape_as(rollout['old_log_prob'])
-        if not torch.allclose(log_prob.detach(), rollout['old_log_prob'], rtol=0, atol=1e-4):
-            raise ValueError('Policy moved from theta_old; this diagnostic is the first PPO gradient only')
+        # Preserve the original per-step batch shape. Flattening H*B selects
+        # different CUDA GEMMs and can move log_prob despite identical weights.
+        log_prob = torch.stack([actor.log_prob(actor.mean_policy(obs, goal), action)
+                                for obs, goal, action in zip(history, goals, actions)])
+        if not torch.equal(log_prob.detach(), rollout['old_log_prob']):
+            error = float((log_prob.detach()-rollout['old_log_prob']).abs().max())
+            raise ValueError(f'Log probability differs at theta_old (max error {error:g}); '
+                             'require unchanged policy and identical numerical evaluation')
         loss = len(rollout['action']) * ppo_loss(log_prob, rollout['old_log_prob'],
             rollout['advantage'], rollout['weight'], clip)
         gradient = _gradient(-loss, actor)

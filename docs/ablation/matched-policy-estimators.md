@@ -46,3 +46,9 @@ python -m experiments.ablation.fidelity --probe-space policy \
 该命令计划 54 次物理 rollout（4×13+2）和两种估计器各4×H×2个 imagined transition。后续 H8/H32 需根据资格实测独立审查，不能按示例自动启动长实验。原生结果、完整进程计费与硬超时由外部收据保留；脚本内预算是 cooperative，单个操作可能超时。
 
 产物：每个 seed 的 `estimate-*.pt`，`mean-gradients.pt`，`physical-reference.pt`，`estimator-costs.csv`、`sampling-variance.csv`、`comparison.csv`、`comparison-summary.json` 及原生环境收据。两个方法在同 GPU、同精度、同起点的相同 trajectory 数量下比较；计时包含各自 WM rollout 和梯度计算，但单次微小诊断的 CUDA 热身/顺序效应使其不适合直接报告训练加速比。
+
+## 原生资格发现的数值问题
+
+初版 H1/H8 成功；H32 的 seed9009 在物理评估前被 θ_old 一致性检查拦截。独立原生审计证明参数前后 SHA256 完全相同，但将 32×2 的逐步输入合并为 batch64 后，FP32 log-prob 最大偏差为 `0.0001049041748046875`；逐步 batch2 重算最大偏差为零，且逐值一致。根因是改变计算批次形状引入数值差异，不是参数真的更新。
+
+修复保留原逐步 Policy 调用形状，并将旧的 `atol=1e-4` 检查收紧为 `torch.equal`。新增回归在旧代码上失败（batch16≠2），修复后通过；数值审计、失败 stdout、27.586491秒失败成本都保留。完成的旧版探针不覆盖，修复版本使用新目录重新验收 H1/H8/H32。该修复仅影响辅助梯度估计器，不改生产 PPO 训练。

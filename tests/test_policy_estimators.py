@@ -18,6 +18,8 @@ from experiments.ablation.policy_estimators import (
 )
 from experiments.ablation.policy_fidelity import displaced_parameters, parameter_vector
 from experiments.ablation.compare_policy_estimators import run_comparison, validate_design
+from experiments.ablation.analyze_policy_estimators import load_comparison
+from experiments.ablation.common import sha256, write_json
 
 
 class ConstantMean(nn.Module):
@@ -138,6 +140,20 @@ class EstimatorTests(unittest.TestCase):
                 torch.testing.assert_close(ppo, expected, rtol=2e-7, atol=1e-8)
                 self.assertEqual(draws, horizon)
 
+    def test_score_recomputation_preserves_original_policy_call_batch_shape(self):
+        probe = stochastic_probe(fixture(8)[0], .1)
+        rollout = collect_score_rollout(probe)
+        calls = []
+        def check_shape(module, arguments):
+            calls.append(len(arguments[0]))
+            self.assertEqual(len(arguments[0]),probe.batch)
+        handle=probe.policy.mean_policy.register_forward_pre_hook(check_shape)
+        try:
+            score_gradient(probe.policy,rollout)
+        finally:
+            handle.remove()
+        self.assertEqual(calls,[probe.batch]*probe.horizon)
+
     def test_end_to_end_comparison_retains_independent_noise_and_equal_step_budgets(self):
         probe = stochastic_probe(fixture(8)[0], .1)
         calls = []
@@ -163,6 +179,17 @@ class EstimatorTests(unittest.TestCase):
             self.assertTrue(all(row['numerical_repeat_noise']==0 for row in result['rows']))
             receipt=json.loads((Path(directory)/'comparison-summary.json').read_text())
             self.assertIn('noise tapes', receipt['independent_unit'])
+            bank=Path(directory)/'policy-bank.pt'
+            torch.save(dict(state=probe.starts['s']),bank)
+            write_json(Path(directory)/'probe.json',dict(status='complete',prepared_bank_sha256=sha256(bank),
+                args=dict(estimator_seeds=[1,2],reference_seeds=[101,102,103],epsilons=[.001,.003],
+                          action_std=.1,gradient_horizon=8)))
+            validated=load_comparison(directory)
+            self.assertEqual(validated['summary']['status'],'complete')
+            saved['means']['ppo']+=1
+            torch.save(saved,Path(directory)/'mean-gradients.pt')
+            with self.assertRaises(AssertionError):
+                load_comparison(directory)
 
     def test_disjoint_noise_validation_and_budget_failure_preserve_seed(self):
         for gradients, references in (([1,1],[2,3]),([1,2],[2,3]),([1],[2,3])):
