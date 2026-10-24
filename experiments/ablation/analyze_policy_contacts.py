@@ -69,7 +69,7 @@ def analyze(root, plan):
         raise ValueError('Derived-bank provenance is missing or different')
     mapping = json.loads((root / 'history64/contact-map.json').read_text())
     probes, contacts, metrics, directions, updates, per_start = [], [], [], [], [], []
-    first = None
+    first, random_vectors = None, None
     for group, indices in plan['cases'].items():
         path = root / group
         probe = load_probe(path)
@@ -96,6 +96,13 @@ def analyze(root, plan):
         starts = dict(s=bank['state'], f=bank['frames'], xi=bank['xi'], a_prev=bank['previous_action'])
         validate_starts(starts, bank['replay_history'], len(indices), bank['replay_history']['f'].shape[1])
         rollout = torch.load(path / 'direction-rollouts.pt', map_location='cpu', weights_only=False)
+        current_random = {k: v for k, v in rollout['unit_directions'].items() if k.startswith('random_')}
+        if random_vectors is not None:
+            if current_random.keys() != random_vectors.keys():
+                raise ValueError('Random direction identities differ across cohorts')
+            for name, vector in current_random.items():
+                torch.testing.assert_close(vector, random_vectors[name], rtol=0, atol=0)
+        random_vectors = current_random
         observed = contact_evidence(bank, rollout, mapping['geom_body_ids'], group=group, indices=indices,
                                     motions=plan['motion_names'], horizon=plan['horizon'])
         contacts.extend(dict(cohort=group, **row) for row in observed)
