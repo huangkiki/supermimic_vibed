@@ -1,0 +1,25 @@
+cohort,objective,epsilon,direction_family,total,resolved,unresolved,sign_agreement,pearson,scope
+stable_contact,proxy,0.001,selected_update_directions,3,3,0,1.0,1.0,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,proxy,0.003,selected_update_directions,3,3,0,1.0,0.9999999516065733,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,proxy,0.01,selected_update_directions,3,3,0,1.0,0.9999999986575552,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,hard,0.001,selected_update_directions,3,2,1,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,hard,0.003,selected_update_directions,3,3,0,1.0,1.0,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,hard,0.01,selected_update_directions,3,1,2,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,proxy,0.001,random_directions,8,2,6,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,proxy,0.003,random_directions,8,2,6,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,proxy,0.01,random_directions,8,1,7,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,hard,0.001,random_directions,8,1,7,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,hard,0.003,random_directions,8,1,7,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+stable_contact,hard,0.01,random_directions,8,0,8,,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,proxy,0.001,selected_update_directions,3,1,2,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,proxy,0.003,selected_update_directions,3,3,0,1.0,1.0,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,proxy,0.01,selected_update_directions,3,3,0,1.0,0.9999999999744682,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,hard,0.001,selected_update_directions,3,1,2,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,hard,0.003,selected_update_directions,3,1,2,1.0,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,hard,0.01,selected_update_directions,3,0,3,,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,proxy,0.001,random_directions,8,4,4,0.75,0.5848131690286927,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,proxy,0.003,random_directions,8,4,4,0.75,0.5550448587183928,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,proxy,0.01,random_directions,8,0,8,,,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,hard,0.001,random_directions,8,8,0,0.625,-0.013139340942871301,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,hard,0.003,random_directions,8,8,0,0.625,-0.04192334353691718,one fixed replay minibatch; directions/scales/repeats are paired diagnostics
+switch_nearby,hard,0.01,random_directions,8,6,2,0.6666666666666666,-0.11586173405186637,one fixed replay minibatch; directions/scales/repeats are paired diagnostics

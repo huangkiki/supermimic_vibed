@@ -1,0 +1,579 @@
+{
+  "status": "passed",
+  "source": "2ce7ac33509eff3dfb3ce81b52cfbc0d3397ec9e",
+  "input_sha256": {
+    "stable_contact.log": {
+      "sha256": "03bedb4c089f94067a46aea9b6f1800f926dda7331bbc0f475ddeae3b53890ba",
+      "bytes": 6805
+    },
+    "plan.json": {
+      "sha256": "9509ac4dcf3d2f421a984e40c630f7d1cc6e49c79b5533604edb7646a1d5e6d8",
+      "bytes": 2391
+    },
+    "switch_nearby.log": {
+      "sha256": "7c98f6371c45b76198b98140d1d8f29cf865748126f62a77f61a036a09fad759",
+      "bytes": 6807
+    },
+    "history64.log": {
+      "sha256": "9c9b05889aa7b303af60914fbe279b555c61b0890eecad12f35c6e3c207c7624",
+      "bytes": 6807
+    },
+    "campaign.json": {
+      "sha256": "dbe60ce3b34de83a3ba1146d59841307b8f04aac0093648b13fa94fdc2050de3",
+      "bytes": 12555
+    },
+    "history64/contact-map.json": {
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599",
+      "bytes": 5677
+    },
+    "history64/policy-bank.pt": {
+      "sha256": "e97385f252b14cfa54d0e5cfd356f48292c1f2cdec16704433138907062b74f0",
+      "bytes": 575879
+    },
+    "history64/probe.json": {
+      "sha256": "28e511840ede0f121229bf44b490570741648deab38b2c8dfb1c923377331fee",
+      "bytes": 21662
+    },
+    "stable_contact/gradients.pt": {
+      "sha256": "59a2ae4ba42786eeec9271c179b83818f35226749d79addc08cec281db30ea96",
+      "bytes": 364698059
+    },
+    "stable_contact/contact-map.json": {
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599",
+      "bytes": 5677
+    },
+    "stable_contact/policy-bank.pt": {
+      "sha256": "f2592042a1358febd09f70d0730e3bf8cf125fbd510eb1f86ff3dbff3a80aa7e",
+      "bytes": 85703
+    },
+    "stable_contact/directions.csv": {
+      "sha256": "d011ed790d608f1657d0c6c74299578d994f6e2c21c6effd457951fd07b0f8cd",
+      "bytes": 16019
+    },
+    "stable_contact/direction-rollouts.pt": {
+      "sha256": "b281bc24057cf0591cddfd3e1025d55cbdff6742b71a671b93f528c41390c818",
+      "bytes": 404292062
+    },
+    "stable_contact/probe.json": {
+      "sha256": "4b03da371ef5f9fc4021a10b2f288c9e41f6510381d7e5f83c588f3a66449bf8",
+      "bytes": 19875
+    },
+    "stable_contact/summary.json": {
+      "sha256": "6b9bf53adb53149f53e43446980094371afb6325cc24bc1b3668467a4a1ae7b3",
+      "bytes": 4164
+    },
+    "switch_nearby/gradients.pt": {
+      "sha256": "8d8db72bf9c194db9acbc2164326d58428dc9e3fe9385bf256d12123cb9cb34f",
+      "bytes": 364698059
+    },
+    "switch_nearby/contact-map.json": {
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599",
+      "bytes": 5677
+    },
+    "switch_nearby/policy-bank.pt": {
+      "sha256": "0febcb606b4254a8766f3b05f8421224e610fc18fc7420bbaa19272affba8d68",
+      "bytes": 84423
+    },
+    "switch_nearby/directions.csv": {
+      "sha256": "08d9e2b3ddc4df97265d34e2c949fa2fa133e95d8431af25b15c242606685827",
+      "bytes": 15582
+    },
+    "switch_nearby/direction-rollouts.pt": {
+      "sha256": "19138d0c9b217029f9415d9e8f44f26de1840446fbbb1a48b8a3b04e8889cfb9",
+      "bytes": 404087070
+    },
+    "switch_nearby/probe.json": {
+      "sha256": "24227f5aface052c60017d0e8ad145ba08c8ddcdd9d00215aa6d62608e46a928",
+      "bytes": 19874
+    },
+    "switch_nearby/summary.json": {
+      "sha256": "53f06a6f907852da819b17e26c9b840d81f9df28c93e191f254e086d37c32d76",
+      "bytes": 4251
+    }
+  },
+  "small_input_sha256": {
+    "successful/stable_contact.log": "03bedb4c089f94067a46aea9b6f1800f926dda7331bbc0f475ddeae3b53890ba",
+    "successful/plan.json": "9509ac4dcf3d2f421a984e40c630f7d1cc6e49c79b5533604edb7646a1d5e6d8",
+    "successful/switch_nearby.log": "7c98f6371c45b76198b98140d1d8f29cf865748126f62a77f61a036a09fad759",
+    "successful/history64.log": "9c9b05889aa7b303af60914fbe279b555c61b0890eecad12f35c6e3c207c7624",
+    "successful/campaign.json": "dbe60ce3b34de83a3ba1146d59841307b8f04aac0093648b13fa94fdc2050de3",
+    "successful/history64/contact-map.json": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599",
+    "successful/history64/policy-bank.pt": "e97385f252b14cfa54d0e5cfd356f48292c1f2cdec16704433138907062b74f0",
+    "successful/history64/probe.json": "28e511840ede0f121229bf44b490570741648deab38b2c8dfb1c923377331fee",
+    "successful/stable_contact/contact-map.json": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599",
+    "successful/stable_contact/policy-bank.pt": "f2592042a1358febd09f70d0730e3bf8cf125fbd510eb1f86ff3dbff3a80aa7e",
+    "successful/stable_contact/directions.csv": "d011ed790d608f1657d0c6c74299578d994f6e2c21c6effd457951fd07b0f8cd",
+    "successful/stable_contact/probe.json": "4b03da371ef5f9fc4021a10b2f288c9e41f6510381d7e5f83c588f3a66449bf8",
+    "successful/stable_contact/summary.json": "6b9bf53adb53149f53e43446980094371afb6325cc24bc1b3668467a4a1ae7b3",
+    "successful/switch_nearby/contact-map.json": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599",
+    "successful/switch_nearby/policy-bank.pt": "0febcb606b4254a8766f3b05f8421224e610fc18fc7420bbaa19272affba8d68",
+    "successful/switch_nearby/directions.csv": "08d9e2b3ddc4df97265d34e2c949fa2fa133e95d8431af25b15c242606685827",
+    "successful/switch_nearby/probe.json": "24227f5aface052c60017d0e8ad145ba08c8ddcdd9d00215aa6d62608e46a928",
+    "successful/switch_nearby/summary.json": "53f06a6f907852da819b17e26c9b840d81f9df28c93e191f254e086d37c32d76",
+    "physical/stable_contact.pt": "265509b50bbb4af0aba62a981216d9a91ca7b83cd3144d364b15ef5872b94a13",
+    "physical/switch_nearby.pt": "a9123cf184d0338a6ca591e71e667e654fed5dc78a11699e89bc3618421b6148",
+    "failed/plan.json": "fb75075ea9b48c70786b07a250d9313a3b73b76fe754315e3fe471e06438f15c",
+    "failed/history64.log": "74f05f1bc2a1707541f8e2de0ec7fdf6ca0976abe88ea687a8ac3f34b73077a0",
+    "failed/campaign.json": "337fc874eb2b661900f6de88744280befb93fcdb030c77ba2167a9fcd2760d3f",
+    "failed/history64/probe.json": "5b15c6ad533fdcda4e854e5cbea58ab502ef286cd4981092ef1d5c54575d8701",
+    "failed-cpu-analysis/return-roundoff.json": "6b417064678b7275a3d15ab79c360cb5722d31b9aff6e299bdc2b7fc09938b3e",
+    "failed-cpu-analysis/stdout.log": "528f871065ee9f5656620da4f2d3a755a1d290f7ee0adcfcde01873f9a33c1ec",
+    "failed-cpu-analysis/validation.json": "fa5e06d2a9364025c681894ec23b6e69bab8bdc21afc146307d682d246ca9ba7"
+  },
+  "native_campaign": {
+    "status": "complete",
+    "source": "40505eb8ba45d66a4c36ee22e69c72bf77cb4362",
+    "plan": {
+      "status": "revised_before_new_gradients",
+      "source_bank_sha256": "a79f08f281b288e8f8001aa994fc127789c080e42b67fa809dce1cbeb48d3abb",
+      "checkpoint_sha256": "54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac",
+      "prior_diagnostic_gpu_hours": 0.3573775077108682,
+      "cumulative_cap_gpu_hours": 0.5,
+      "sample_selection": "Exclude previous indices0/1; first8 motion names in source-bank order having both past-contact groups; first eligible index per motion/group; no gradient/return used",
+      "contact_definition": "Body-pair signature from the end of the recorded16-step prefix; changes during last2-step neighborhood inclusive; past-only, not stable for futureH32",
+      "motion_names": [
+        "run1_subject5",
+        "run2_subject1",
+        "run2_subject4",
+        "sprint1_subject4",
+        "walk1_subject2",
+        "walk1_subject5",
+        "walk2_subject4",
+        "walk3_subject2"
+      ],
+      "cases": {
+        "stable_contact": [
+          55,
+          20,
+          21,
+          5,
+          43,
+          8,
+          29,
+          31
+        ],
+        "switch_nearby": [
+          19,
+          2,
+          3,
+          41,
+          7,
+          44,
+          11,
+          13
+        ]
+      },
+      "horizon": 32,
+      "precision": "fp32_no_tf32_no_amp",
+      "probe_seed": 9001,
+      "random_directions": 8,
+      "epsilons": [
+        0.001,
+        0.003,
+        0.01
+      ],
+      "repeats": 3,
+      "history_preparation": "derive a distinct bank using the same64 parent reset frames and fixed16-step action tapes; retain actual replay endpoint/raw history/contacts and original endpoint drift; do not pool with original bank",
+      "maximum_gpu_seconds": {
+        "history_preparation": 90,
+        "each_cohort": 180
+      },
+      "forecast_gpu_seconds": {
+        "history_preparation": 30,
+        "each_cohort": 110
+      },
+      "forecast_peak_device_mib": 4096,
+      "minimum_free_device_mib": 16384,
+      "minimum_disk_reserve_gib": 24,
+      "estimated_additional_artifact_gib": 1.65,
+      "interpretation": "paired motion identities but distinct states/phases; descriptive batch-mean directional diagnostics, not contact causal effect or independent training seeds",
+      "previous_plan": "policy-contact-coverage.json",
+      "previous_failure": "policy-contact-v1/history64: strict endpoint drift 0.0009658634662628174 > 1e-5; no gradients calculated",
+      "contact_revalidation": "The exact originally predeclared indices must retain their past-only contact labels and motion names in the new bank; reject before any gradients if they do not"
+    },
+    "prior_allocated_seconds": 1286.5590277591255,
+    "cumulative_cap_gpu_hours": 0.5,
+    "commands": [
+      {
+        "case": "history64",
+        "resources": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        },
+        "observations": [
+          {
+            "elapsed_seconds": 0.04639359505381435,
+            "name": "NVIDIA A100-PCIE-40GB",
+            "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+            "driver": "570.133.20",
+            "memory_total_mib": "40960",
+            "memory_free_mib": "40443",
+            "utilization_percent": "0",
+            "compute_pids": []
+          }
+        ],
+        "formal_gpu_before": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "31326",
+          "utilization_percent": "63"
+        },
+        "command": [
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+          "-m",
+          "experiments.ablation.fidelity",
+          "--probe-space",
+          "policy",
+          "--checkpoint",
+          "/home/huangyue/work/supermimic-ablation-20261023/formal-repo/logs/ablation/formal-locomotion-seed0-v1/supermimic-seed0/ckpt_004000.pt",
+          "--bank",
+          "/home/huangyue/work/supermimic-ablation-20261023/trained-fidelity-repo/logs/ablation/trained-policy-fidelity-seed0-v1/gradient-components-full-h1/heldout-bank.pt",
+          "--output",
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-contact-v2/history64",
+          "--sample-indices",
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27",
+          "28",
+          "29",
+          "30",
+          "31",
+          "32",
+          "33",
+          "34",
+          "35",
+          "36",
+          "37",
+          "38",
+          "39",
+          "40",
+          "41",
+          "42",
+          "43",
+          "44",
+          "45",
+          "46",
+          "47",
+          "48",
+          "49",
+          "50",
+          "51",
+          "52",
+          "53",
+          "54",
+          "55",
+          "56",
+          "57",
+          "58",
+          "59",
+          "60",
+          "61",
+          "62",
+          "63",
+          "--gradient-horizon",
+          "32",
+          "--probe-seed",
+          "9001",
+          "--directions",
+          "8",
+          "--epsilons",
+          ".001",
+          ".003",
+          ".01",
+          "--repeats",
+          "3",
+          "--precision",
+          "fp32",
+          "--record-contacts",
+          "--gpu",
+          "2",
+          "--gpu-uuid",
+          "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "--max-seconds",
+          "75",
+          "--prepare-history-only",
+          "--replay-prefix-bank"
+        ],
+        "pid": 3055941,
+        "peak_device_memory_used_mib": 1984.0,
+        "returncode": 0,
+        "seconds": 19.214651488000527,
+        "formal_gpu_after": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "31326",
+          "utilization_percent": "58"
+        }
+      },
+      {
+        "case": "stable_contact",
+        "resources": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        },
+        "observations": [
+          {
+            "elapsed_seconds": 0.048108496936038136,
+            "name": "NVIDIA A100-PCIE-40GB",
+            "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+            "driver": "570.133.20",
+            "memory_total_mib": "40960",
+            "memory_free_mib": "40443",
+            "utilization_percent": "0",
+            "compute_pids": []
+          }
+        ],
+        "formal_gpu_before": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "31326",
+          "utilization_percent": "58"
+        },
+        "command": [
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+          "-m",
+          "experiments.ablation.fidelity",
+          "--probe-space",
+          "policy",
+          "--checkpoint",
+          "/home/huangyue/work/supermimic-ablation-20261023/formal-repo/logs/ablation/formal-locomotion-seed0-v1/supermimic-seed0/ckpt_004000.pt",
+          "--bank",
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-contact-v2/history64/policy-bank.pt",
+          "--output",
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-contact-v2/stable_contact",
+          "--sample-indices",
+          "55",
+          "20",
+          "21",
+          "5",
+          "43",
+          "8",
+          "29",
+          "31",
+          "--gradient-horizon",
+          "32",
+          "--probe-seed",
+          "9001",
+          "--directions",
+          "8",
+          "--epsilons",
+          ".001",
+          ".003",
+          ".01",
+          "--repeats",
+          "3",
+          "--precision",
+          "fp32",
+          "--record-contacts",
+          "--gpu",
+          "2",
+          "--gpu-uuid",
+          "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "--max-seconds",
+          "165"
+        ],
+        "pid": 3056285,
+        "peak_device_memory_used_mib": 3198.0,
+        "returncode": 0,
+        "seconds": 83.82167755905539,
+        "formal_gpu_after": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "31326",
+          "utilization_percent": "63"
+        }
+      },
+      {
+        "case": "switch_nearby",
+        "resources": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "40443",
+          "utilization_percent": "0",
+          "compute_pids": []
+        },
+        "observations": [
+          {
+            "elapsed_seconds": 0.04280361998826265,
+            "name": "NVIDIA A100-PCIE-40GB",
+            "uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+            "driver": "570.133.20",
+            "memory_total_mib": "40960",
+            "memory_free_mib": "40443",
+            "utilization_percent": "0",
+            "compute_pids": []
+          }
+        ],
+        "formal_gpu_before": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "31326",
+          "utilization_percent": "71"
+        },
+        "command": [
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/bin/python",
+          "-m",
+          "experiments.ablation.fidelity",
+          "--probe-space",
+          "policy",
+          "--checkpoint",
+          "/home/huangyue/work/supermimic-ablation-20261023/formal-repo/logs/ablation/formal-locomotion-seed0-v1/supermimic-seed0/ckpt_004000.pt",
+          "--bank",
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-contact-v2/history64/policy-bank.pt",
+          "--output",
+          "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-contact-v2/switch_nearby",
+          "--sample-indices",
+          "19",
+          "2",
+          "3",
+          "41",
+          "7",
+          "44",
+          "11",
+          "13",
+          "--gradient-horizon",
+          "32",
+          "--probe-seed",
+          "9001",
+          "--directions",
+          "8",
+          "--epsilons",
+          ".001",
+          ".003",
+          ".01",
+          "--repeats",
+          "3",
+          "--precision",
+          "fp32",
+          "--record-contacts",
+          "--gpu",
+          "2",
+          "--gpu-uuid",
+          "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+          "--max-seconds",
+          "165"
+        ],
+        "pid": 3057615,
+        "peak_device_memory_used_mib": 3198.0,
+        "returncode": 0,
+        "seconds": 82.49197679094505,
+        "formal_gpu_after": {
+          "name": "NVIDIA A100-PCIE-40GB",
+          "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+          "driver": "570.133.20",
+          "memory_total_mib": "40960",
+          "memory_free_mib": "31326",
+          "utilization_percent": "66"
+        }
+      }
+    ],
+    "nice": 10,
+    "cpu_affinity": [
+      76,
+      77,
+      78,
+      79
+    ],
+    "cohort_preflight": {
+      "stable_contact": {
+        "indices": [
+          55,
+          20,
+          21,
+          5,
+          43,
+          8,
+          29,
+          31
+        ],
+        "labels": [
+          "stable_contact",
+          "stable_contact",
+          "stable_contact",
+          "stable_contact",
+          "stable_contact",
+          "stable_contact",
+          "stable_contact",
+          "stable_contact"
+        ],
+        "bank_sha256": "e97385f252b14cfa54d0e5cfd356f48292c1f2cdec16704433138907062b74f0"
+      },
+      "switch_nearby": {
+        "indices": [
+          19,
+          2,
+          3,
+          41,
+          7,
+          44,
+          11,
+          13
+        ],
+        "labels": [
+          "switch_nearby",
+          "switch_nearby",
+          "switch_nearby",
+          "switch_nearby",
+          "switch_nearby",
+          "switch_nearby",
+          "switch_nearby",
+          "switch_nearby"
+        ],
+        "bank_sha256": "e97385f252b14cfa54d0e5cfd356f48292c1f2cdec16704433138907062b74f0"
+      }
+    },
+    "cumulative_diagnostic_gpu_hours": 0.408913148221424
+  },
+  "all_raw_vectors_and_physical_rollouts_verified": true,
+  "archive_sha256": "4a595de68d42985259f37ab877b090bfc18bd81c2b5cecdec4464027dcc3079a",
+  "archive_bytes": 5149098,
+  "cpu_seconds": 12.60391363396775,
+  "cuda_initialized": false
+}

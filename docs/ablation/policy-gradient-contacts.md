@@ -46,4 +46,53 @@ python -m experiments.ablation.analyze_policy_contacts \
   --output "$ANALYSIS"
 ```
 
-原生运行结果和成本将在完整张量验收后记录。
+## 原生验证结果
+
+两组均完成 70 次物理 rollout（3 baseline + 66 正负扰动 + 1 actual Adam），每次 8 起点、32 步。全部原始梯度、裁剪、unit direction、方向点积、CSV 与物理返回张量通过 CPU 复核；两组随机方向逐张量相同，state/history 从同一派生库逐值选择。
+
+| 过去接触组 | actual Adam 硬物理 ΔReturn | 带 Critic 代理 ΔReturn | 硬回报改善的起点 | 未来 H32 出现接触切换 |
+|---|---:|---:|---:|---:|
+| stable_contact | +0.00600910 | +0.02717590 | 4/8 | 7/8 |
+| switch_nearby | +0.01879692 | +0.06925011 | 7/8 | 8/8 |
+
+这是每组**一个批次平均梯度**所产生的真实历史 Adam 更新。步长由原始 Adam 历史决定，位移 L2 分别 0.12004382 / 0.12121719；不是跨组等步长比较，也不是新的 BPTT/PPO 对照。stable 组有一半起点退化，因此正的平均收益不等于每个状态都改善。原始 GPU 均值差保留；从逐状态返回进行 FP64 复算，硬回报改进为 +0.00600913167 / +0.01879718900。
+
+![实际 Adam 的逐状态物理改善](../../results/ablation/policy-gradient-contacts-v1/historical-adam.png)
+
+8 个随机方向的**匹配代理目标**结果如下；括号内给出已解析方向上的符号一致率和 Pearson r。相关性只描述保留下来的小样本，数值筛选可能造成选择偏差。
+
+| ε | past stable：已解析/8 | past switch：已解析/8 |
+|---|---|---|
+| 0.001 | 2/8（2/2，r 不可报告） | 4/8（3/4，r=0.584813） |
+| 0.003 | 2/8（2/2，r 不可报告） | 4/8（3/4，r=0.555045） |
+| 0.01 | 1/8（1/1，r 不可报告） | 0/8（无可报告统计） |
+
+沿 raw gradient 这个**选定方向**，ε=.003 的代理导数预测/物理差分分别为 2.871353/2.964020 和 4.522671/5.265554，方向同号且通过尺度筛选；它不代表所有随机方向。raw 与 norm-clipped 方向在本批几乎重复，不能把 CSV 中 selected-direction 的高相关性当作独立准确性证据。
+
+硬回报随机方向在 ε=.01 下分别为 0/8 和 6/8 已解析；后者符号一致率 4/6、r=−0.115862。它与 WM 的 soft+bootstrap 目标不同，因此这个 r **不是匹配目标的梯度准确率**。[所有尺度/方向/目标的 CSV](../../results/ablation/policy-gradient-contacts-v1/directions.csv) 和 [汇总](../../results/ablation/policy-gradient-contacts-v1/metrics.csv)完整保留，没有仅选择表现好的方向。
+
+![随机方向：两个目标分别显示](../../results/ablation/policy-gradient-contacts-v1/random-directions.png)
+
+baseline 三次重复的批次平均回报差均为零，但这不消除截断误差、浮点扰动误差或接触不光滑性。跨尺度筛选失败不能直接证明 WM 梯度错误。当前三档 ε 对多数匹配目标随机方向仍无法给出稳定参考；扩大步长也会改变“局部”问题，不能为了得到相关性而事后只挑某档结果。
+
+## 接触解释与未证实结论
+
+过去 stable 的 8 个状态中，1 个在补全起点未来 ±2 步邻域后变为 switch_nearby，7 个在后续 H32 窗口出现切换；真正整个 H32 无切换的只有 1 个 sprint 状态。[逐状态接触记录](../../results/ablation/policy-gradient-contacts-v1/contacts.csv)。因此当前分组验证了保存接触与分层分析的链路，不能声称“稳定接触阶段的梯度优于切换附近”。两组还存在状态/相位差异，不能把均值收益差归因于接触。
+
+**已验证**：旧库失败时拒绝梯度、明确派生新库、保持固定历史/状态、原 actor 路径、两目标物理闭环、全部方向和原始张量复核、过去/起点/未来接触分开报告。
+
+**观察性现象**：两组平均 Adam 更新有效，但个体收益有负值；随机方向参考对尺度敏感；过去稳定标签不能代表未来 H32 稳定。
+
+**未证实**：总体梯度准确性排序、接触的因果作用、WM MSE 对参数梯度准确性的可预测性、跨训练seed/WM阶段的稳定性。此前两起点的[匹配 BPTT/PPO](matched-policy-results.md)仍单独解释，未把它推广为本轮16状态的PPO对照。
+
+## 成本、复核与数据
+
+本轮 GPU 占用：失败的旧库重建 19.541912 s；派生库 19.214651 s；stable 83.821678 s；switch 82.491977 s；合计 **205.070218 s = 0.056963949 GPU-hours**。峰值 3198 MiB。加上之前诊断，累计 **0.408913148 GPU-hours / 0.5 上限**，包含失败与准备成本。全部诊断 GPU 进程已结束，正式 GPU0 队列未中断；共享主机资源干扰未被证明为零。这些是诊断成本，不与训练 Return/Compute 曲线混合。
+
+首次 CPU 验收因 8 元素 FP32 的 GPU/CPU 均值差不完全相等而失败。逐状态返回未改变：例如 switch 的硬改进 GPU=0.01879692078、CPU FP32=0.01879739761、CPU FP64=0.01879718900。分析器改用 FP64 参考与基于 dtype、样本数和返回量级的 reduction roundoff bound；它只界定加法/除法/相减舍入，不是仿真误差容限。实测舍入实例通过，篡改 +0.001 被拒绝；首次失败、逐值算术审计及原始 GPU 数字全部保存。完整 CPU 复核用时 12.603914 s，没有初始化 CUDA，也没有重跑物理结果。
+
+原生代码 `40505eb8ba45d66a4c36ee22e69c72bf77cb4362`；张量分析代码 `2ce7ac33509eff3dfb3ce81b52cfbc0d3397ec9e`。两者均不改 `supermimic/`。派生库 SHA256 `e97385f252b14cfa54d0e5cfd356f48292c1f2cdec16704433138907062b74f0`。
+
+[原始日志、状态库、CSV、接触/物理返回小包](../../results/ablation/policy-gradient-contacts-v1/raw-data.tar.gz)（27文件，5,149,098 bytes，SHA256 `4a595de68d42985259f37ab877b090bfc18bd81c2b5cecdec4464027dcc3079a`）与 [完整复核和成本收据](../../results/ablation/policy-gradient-contacts-v1/validation.json)。9M维 gradient/unit-direction/Adam 大张量仍保留实验主机，收据列出每文件 SHA 和大小；小包中的 physical 文件去除了 unit directions，足够复核物理返回与接触，不冒充完整物理重跑输入。
+
+CPU 回归与已发布数据复算：`python -m unittest discover -s tests -v`。

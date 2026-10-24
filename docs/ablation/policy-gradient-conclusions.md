@@ -10,7 +10,7 @@
 | Policy Parameter Gradient入口 | `fidelity --probe-space policy`，9,116,477维全部Actor参数，非动作序列梯度 | 旧Action Gradient入口保留、分别解释 |
 | 固定Policy/WM/Critic/replay起点/RNG | 同一checkpoint与bank SHA，保存raw history；每次恢复状态、参数、normalizer与RNG；检查物理初态漂移≤1e-5 | 既有bank重放prefix恢复history，不冒充过去某个训练minibatch的精确重放 |
 | 正负参数扰动物理闭环与两个目标 | 三个ε、共同随机数、MuJoCo-Warp完整H步rollout；分别保存soft+bootstrap代理目标和硬终止Return | 中央差分只是数值参考，不是解析真值；硬Return不是代理目标的导数 |
-| H1/8/32、符号/收益/噪声、两种独立消融 | [原生15组报告](policy-gradient-native-v1.md)覆盖三个H和2×2消融；[H32 FP32补充](policy-gradient-components.md)补齐精度控制 | Critic关闭改变当前目标；动作stop-gradient改变backward，不改变前向奖励；每条件只有两个随机方向，不报告可靠全局相关性 |
+| H1/8/32、符号/收益/噪声、两种独立消融 | [原生15组报告](policy-gradient-native-v1.md)覆盖三个H和2×2消融；[H32 FP32补充](policy-gradient-components.md)补齐精度控制 | Critic关闭改变当前目标；动作stop-gradient改变backward，不改变前向奖励；原两状态条件各两个随机方向；新增16状态接触批次各8随机方向，按尺度报告，仍不推断全局相关性 |
 | 复用checkpoint、不重训WM、保留完整梯度和Adam | 原始loss/ascent、norm-clipped、value-clipped、optimizer前后state、实际Adam位移、全部物理rollout均保存；CPU从大张量复核 | 历史Adam moments仍含过去Critic影响，不能称为从头无Critic训练 |
 | 同策略同目标PPO采样与相同更新预算 | [匹配目标实验](matched-policy-results.md)：相同mean网络、固定σ=.1，原actor路径BPTT与θ_old处PPO score gradient；16梯度noise tapes、16独立物理noise tapes、相同L2步长 | 此辅助比较是首次PPO梯度，λ=1、无advantage标准化/entropy，不等于完整多epoch PPO训练；noise tapes不是训练seed |
 
@@ -26,10 +26,12 @@ PPO均值梯度的采样SE L2为214.149833，均值L2为235.628121，当前16个
 
 统一随机策略与WM期望目标后，在可交换微分与期望等条件下，pathwise与score估计针对同一个期望梯度。当前对照显示有限采样下的方差和更新效果不同；不支持“BPTT理论期望梯度天然比PPO更正确”。这个WM期望梯度本身还可能偏离物理目标梯度，详见[同目标协议](matched-policy-estimators.md)。
 
+新增[两批各8状态的接触诊断](policy-gradient-contacts.md)进一步区分了两个问题：实际Adam平均硬回报改善 +0.006009 / +0.018797，但在 ε=.01 的8个随机方向上，匹配代理参考仅1/8与0/8可解析；ε=.001/.003则为2/8与4/8，结果依赖尺度。过去stable组7/8在未来H32发生切换，因此没有得出接触稳定性与梯度准确性的因果关系。该批使用明确标记的派生状态库，不与此前原末端库混合。
+
 ## 已验证结果、观察与未证实推测
 
 - **已验证**：原actor公式/裁剪/历史Adam复用；固定快照和共同随机数；真实物理参数扰动；目标分离；保存梯度与方向点积复核；H32完整FP32消融；匹配随机目标的两种梯度估计器及物理更新链路。
-- **观察性结果**：当前checkpoint和两个run起点上，H32 BPTT的等步长更新更有效，采样波动更小；代理收益与硬物理收益可以分离。结果不能推广到walk/sprint、接触边界或所有训练阶段。
+- **观察性结果**：当前checkpoint和两个run起点上，H32 BPTT的等步长更新更有效，采样波动更小；代理收益与硬物理收益可以分离。这条BPTT/PPO比较仍只覆盖两个run起点；新增[16状态接触诊断](policy-gradient-contacts.md)覆盖walk/run/sprint，未重新做PPO对照。
 - **未证实**：全向量梯度准确性排序、PPO充分采样后的方向、跨状态/接触/WM阶段/训练seed的稳定性、同等最终质量下的完整训练速度优势。低State Prediction MSE仍不能代替任何Policy Gradient准确性指标。
 
 本次固定checkpoint、单seed、低成本参数梯度验证与原始三方法长程实验分别验收。正式三训练seed/40段、WM吞吐与优化机制的端到端归因仍需完整队列结果；本报告不将这些后续研究写成已完成。

@@ -1,0 +1,17 @@
+cohort,source_sample_index,motion,past_contact_group,initial_symmetric_group,future_window_group,future_contact_switches
+stable_contact,55,run1_subject5,stable_contact,stable_contact,switch_nearby,7
+stable_contact,20,run2_subject1,stable_contact,stable_contact,switch_nearby,5
+stable_contact,21,run2_subject4,stable_contact,stable_contact,switch_nearby,7
+stable_contact,5,sprint1_subject4,stable_contact,stable_contact,stable_contact,0
+stable_contact,43,walk1_subject2,stable_contact,switch_nearby,switch_nearby,4
+stable_contact,8,walk1_subject5,stable_contact,stable_contact,switch_nearby,4
+stable_contact,29,walk2_subject4,stable_contact,stable_contact,switch_nearby,2
+stable_contact,31,walk3_subject2,stable_contact,stable_contact,switch_nearby,2
+switch_nearby,19,run1_subject5,switch_nearby,switch_nearby,switch_nearby,8
+switch_nearby,2,run2_subject1,switch_nearby,switch_nearby,switch_nearby,5
+switch_nearby,3,run2_subject4,switch_nearby,switch_nearby,switch_nearby,7
+switch_nearby,41,sprint1_subject4,switch_nearby,switch_nearby,switch_nearby,8
+switch_nearby,7,walk1_subject2,switch_nearby,switch_nearby,switch_nearby,3
+switch_nearby,44,walk1_subject5,switch_nearby,switch_nearby,switch_nearby,4
+switch_nearby,11,walk2_subject4,switch_nearby,switch_nearby,switch_nearby,9
+switch_nearby,13,walk3_subject2,switch_nearby,switch_nearby,switch_nearby,10
