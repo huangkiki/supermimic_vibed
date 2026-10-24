@@ -296,6 +296,15 @@ class NativeAdapterContractTests(unittest.TestCase):
             physical = ClosedLoopPhysical(probe, env, bank)
             result = physical()
             repeat = physical()
+            with patch('experiments.ablation.fidelity.contact_signature',
+                       side_effect=lambda env: [((0, env.count),)] * probe.batch) as contacts:
+                recorded = ClosedLoopPhysical(probe, env, bank, record_contacts=True)()
+                self.assertEqual(contacts.call_count, probe.horizon)
+                self.assertEqual(recorded['geometry_contacts'][0], [((0, 1),)] * probe.batch)
+                self.assertEqual(recorded['geometry_contacts'][-1], [((0, 8),)] * probe.batch)
+            torch.testing.assert_close(recorded['proxy'], result['proxy'], rtol=0, atol=0)
+            torch.testing.assert_close(recorded['hard'], result['hard'], rtol=0, atol=0)
+            self.assertNotIn('geometry_contacts', result)
         expected = probe.objective()
         torch.testing.assert_close(result['proxy'], expected['proxy'], rtol=0, atol=0)
         torch.testing.assert_close(result['actions'], expected['actions'], rtol=0, atol=0)
@@ -362,6 +371,22 @@ class NativeAdapterContractTests(unittest.TestCase):
                 main(['--checkpoint', 'missing.pt', '--bank', 'missing-bank.pt', '--output', 'unused',
                       '--gpu', '0', '--gpu-uuid', 'GPU-test'])
             load.assert_not_called()
+
+    def test_history_only_allows_full_bank_without_expanding_gradient_batch_limit(self):
+        from unittest.mock import patch
+        from experiments.ablation.policy_fidelity_run import main
+        args = ['--checkpoint', 'missing.pt', '--bank', 'missing-bank.pt', '--output', 'unused',
+                '--gpu', '0', '--gpu-uuid', 'GPU-test', '--sample-indices', *map(str, range(64))]
+        with patch('experiments.ablation.run_suite.wait_for_idle_gpu', side_effect=RuntimeError('busy')) as idle, patch('torch.load') as load:
+            with self.assertRaisesRegex(ValueError, 'At most 16'):
+                main(args)
+            idle.assert_not_called()
+            with self.assertRaisesRegex(RuntimeError, 'busy'):
+                main([*args, '--prepare-history-only'])
+            idle.assert_called_once()
+            load.assert_not_called()
+        with self.assertRaisesRegex(ValueError, 'does not compute gradients'):
+            main([*args, '--prepare-history-only', '--no-critic'])
 
 
 if __name__ == '__main__':

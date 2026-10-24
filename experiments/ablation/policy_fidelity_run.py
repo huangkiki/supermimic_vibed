@@ -87,6 +87,10 @@ def parser():
     value.add_argument('--bank', required=True, help='existing held-out bank; original file is read-only')
     value.add_argument('--output', required=True)
     value.add_argument('--sample-indices', type=int, nargs='+', default=[0, 1])
+    value.add_argument('--prepare-history-only', action='store_true',
+                       help='replay the entire source bank in original environment order; no gradient or policy update')
+    value.add_argument('--record-contacts', action='store_true',
+                       help='retain native geometry contacts after every physical transition')
     value.add_argument('--gradient-horizon', type=int, choices=(1, 8, 32), default=32)
     value.add_argument('--probe-seed', type=int, default=9001)
     value.add_argument('--directions', type=int, default=2, help='additional random unit L2 directions')
@@ -110,8 +114,11 @@ def main(argv=None):
     args, launcher = parser().parse_known_args(argv)
     if not math.isfinite(args.max_seconds) or args.max_seconds <= 0 or args.max_seconds > 1800:
         raise ValueError('This low-cost diagnostic requires 0 < max-seconds <= 1800')
-    if len(args.sample_indices) > 16:
-        raise ValueError('Qualify at most 16 starts before planning a larger run')
+    limit = 64 if args.prepare_history_only else 16
+    if len(args.sample_indices) > limit:
+        raise ValueError(f'At most {limit} starts allowed for this diagnostic mode')
+    if args.prepare_history_only and (args.estimator_seeds is not None or args.no_critic or args.detach_action_reward):
+        raise ValueError('History preparation does not compute gradients or estimator comparisons')
     if args.repeats < 2 or args.directions < 1 or len(args.epsilons) < 2 or args.epsilons != sorted(set(args.epsilons)) or any(not math.isfinite(e) or e <= 0 for e in args.epsilons):
         raise ValueError('Invalid repeat/direction/epsilon design')
     if args.estimator_seeds is not None:
@@ -142,6 +149,8 @@ def main(argv=None):
     planned_rollouts = args.repeats + 2 * len(args.epsilons) * (3 + args.directions) + 1
     if args.estimator_seeds is not None:
         planned_rollouts = len(args.reference_seeds) * (1 + 4 * len(args.epsilons)) + args.repeats - 1
+    if args.prepare_history_only:
+        planned_rollouts = 0
     receipt = dict(status='started', args=vars(args), resources=resources, preflight_observations=observations,
         requested_time_budget_seconds=args.max_seconds, planned_physical_rollouts=planned_rollouts,
         planned_physical_steps=planned_rollouts * args.gradient_horizon * len(args.sample_indices),
@@ -188,7 +197,10 @@ def _run(args, launcher, output, receipt, started):
     for name, digest in manifest['source_hashes'].items():
         if name.startswith('supermimic/') and digest != checkpoint['manifest']['source_hashes'][name]:
             raise ValueError(f'Original training source differs: {name}')
-    bank = select_bank(torch.load(args.bank, map_location=device, weights_only=False), args.sample_indices)
+    original_bank = torch.load(args.bank, map_location=device, weights_only=False)
+    if args.prepare_history_only and args.sample_indices != list(range(len(original_bank['frames']))):
+        raise ValueError('History preparation requires the complete source bank in its original order')
+    bank = select_bank(original_bank, args.sample_indices)
     if bank['collector_sha256'] != checkpoint_hash or bank['motion_hashes'] != manifest['motions'] or bank['asset_hashes'] != manifest['assets']:
         raise ValueError('Held-out bank collector, motions or assets differ from the checkpoint')
     torch.backends.cuda.matmul.allow_tf32 = args.precision == 'training'
@@ -210,6 +222,21 @@ def _run(args, launcher, output, receipt, started):
         if bank.get('history_provenance', {}).get('historical_training_update_recovered') is not False:
             raise ValueError('Explicit fixed-bank history provenance required')
         torch.save(bank, output / 'policy-bank.pt')
+        if args.record_contacts:
+            model = env.sim.backend_manager._solver.mj_model
+            write_json(output / 'contact-map.json', dict(geom_body_ids=[int(i) for i in model.geom_bodyid],
+                       body_names=[model.body(i).name for i in range(model.nbody)]))
+        if args.prepare_history_only:
+            torch.cuda.synchronize()
+            if sha256(args.checkpoint) != checkpoint_hash or sha256(args.bank) != bank_hash:
+                raise RuntimeError('Input checkpoint or bank changed during history preparation')
+            receipt.update(status='complete', phase='history_preparation_only',
+                checkpoint_sha256=checkpoint_hash, bank_sha256=bank_hash,
+                prepared_bank_sha256=sha256(output / 'policy-bank.pt'), manifest=manifest,
+                history_provenance=bank['history_provenance'],
+                prefix_steps=len(bank['prefix_actions']), prefix_simulator_steps=len(bank['prefix_actions']) * env.N,
+                gradient_updates=0, peak_torch_memory_bytes=torch.cuda.max_memory_allocated())
+            return
         starts = dict(s=bank['state'], a_prev=bank['previous_action'], xi=bank['xi'], f=bank['frames'])
         probe = PolicyGradientProbe(policy=policy, wm=wm, critic=critic, mdp=mdp, motion=motion,
             starts=starts, history=bank['replay_history'], unflatten_state=unflatten_state, normalize_xi=normalize_xi,
@@ -223,14 +250,14 @@ def _run(args, launcher, output, receipt, started):
             from .policy_estimators import stochastic_probe
             from .compare_policy_estimators import run_comparison
             probe = stochastic_probe(probe, args.action_std)
-            result = run_comparison(probe, ClosedLoopPhysical(probe, env, bank), output,
+            result = run_comparison(probe, ClosedLoopPhysical(probe, env, bank, record_contacts=args.record_contacts), output,
                 gradient_seeds=args.estimator_seeds, reference_seeds=args.reference_seeds,
                 epsilons=args.epsilons, repeats=args.repeats, check_budget=check_budget)
             receipt['estimator_comparison'] = result
         else:
             captured = probe.capture(checkpoint['opt_pi'])
             torch.save(captured, output / 'gradients.pt')
-            physical = ClosedLoopPhysical(probe, env, bank)
+            physical = ClosedLoopPhysical(probe, env, bank, record_contacts=args.record_contacts)
             def bounded_physical():
                 check_budget()
                 return physical()
