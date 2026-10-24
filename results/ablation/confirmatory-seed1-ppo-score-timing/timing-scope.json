@@ -1,0 +1,6 @@
+{
+  "scope": "Score availability charges the complete training process and all preceding physical evaluation processes for that method, including the current repeat group. Frozen methods also pay their complete shared pretraining allocation once. These are sums of measured subprocess wall times, not absolute timestamps; unrelated methods, queue waiting and orchestration gaps outside those processes are excluded. Checkpoint reconstruction uses the earlier checkpoint training snapshot instead.",
+  "checkpoints": 5,
+  "recorded_order": "all policy training, then physical evaluation checkpoints and repeats",
+  "interpretation": "The availability axis measures the offline evaluation pipeline, not learning speed alone"
+}

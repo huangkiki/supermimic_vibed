@@ -1,0 +1,38 @@
+{
+  "before": {
+    "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+    "free_mib": 40443.0,
+    "utilization": 0.0,
+    "compute_pids": []
+  },
+  "worker_seconds": 3.5191473140148446,
+  "gpu_hours": 0.000977540920559679,
+  "samples": [
+    {
+      "index": 0,
+      "elapsed_after_exit": 4.214001819491386e-06,
+      "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+      "free_mib": 40443.0,
+      "utilization": 0.0,
+      "compute_pids": []
+    },
+    {
+      "index": 1,
+      "elapsed_after_exit": 0.14640609198249876,
+      "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+      "free_mib": 40443.0,
+      "utilization": 7.0,
+      "compute_pids": []
+    },
+    {
+      "index": 2,
+      "elapsed_after_exit": 0.2955376509344205,
+      "uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+      "free_mib": 40443.0,
+      "utilization": 0.0,
+      "compute_pids": []
+    }
+  ],
+  "stale_busy_samples": 1,
+  "scope": "Short resource-guard discriminator; no policy training; retained cost separately"
+}

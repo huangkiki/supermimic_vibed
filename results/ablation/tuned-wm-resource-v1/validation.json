@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "method": "ppo_wm_online",
+      "seed": 0,
+      "iterations": 532,
+      "actor_weights_changed": true,
+      "training_and_full_physical_evaluation_valid": true
+    }
+  ],
+  "actual_gpu_hours": 0.16152341577667456,
+  "evaluation_processes": 2,
+  "evaluation_repeats_per_checkpoint": 1,
+  "scope": "execution and recording qualification, not policy convergence or scientific superiority"
+}

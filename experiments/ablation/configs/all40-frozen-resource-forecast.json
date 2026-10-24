@@ -1,0 +1,46 @@
+{
+  "status": "bounded_resource_planning_not_convergence",
+  "execution_commit": "3526437a50fdc714cc77bc4527ca70124770b08a",
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "subset": "all40",
+  "seeds": [
+    0
+  ],
+  "scope": {
+    "methods": [
+      "pretrain",
+      "ppo_wm_frozen_hard",
+      "ppo_wm_frozen",
+      "bptt_wm_frozen"
+    ],
+    "iterations": 32,
+    "checkpoint_every": 32,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 1
+  },
+  "projected_campaign_gpu_hours": 2.4140541089593173,
+  "hard_gpu_hours": 2.5,
+  "projected_peak_memory_mib": 28701.6,
+  "projected_disk_gib": 5,
+  "minimum_disk_reserve_gib": 24,
+  "pretrain_seconds": 401.45678702695295,
+  "frozen_training_seconds": {
+    "ppo_wm_frozen_hard": 287.4129612944089,
+    "ppo_wm_frozen": 287.4129612944089,
+    "bptt_wm_frozen": 576.1931241870625
+  },
+  "evaluation_processes": 6,
+  "assumed_evaluation_seconds": 900,
+  "projected_training_seconds": 1552.4758338028332,
+  "projected_evaluation_seconds": 5400,
+  "measurement_source": "results/ablation/all40-resource-v1/qualification.json",
+  "purpose": "Qualify 4096-env frozen PPO hard/soft and frozen BPTT on one shared all40 WM/replay; 32 policy iterations only",
+  "limitations": [
+    "Frozen cost inferred from measured online policy phases; this probe will measure it directly",
+    "900 seconds per full-clip evaluation is a planning allowance; prior 32-iteration policies failed all clips quickly",
+    "25 percent time and 20 percent memory reserves are engineering margins, not confidence intervals",
+    "Separate independent bootstrap is fully charged; previously trained resource WM is not loaded",
+    "No extension to locomotion confirmatory budgets; no three-seed/all40 performance inference"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "status": "native_bank_qualification_passed",
+  "cpu_tests": 44,
+  "actual_gpu_hours": 0.033811281226161456,
+  "samples_per_bank": 18,
+  "checkpoint_iteration": 100,
+  "training_seeds": [
+    0
+  ],
+  "gradient_horizon": 1,
+  "prediction_horizons": [
+    1,
+    8,
+    16,
+    32
+  ],
+  "probes": 4,
+  "scope": "Engineering qualification with undertrained collector; different roll-ins induce different survivor-conditioned banks; no mature-policy or algorithm-efficiency conclusion",
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "banks": {
+    "reference_pd": {
+      "bank_sha256": "eaf3461b2bb506929efe339806811081f68a6d11114c4997f91d170cca3ca837",
+      "boundary_action_delta_l2_mean": 9.879901885986328,
+      "following_action_delta_l2_mean": 0.3390555679798126,
+      "boundary_action_replay_max_error": 2.384185791015625e-07,
+      "sampling_rounds": 3
+    },
+    "policy": {
+      "bank_sha256": "57acefce1261a62cdafbfc233815d7047ea4d455a05a9113b042ed95f9fa6971",
+      "boundary_action_delta_l2_mean": 0.3210271894931793,
+      "following_action_delta_l2_mean": 0.23587264120578766,
+      "boundary_action_replay_max_error": 1.1920928955078125e-07,
+      "sampling_rounds": 2
+    }
+  }
+}

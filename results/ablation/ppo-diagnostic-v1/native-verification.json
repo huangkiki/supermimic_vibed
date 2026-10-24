@@ -1,0 +1,15 @@
+{
+  "terminal_pose_checks": "pass",
+  "clips": 18,
+  "frame_count": 803,
+  "actor_updates_per_iteration": 20,
+  "actor_lr": 4.999999815997021e-06,
+  "critic_lr": 0.0001999999926398808,
+  "last_ten_iteration_seconds": {
+    "min": 1.974603247945197,
+    "median": 1.9910583154996857,
+    "max": 2.010330801946111
+  },
+  "peak_torch_mib": 4303.07568359375,
+  "scope": "Native qualification, not learning convergence"
+}

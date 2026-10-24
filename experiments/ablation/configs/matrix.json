@@ -1,0 +1,24 @@
+{
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "subsets": [
+    "locomotion",
+    "all40"
+  ],
+  "main_methods": [
+    "ppo_sim",
+    "ppo_wm_online",
+    "supermimic",
+    "ppo_wm_frozen_hard"
+  ],
+  "frozen_pair": [
+    "ppo_wm_frozen",
+    "bptt_wm_frozen"
+  ],
+  "status": "candidate_templates; execution status is recorded in campaign.json",
+  "selection": "all walk/run/sprint prefixes = 18 clips; all40 = complete source",
+  "formal_requires": "successful native smoke, measured resource forecast and finite campaign budget"
+}

@@ -1,0 +1,45 @@
+{
+  "status": "planning_not_convergence",
+  "gpu": "NVIDIA A100-PCIE-40GB",
+  "gpu_uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+  "subset": "locomotion",
+  "seeds": [
+    0
+  ],
+  "scope": {
+    "methods": [
+      "ppo_sim"
+    ],
+    "iterations": 1000,
+    "checkpoint_every": 500,
+    "ppo_actor_lr": 2e-05,
+    "evaluation_repeats": 3
+  },
+  "projected_campaign_gpu_hours": 1.7291666666666665,
+  "projected_peak_memory_mib": 12000,
+  "projected_disk_gib": 4,
+  "minimum_disk_reserve_gib": 20,
+  "measured_warm_iteration_seconds": [
+    1.974603247945197,
+    2.010330801946111
+  ],
+  "measured_torch_peak_mib": 4303.07568359375,
+  "measured_previous_device_peak_mib": 8450,
+  "measurement_source": "results/ablation/ppo-diagnostic-v1/native-verification.json",
+  "assumptions": {
+    "cold_setup_io_allowance_seconds": 180,
+    "upper_update_seconds": 2.1,
+    "physical_evaluation_seconds": [
+      30,
+      300
+    ],
+    "evaluation_processes": 9,
+    "time_margin": 1.25
+  },
+  "limitations": [
+    "1000 iterations are a tuning probe, not a convergence guarantee",
+    "GPU0 same-host overlap with GPU1 exploratory campaign; exclude these runs from primary efficiency comparison",
+    "Runtime predictions include 3 fresh-process evaluations at 0, 500 and 1000; full-clip durations may exceed allowance",
+    "Do not change GPU UUID, task subset or seeds without a fresh resource qualification"
+  ]
+}

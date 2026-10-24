@@ -1,0 +1,71 @@
+{
+  "status": "preregistered_before_confirmatory_gradient_probes",
+  "validation_seeds": [
+    1,
+    2,
+    3
+  ],
+  "development_seeds": [
+    0
+  ],
+  "subset": "locomotion",
+  "method": "supermimic",
+  "collector_iteration": 4000,
+  "wm_iterations": [
+    1000,
+    2000,
+    3000,
+    4000
+  ],
+  "samples": 64,
+  "prefix_controller": "policy",
+  "prefix_steps": 16,
+  "directions": 4,
+  "gradient_horizons": [
+    1,
+    8,
+    32
+  ],
+  "prediction_horizons": [
+    1,
+    8,
+    16,
+    32
+  ],
+  "reward_objectives": [
+    "full",
+    "state_only"
+  ],
+  "contact_level": "body",
+  "epsilons": [
+    0.003,
+    0.01,
+    0.03,
+    0.1
+  ],
+  "primary_epsilon": 0.03,
+  "probe_seed": 9001,
+  "probe_gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "canonical_prediction_probe": "gradient-components-full-h32",
+  "bank_rule": "One final-collector bank per training seed; shared across checkpoints/objectives/horizons within seed. Different seeds have different banks and collectors.",
+  "statistics": "Equal weight per independent training seed; sample SD. A missing or undefined seed metric leaves cohort mean/SD unavailable and reports the defined-seed count. Never pool states or directions as independent training seeds.",
+  "associations": "Descriptive Pearson correlations across WM stages within each training seed; no p-values, causal inference or pooled stage independence.",
+  "costs": "Probe campaign allocations are separately charged; they do not alter training-method efficiency curves. Fresh resource preflight and bounded budgets required before probes.",
+  "limitations": [
+    "Action-sequence gradients, nominal simulator parameters, no critic in the probe objective. Finite differences are numerical references.",
+    "Per-seed bank distribution changes with the final collector; this is not a shared-state causal test of training seeds.",
+    "Microstep comparisons use states with reproducible starts for the gradient and all random directions at the same epsilon; FD resolution is reported separately.",
+    "H32 stable-contact coverage may be sparse or absent; retain counts and undefined metrics.",
+    "Prediction errors use only the declared canonical probe; six replayed probes are not six independent prediction datasets."
+  ],
+  "precision": "fp32, TF32 disabled",
+  "reset_protocol": "native physical state restore, nominal xi, Newton solver reset flags=0 before each rollout",
+  "probe_gpu_hours_cap_per_seed": 0.3,
+  "probe_gpu_hours_cap_total": 0.9,
+  "resource_basis": "Development six-probe campaign measured 0.188922389686 GPU-hours; 25% reserve is 0.236153 per seed. These caps do not replace each-launch resource checks. Memory 4096 MiB estimate with >=8192 MiB free-device gate; disk 1 GiB per seed plus20 GiB reserve carry forward the qualified development probe recipe. These are engineering allowances, not measured all-seed peaks.",
+  "projected_gpu_hours_per_seed": 0.2361529871075,
+  "projected_peak_memory_mib": 4096,
+  "minimum_free_memory_mib": 8192,
+  "projected_disk_gib_per_seed": 1,
+  "minimum_disk_reserve_gib": 20
+}

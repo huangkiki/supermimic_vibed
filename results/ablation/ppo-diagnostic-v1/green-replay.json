@@ -1,0 +1,44 @@
+{
+  "checkpoint": "/home/huangyue/work/supermimic-ablation-20261023/formal-repo/logs/ablation/formal-locomotion-seed0-v1/ppo_sim-seed0/ckpt_001000.pt",
+  "checkpoint_sha256": "466d8cd9448902bd2231e470ad35556f29ae988414f44e9ffd9ca4cf3b240059",
+  "batch_sha256": "660f04dff3eacffc3e0c0549a49ae42f8e049035a0fcc2757856f0fd42153814",
+  "samples": 16384,
+  "seed": 9021,
+  "replay_sources": {
+    "experiments/ablation/diagnose_ppo.py": "9a082c1d51e6ef6ce3c78e60563aac5517f6dee5d877edd315462fa4eeaf733a",
+    "experiments/ablation/ppo.py": "189642100491df32cf91016272dc1ba7fc137c0e931922bf201fe488711a6525",
+    "experiments/ablation/common.py": "681e37beb2373282ca67ddab3b1786e0bde72ef8cce2d90870cdcff6466ae4e2",
+    "supermimic/networks.py": "72bdb2bf11f927663dec82ef00f75123dfe810cba9879fee455faac4042b1efe"
+  },
+  "target_kl": 0.02,
+  "seconds": 4.075656397035345,
+  "results": [
+    {
+      "learning_rate": 5e-06,
+      "initial_approx_kl": 3.998720785602927e-07,
+      "max_initial_logprob_difference": 0.010524749755859375,
+      "policy_loss": -0.014306009537540377,
+      "value_loss": 0.012470624316483736,
+      "approx_kl": 0.013381559401750565,
+      "actor_updates": 20,
+      "critic_updates": 20,
+      "kl_stopped": false,
+      "optimizer_exact_kl": {
+        "mean": 0.013032563030719757,
+        "p95": 0.029755156487226486,
+        "maximum": 0.2494623064994812
+      },
+      "norm_only_exact_kl": {
+        "mean": 9.897059499053285e-06,
+        "p95": 3.497896250337362e-05,
+        "maximum": 0.0004639625549316406
+      },
+      "total_exact_kl": {
+        "mean": 0.013035230338573456,
+        "p95": 0.02978319674730301,
+        "maximum": 0.2520860433578491
+      }
+    }
+  ],
+  "scope": "Identical native rollout and optimizer state; exact Gaussian old-to-new KL, no learning conclusion"
+}

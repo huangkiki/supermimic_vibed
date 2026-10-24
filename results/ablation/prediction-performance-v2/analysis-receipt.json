@@ -1,0 +1,16 @@
+{
+  "kind": "analysis_only_no_new_physics",
+  "inputs": {
+    "raw/paired-components/gradient-components-state_only-h32/prediction.csv": "2a4fa2bbe90748062b8a08ed2234800e44d4acf34dd3f059161f9847d7ee488d",
+    "raw/paired-components/gradient-components-state_only-h32/gradient.csv": "1f54c467a86e1d7ad2010512dd93cd1a5550439434866ab8322578a53e007240",
+    "raw/paired-components/gradient-components-state_only-h32/probe.json": "c81b2b07b9d12042bdd8c0998b2e4e3b5c6a64f6801edb528657565c12ae36eb",
+    "raw/pilot-v1/supermimic-seed0/ckpt_000000/evaluation.json": "2676d4dff65f665f5237e77a1c808a5365c5dcd0ae486863eb781c189a171bc1",
+    "raw/pilot-v1/supermimic-seed0/ckpt_000025/evaluation.json": "a6ed42dae91ecc8c7c1c1d7b0f3f6e02f747633422860958d7e1fc485fafdb3d",
+    "raw/pilot-v1/supermimic-seed0/ckpt_000050/evaluation.json": "155291137e0bacf0b4e47bc038d48cde44c0091316d8f5fc740fbca6f781e105",
+    "raw/pilot-v1/supermimic-seed0/ckpt_000075/evaluation.json": "57631d948048efb97636a93b3b36b5834e8480ee65dd4006581420924f4ba414",
+    "raw/pilot-v1/supermimic-seed0/ckpt_000100/evaluation.json": "50b85cf31d5e4303d97a5e53ed772c9a985c0afba35e36f4bcb9a0fc65f658d2"
+  },
+  "analysis_source_sha256": "15e197f7ea99b003d6cbe92dc59e63c823edc117b911f28c3d5238c2494911c8",
+  "scope": "Four undertrained checkpoints, old single evaluation per checkpoint; SD unavailable. Repeated-evaluation aggregation covered by regression tests, not retroactively imputed.",
+  "command": "python -m experiments.ablation.plot_fidelity RAW/paired-components/gradient-components-state_only-h32 --output OUTPUT --evaluations RAW/pilot-v1/supermimic-seed0/ckpt_*/evaluation.json"
+}

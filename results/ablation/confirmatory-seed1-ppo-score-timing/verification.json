@@ -1,0 +1,14 @@
+{
+  "raw_archive_sha256": "f20777e4ec5c538a70e85583a205a8207a041afd879c9a9fd582589dffed3ba6",
+  "verified_raw_files": 37,
+  "verified_physical_repeats": 15,
+  "checkpoints": 5,
+  "measured_method_allocations": 16,
+  "reproduced_csv_byte_identical": true,
+  "old_publication_unchanged": true,
+  "original_checkpoint_costs_unchanged": true,
+  "final_gpu_hours": 3.481734781303579,
+  "first_reconstructed_seconds": 137.00595490809064,
+  "first_score_available_allocation_seconds": 7790.426143389079,
+  "scope": "One training seed; timing audit only, no new training or algorithm ranking"
+}

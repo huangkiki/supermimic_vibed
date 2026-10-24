@@ -1,0 +1,12 @@
+{
+  "evaluation_count": 6,
+  "checkpoint_count": 6,
+  "seeds": [
+    0
+  ],
+  "aggregation": "sample SD, left hold at common support, no extrapolation",
+  "repeated_evaluation": "mean and sample SD within each fixed checkpoint; figure bands use training-seed means only",
+  "accounting": "full bootstrap and preceding evaluations charged; --campaign uses complete process allocation for final endpoints",
+  "intermediate_cost": "checkpoint snapshots precede their own serialization/teardown; evaluations are reconstructed as if interleaved",
+  "caution": "equal iterations are not equal compute; frozen WM has constant simulator steps"
+}

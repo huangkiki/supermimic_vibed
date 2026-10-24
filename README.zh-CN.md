@@ -1,0 +1,125 @@
+# SuperMimic 复现与 World Model / PPO / BPTT 消融
+
+[English](README.md) · [实验协议](docs/ablation/protocol.md) · [完整运行命令](docs/ablation/runbook.md)
+
+用同一个 Unitree G1、LAFAN1 动作库和物理评估协议，比较直接在 MuJoCo-Warp 中训练的 PPO、在 Learned World Model 中训练的 PPO，以及 WM+BPTT+Critic，判断效率收益来自模型 rollout 吞吐、模型梯度，还是两者的组合。
+
+这是论文的**非官方独立复现**。本分支新增实验脚本，不修改原 `supermimic/` 训练入口。
+
+## 已经得到什么结果
+
+**目前尚无多种子效率结论。** 开发seed0的六条件均完成4000次迭代和物理评估：在线SuperMimic的物理Return为0.8035、失败2/18；冻结BPTT为0.001907、失败18/18，原参数PPO也全部失败。调整Actor学习率后，PPO-Sim在独立1000轮调参批次达到0.2528、失败12/18。开发seed0不计入正式统计；正式seeds1/2/3已预登记，seed1已开始，seeds2/3串行等待。正式结论仍需至少3个训练seed和全部40段动作。
+
+正式seed1的PPO-Sim现已完成4000轮和15次物理复评：最终Return为**0.405212 ± 0.008721**，失败数三次为7/5/6段，完整训练加评估**3.481735 GPU-hours**。这里的SD来自同一checkpoint的三次复评；失败判定变化只涉及两段动作，全部三组回报差已按动作拆分核对，具体波动机制仍未定位。完整三训练seed对照尚未完成。[完整数据、复评差异及CPU复算命令](docs/ablation/confirmatory-seed1-ppo.md)。
+
+[研究问题与证据边界](docs/ablation/results.md)逐项说明WM吞吐、同模型优化器收益、预测误差和梯度可靠性已经测到了什么、还缺什么。短程资源资格、单seed观察和正式多seed结论分别报告；历史预算不作为当前运行额度。
+
+**运行快照（2026-10-24 08:31，UTC+8）**：正式seed1在线PPO-WM已完成4000轮训练，完整训练费用1.369835295 GPU-hours，含采集、WM训练及策略优化；15次物理复评已验收13次，最终checkpoint正在第二次复评。第3000轮三次Return均值0.331690868、失败率33.3%；最终第4000轮仅有第一次Return 0.402738988、失败5/18，不能作为最终均值或算法排名。其他正式条件随后串行，seed2/3等待，完整方法费用和三seed结论尚未完成。运行源码固定为`3526437`，开发主分支更新不会改变活动实验。
+
+开发进度按已验证的小批次提交、通过CI后合并到`main`，并同步本中文README。长时间实验未结束时也交付已完成代码和带时间的结果快照；未完成实验明确保留，不以整套实验完成作为代码合入条件。
+
+| 实验 | 已验证的结果 | 证据 |
+|---|---|---|
+| 正式seed1 PPO-Sim | 4000轮、15次物理复评、270条clip记录；最终Return均值0.405212、复评SD0.008721，完整方法3.481735 GPU-hours。仅一个训练seed | [完整曲线与原始数据](docs/ablation/confirmatory-seed1-ppo.md) |
+| 长程探索（seed0） | 六条件4000轮、30次物理评估完成，实际共6.6784 GPU-hours；在线BPTT Return=0.8035，冻结BPTT=0.001907。原PPO参数未合格，不能归因或排名 | [全部物理评估与成本](results/ablation/formal-seed0-complete/evaluations.csv) |
+| PPO参数选择（seed0） | Actor lr=2e-5、1000轮：三次物理复评均值0.252798、失败12/18；尚非完整长程或多seed结论 | [调参范围与预登记](docs/ablation/ppo-qualification.md) |
+| 全部40段链路验收 | 7个训练进程、12次物理评估、480条clip记录，0.197570 GPU-hours；各策略仅训练3轮且全部40段失败，不是全量训练结果 | [40段Smoke数据](results/ablation/all40-smoke-v1/evaluations.csv) |
+| 原生统一对照 | Pilot共7个训练进程、30次物理复评、540条逐clip记录；所有最终策略均提前失败，不能排名 | [Return与完整成本CSV](results/ablation/pilot-v1/evaluations.csv) |
+| Prediction / Gradient Fidelity | 已训练collector、64状态；最终WM在ε=.03的H1/H32完整奖励方向符号一致率0.936/0.664，resolved交集249/140条。前向精度与梯度质量分别检验 | [配对统计与限制](docs/ablation/results.md) |
+| 全40段目标规模资源测量 | 4096环境/H32，三方法各32轮策略更新完成；峰值显存8.51 / 12.42 / 23.36 GiB，含独立预训练总0.533098 GPU-hours。均40/40失败，只用于资源资格 | [实测成本与吞吐](results/ablation/all40-resource-v1/) |
+| 全40段冻结WM资源测量 | hard/soft PPO与BPTT各32轮；含共享预训练总0.340834 GPU-hours。初始Actor/Critic/WM逐张量一致，最终WM及归一化状态不变；均40/40失败 | [物理评估、费用与冻结验收](results/ablation/all40-frozen-resource-v1/) |
+
+![正式seed1 PPO-Sim完整曲线，仅一个训练seed](results/ablation/confirmatory-seed1-ppo-v1/return-compute.png)
+
+该曲线只包含PPO-Sim，不与开发seed0或其他GPU数据混合排名；最终复评波动另见[三次复评图](results/ablation/confirmatory-seed1-ppo-v1/evaluation-repeatability.png)。
+
+![六条件长程探索，开发seed0且原PPO参数未合格](results/ablation/formal-seed0-complete/return-compute.png)
+
+仅绘已完成物理评估点，单seed不绘制标准差带；原PPO参数未合格，不能把曲线差距直接归因于算法。中间横坐标为checkpoint计时加累计复评成本的回溯重建，不是现场在线评估时序；完整方法端点使用进程分配。冻结方法另全额计入WM预训练。
+
+另提供[分数可用时的费用导出](docs/ablation/runbook.md#物理评估分数可用时的费用)：当前流水线先完成该方法全部训练，再逐个评估checkpoint。因此首个分数可用时，该方法全部训练费用已发生。`score_timing` 同时导出回溯费用和分数可用时的累计进程费用，不覆盖原曲线；后者包含该方法完整训练及此前全部复评，冻结组另计完整预训练，不含其他方法、排队等待和进程之间的编排间隙。
+
+冻结组共享500轮预训练得到的WM和replay，冻结BPTT也未学会跟踪。它提示固定模型/数据覆盖可能成为限制，但尚不能排除模型成熟度和优化设置；不能据此声称在线WM必然优于冻结WM。正式批次保持预登记设置，先检查这一失败是否跨seed复现，再决定后续机制实验。[六条件终点、成本和解释边界](docs/ablation/results.md#开发seed0的六条件矩阵完成)。
+
+![已训练策略固定库的完整奖励与state-only梯度诊断](results/ablation/trained-policy-fidelity-seed0-v1/paired-objectives.png)
+
+本图固定第4000轮策略采集64状态，比较同一WM的完整奖励与去掉直接动作平滑项的辅助目标。短时域的方向一致性高于H32，长时域结果也更依赖扰动尺度。有限差分只是数值参考；state prediction accuracy、gradient fidelity和最终policy performance分别检验。四个WM阶段的MSE持续下降，但沿梯度微步的物理改善并非单调增加；这仍是单seed探索，不是因果或显著性结论。
+
+梯度入口使用 `--prefix-controller policy` 连续保留观测历史与previous action，full/state_only配对按状态库内容SHA256核验；原 `reference_pd` 模式保留作控制。新实验六个探针已完成，共0.188922 GPU-hours，collector的物理失败率仍为2/18。接触稳定组在H32仅有3状态，不能据此作可靠的分组结论。[数据与收据](results/ablation/trained-policy-fidelity-seed0-v1/) · [命令与边界](docs/ablation/runbook.md)。
+
+### 本次消融的真实失败轨迹
+
+![PPO-Sim第4000次迭代物理复评：walk1_subject1在2.42秒终止](results/ablation/ppo-diagnostic-v1/ppo-sim-failure.gif)
+
+PPO-Sim，seed0，第4000次迭代；`walk1_subject1` 的前6秒，正常速度，实心为物理仿真、蓝色为参考。2.42秒触发跟踪终止后保持真实终止姿态，未用reset后的姿态替换。它是单独录制的复评，分数和成本不混入主曲线；所有18段在该复评中均失败。[诊断与复现](docs/ablation/ppo-qualification.md)。
+
+### 原仓库作者的跟踪演示
+
+![原仓库作者提供的G1动作跟踪演示](results/supermimic_lafan1_highlight.gif)
+
+实心机器人是仿真策略，蓝色是参考动作。**这是原仓库已有演示，不是本次消融策略的效果。** 原作者报告40段LAFAN1、RTX PRO 6000、迭代14000、约1.47小时、Return=0.829、0/40失败；这些数值不能与本次A100/18段实验直接混比。本次消融的真实失败轨迹另行记录，不能用这段成功动图替代本次验收。
+
+## 先运行一个最小实验
+
+需要Linux、NVIDIA GPU、固定Isaac Lab / Newton / MuJoCo-Warp环境，以及完整40段G1动作与机器人资产。建议先从原生Smoke开始，完整矩阵需数小时；不要直接复制正式配置启动长训练。
+
+原仓库Docker安装入口见[英文README](README.md#setup)。本次A100使用独立Python环境和Torch CUDA12.8构建；固定提交、资产转换、依赖声明限制见[环境复现](docs/ablation/environment.md)。安装命令不是已完成验收，须先验证原生状态/FK/reset。
+
+在仓库根目录、已准备好的原生Python环境中运行：
+
+```bash
+python -m unittest discover -s tests -v
+python tools/test_env.py --num_envs 32
+python tools/test_reset.py
+python -m experiments.ablation.run_suite \
+  --phase smoke --output logs/ablation/my-smoke \
+  --gpu 0 --max-gpu-hours 0.75 --seeds 0
+python -m experiments.ablation.validate_run logs/ablation/my-smoke
+```
+
+成功后应看到`campaign.json`为completed、`validation.json`通过、各方法`train.csv`和逐checkpoint的`per_clip.csv`完整。**这只说明链路成立，不表示策略已经学会跟踪。** 输出目录不可覆盖，失败证据会保留。
+
+## 六个条件分别回答什么
+
+| 配置中的method | 训练数据与优化 | 要回答的问题 |
+|---|---|---|
+| `ppo_sim` | 物理rollout + PPO | 直接仿真的基线成本 |
+| `ppo_wm_online` | 持续物理采集、拟合WM、imagined PPO | WM吞吐是否抵消模型学习成本与偏差 |
+| `supermimic` | 同样在线WM，BPTT+Critic | 原方法整体收益 |
+| `ppo_wm_frozen_hard` | 固定WM、硬终止PPO | 冻结模型的系统成本 |
+| `ppo_wm_frozen` | 固定WM、软终止PPO | 与下行进行同WM优化器配对 |
+| `bptt_wm_frozen` | 同一WM/replay/初始mean/critic，BPTT | 相同模型上模型梯度的收益 |
+
+PPO仅给原mean网络增加29个可训练log-std，策略损失不通过WM动力学反传。硬/软终止、随机/确定性动作、起点分布等剩余差异在[协议](docs/ablation/protocol.md)中逐项披露。相同学习率不等于相同调参质量。真实批次重放已发现 Actor 更新过大；独立学习率控制通过 KL 检查，正式seed1已完成PPO-Sim长程记录，完整多seed验证仍待完成，见 [PPO 资格记录](docs/ablation/ppo-qualification.md)。
+
+新运行器支持每个 checkpoint 的多次独立物理复评，单独记录其波动和全部费用；复评次数不能算作训练 seed 数。[重复评估与有界 PPO 调参](docs/ablation/ppo-qualification.md#有界长程验证与重复评估)。
+
+分批完成的seeds1/2/3通过`analyze_cohort`统一汇总：核对预登记、完整原始CSV和进程费用，再输出训练seed间均值/样本SD、达标比例及逐seed成本。未达标seed保留删失，相关平均达标时间和成本比留空。该入口已有测试，目前真实三seed结果仍未齐备。[跨campaign汇总命令与计时边界](docs/ablation/runbook.md#汇总独立的三个正式训练seed)。
+
+`continue_seeds`可在已识别的seed1队列完成后串行执行seed2/3，每批重查资源并保持32/seed、总96 GPU-hours上限；完整三seed验收后才生成正式汇总。前一批失败或资源不足会停止后续启动，等待不算训练进度。[续跑条件与命令](docs/ablation/runbook.md#按原预算串行续跑seed-2和3)。
+
+续跑时每个seed都显式沿用预登记的动作子集，已用CPU回归检查`locomotion`和`all40`的启动参数、输出目录及预算文件一致。全40段正式实验仍须使用其独立资源资格、计划和预算；该检查不表示已经启动或完成全40段训练。
+
+两个1000轮PPO候选均完成，各9次物理复评：lr=5e-6/2e-5最终Return均值0.013086/0.252798，失败18/12段，合计1.6260 GPU-hours。恢复器在原执行源码和原预算下补齐资源门禁中断的评估，未重训。正式验证选用2e-5、排除开发seed0；六条件×seeds1/2/3的保守估算为94.17 GPU-hours，分批上限32/seed，总上限96。这是计划预算，不是已经运行的结果。[结果、预登记与运行命令](docs/ablation/ppo-qualification.md#两候选完成与正式参数冻结)。
+
+Prediction Error–Policy Performance图也按checkpoint内容匹配并汇总全部复评，分别展示1/8/16/32步误差；缺失复评会拒绝绘图，单次评估不伪造标准差。[旧Pilot的四时域关联图与CSV](results/ablation/prediction-performance-v2/)仍显示全部策略跟踪失败，只是观察性关联，不能证明低MSE带来更好控制。
+
+正式梯度汇总入口`analyze_fidelity_cohort`按独立训练seed等权统计，保留未解析方向、接触组覆盖和无法定义的相关系数。它先验收完整训练与物理评估，再检查每seed六个探针、状态库和checkpoint身份及探针费用；当前尚无真实三seed梯度结果。[统计规则与运行命令](docs/ablation/runbook.md#汇总独立训练seed的梯度分析)。
+
+正式探针执行入口`run_fidelity_cohort`读取预登记方案，在完整训练cohort验收后顺序运行三个seed的18个探针，同seed共享一份状态库，并执行资源检查及0.3/seed、总0.9 GPU-hours上限。当前仅完成CPU控制流程和真实未完成训练记录的拒绝验证，尚未启动正式GPU探针。[执行与干跑命令](docs/ablation/runbook.md#执行独立训练seed的梯度探针)。
+
+所有方法最终在真实物理模拟器中评估。主要曲线使用完整motion归一化Return，对墙时、GPU-hours和Simulator Steps分别作图；不把imagined return当物理成绩。
+
+40段资源测试的最后30个更新中，两种PPO均每轮完成20个Actor minibatch更新。PPO-Sim物理采集约10.21万steps/s，在线PPO-WM imagined rollout约43.60万steps/s；同时包含模型采集、拟合及策略优化的暖态迭代分别1.919/1.292秒。短批次端到端费用分别0.06827/0.13630 GPU-hours，在线WM需支付模型学习及初始化成本。它们均未学会跟踪，因此这些测量仍不能说明谁更快达到同一策略质量。冻结三条件资源资格也已完成，独立方法曲线各付全额预训练，campaign总账只计一次。正式18段三seed矩阵运行期间不再主动追加GPU资源探针。[费用定义与后续资源门禁](docs/ablation/results.md#全部40段目标规模资源实测)。
+
+## 查看、复现和继续实验
+
+全40段预算工具已接入冻结三条件的直接实测，区分进程自身耗时与继承的预训练成本。保持相同预训练和评估额度，单seed规划从57.75调整到59.17 GPU-hours；这不是实际训练花费，成熟策略评估耗时尚待验证，也没有启动新的长训练。[规划依据与CPU复算命令](docs/ablation/all40-planning.md)。
+
+- [实验配置](experiments/ablation/configs)：Smoke / Pilot / 正式参数；seed0用于开发，正式seeds1/2/3，18段walk/run/sprint后扩至全部40段。
+- [运行手册](docs/ablation/runbook.md)：训练、独立复评、预算估算、固定库预测误差和梯度诊断。
+- [已归档bootstrap清单](results/ablation/checkpoint-storage/retired-bootstraps.csv)：三份已完成预训练文件经SHA256验证后归档，活动训练文件仍在原位。重跑旧冻结组的原生验收前，需按[恢复说明](docs/ablation/runbook.md#已完成checkpoint的归档与恢复)恢复完整bootstrap及replay。
+- [阶段结果](docs/ablation/results.md)：实际硬件、样本数、失败、数值参考筛选和未完成范围。
+- [源论文](https://arxiv.org/pdf/2610.28480)：第3/4节及相关附录；Figure 5(b)是训练回报对imagined steps，不能直接替换本项目的端到端物理曲线。
+
+代码沿用[MIT许可证](LICENSE)及原作者归属。LAFAN1动作和机器人资产的来源、独立许可证与引用见[英文README](README.md#attribution-and-licenses)；本仓库不重新分发训练动作数据。

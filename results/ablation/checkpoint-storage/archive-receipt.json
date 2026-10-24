@@ -1,0 +1,11 @@
+{
+  "status": "verified_local_archive_remote_copies_retired",
+  "archived_bootstraps": 3,
+  "retired_bytes": 12091735329,
+  "source_manifest_sha256": "6c096fc95433104a4df8c0ec3a0b7e598c159631829d75076d4503feabe18e9e",
+  "retirement_script_sha256": "3aa32b530ea7451486edcd2d4134eaf1c218b11d830b34d8f09ed5eb8d75cdf0",
+  "scope": "Exactly three completed pretrain bootstrap files; the 44 other checkpoints in those three completed campaigns remain on their original host. Active training files were outside the operation scope. Actual archive locations and restore instructions accompany the deliverables.",
+  "finished_at": "2026-10-23T19:58:33.785871+00:00",
+  "other_files_with_unchanged_content_sha256": 53824,
+  "other_checkpoints_with_unchanged_inode_size_mtime": 44
+}
