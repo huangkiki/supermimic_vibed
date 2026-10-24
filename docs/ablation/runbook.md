@@ -44,6 +44,21 @@ python -m experiments.ablation.analyze \
 
 `pilot` 是256环境/256imagined batch，100迭代、WM预热30迭代，k=8/H=32，原始宽度网络与固定FP32/TF32；不是论文训练预算。PPO-WM frozen 与BPTT frozen都从同一个 `pretrain-seed0/bootstrap.pt` 开始；在线模型与预训练账本分开。比较PPO-WM和PPO-Sim请主要看physical return对总成本，不能用迭代数判快慢。
 
+## 物理评估分数可用时的费用
+
+`run_suite` 先训练完整方法，再依次评估checkpoint。`analyze` 的中间点回溯到checkpoint训练计时，不能解释为当时已取得物理评估分数。补充导出两个时间轴：
+
+```bash
+python -m experiments.ablation.score_timing \
+  --evaluations logs/ablation/confirmatory-locomotion-seed1-v2/ppo_sim-seed1/ckpt_*/repeat_*/evaluation.json \
+  --campaign logs/ablation/confirmatory-locomotion-seed1-v2/campaign.json \
+  --output results/ablation/confirmatory-seed1-ppo-score-timing
+```
+
+`score-timing.csv` 的 `reconstructed_checkpoint_seconds` 保留原回溯口径；`score_available_allocation_seconds` 和 `score_available_gpu_hours` 计入该方法完整训练、此前及当前组的所有复评。冻结方法全额计一次共享WM预训练；PPO-Sim不承担未使用的预训练。这里累加的是实测子进程分配时长，不是绝对日期或整个campaign的实际等待时间；不计其他方法、排队和进程之间的编排间隙。`timing-scope.json` 保存这些边界。该轴描述当前离线评估流水线，不能单独当作算法学习速度。
+
+输入必须是从首个已执行评估开始的完整前缀，包含各checkpoint的全部复评、成功完成的进程计费和物理GPU身份；缺失早期评估、未完成复评组或乱序计费会被拒绝。允许导出尚未完成整个campaign的方法前缀，但其训练本身必须已完成。旧曲线和原始数据不改写。
+
 ## 正式矩阵
 
 `experiments/ablation/configs/matrix.json` 给出种子0/1/2及18/40段范围。formal JSON的4096环境规模已通过短时资源资格；4000迭代仍是候选学习预算，不是已运行结果。必须先在目标4096环境规模做一至数次完整更新的显存/时间测量，保存forecast和来源。runner对formal要求 `--forecast`，且预计总GPU-hours不超过显式预算、预计峰值显存低于可用显存的85%，核对GPU UUID/种子矩阵并保留磁盘空间。每个进程前再次检查资源。
