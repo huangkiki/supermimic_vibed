@@ -1,0 +1,7 @@
+method,return_threshold,max_failure_rate,attained
+ppo_sim,0.8,0.2,False
+ppo_sim,0.5,0.2,False
+ppo_sim,0.7,0.2,False
+ppo_wm_online,0.8,0.2,False
+ppo_wm_online,0.5,0.2,False
+ppo_wm_online,0.7,0.2,False

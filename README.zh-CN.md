@@ -10,16 +10,17 @@
 
 **目前尚无多种子效率结论。** 开发seed0的六条件均完成4000次迭代和物理评估：在线SuperMimic的物理Return为0.8035、失败2/18；冻结BPTT为0.001907、失败18/18，原参数PPO也全部失败。调整Actor学习率后，PPO-Sim在独立1000轮调参批次达到0.2528、失败12/18。开发seed0不计入正式统计；正式seeds1/2/3已预登记，seed1已开始，seeds2/3串行等待。正式结论仍需至少3个训练seed和全部40段动作。
 
-正式seed1的PPO-Sim现已完成4000轮和15次物理复评：最终Return为**0.405212 ± 0.008721**，失败数三次为7/5/6段，完整训练加评估**3.481735 GPU-hours**。这里的SD来自同一checkpoint的三次复评；失败判定变化只涉及两段动作，全部三组回报差已按动作拆分核对，具体波动机制仍未定位。完整三训练seed对照尚未完成。[完整数据、复评差异及CPU复算命令](docs/ablation/confirmatory-seed1-ppo.md)。
+正式seed1的PPO-Sim与在线PPO-WM均已完成4000轮和各15次物理复评。最终物理Return分别为**0.405212 ± 0.008721 / 0.402736 ± 0.000003**，完整训练加评估分别为**3.481735 / 2.384217 GPU-hours**。在线PPO-WM的记录费用低31.52%，但这是一个训练seed，SD来自同一checkpoint的复评；两者均未达到预登记质量门槛，不报告同等质量加速比。[完整对照、原始日志/CSV与CPU复算命令](docs/ablation/confirmatory-seed1-ppo-pair.md)。
 
 [研究问题与证据边界](docs/ablation/results.md)逐项说明WM吞吐、同模型优化器收益、预测误差和梯度可靠性已经测到了什么、还缺什么。短程资源资格、单seed观察和正式多seed结论分别报告；历史预算不作为当前运行额度。
 
-**运行快照（2026-10-24 08:31，UTC+8）**：正式seed1在线PPO-WM已完成4000轮训练，完整训练费用1.369835295 GPU-hours，含采集、WM训练及策略优化；15次物理复评已验收13次，最终checkpoint正在第二次复评。第3000轮三次Return均值0.331690868、失败率33.3%；最终第4000轮仅有第一次Return 0.402738988、失败5/18，不能作为最终均值或算法排名。其他正式条件随后串行，seed2/3等待，完整方法费用和三seed结论尚未完成。运行源码固定为`3526437`，开发主分支更新不会改变活动实验。
+**运行快照（2026-10-24 08:55，UTC+8）**：正式seed1的两个PPO方法已完成；SuperMimic已开始训练，核验至第567/4000轮，日志数值有限。其余正式条件随后串行，seed2/3等待，完整三方法、多seed和梯度结论尚未完成。运行源码固定为`3526437`，开发主分支更新不会改变活动实验。
 
 开发进度按已验证的小批次提交、通过CI后合并到`main`，并同步本中文README。长时间实验未结束时也交付已完成代码和带时间的结果快照；未完成实验明确保留，不以整套实验完成作为代码合入条件。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|
+| 正式seed1 PPO-Sim / 在线PPO-WM | 各4000轮、合计30次物理复评和540条clip记录；最终Return 0.405212 / 0.402736，完整费用3.481735 / 2.384217 GPU-hours。单seed观察 | [两方法对照、完整费用与原始包](docs/ablation/confirmatory-seed1-ppo-pair.md) |
 | 正式seed1 PPO-Sim | 4000轮、15次物理复评、270条clip记录；最终Return均值0.405212、复评SD0.008721，完整方法3.481735 GPU-hours。仅一个训练seed | [完整曲线与原始数据](docs/ablation/confirmatory-seed1-ppo.md) |
 | 长程探索（seed0） | 六条件4000轮、30次物理评估完成，实际共6.6784 GPU-hours；在线BPTT Return=0.8035，冻结BPTT=0.001907。原PPO参数未合格，不能归因或排名 | [全部物理评估与成本](results/ablation/formal-seed0-complete/evaluations.csv) |
 | PPO参数选择（seed0） | Actor lr=2e-5、1000轮：三次物理复评均值0.252798、失败12/18；尚非完整长程或多seed结论 | [调参范围与预登记](docs/ablation/ppo-qualification.md) |
@@ -29,9 +30,9 @@
 | 全40段目标规模资源测量 | 4096环境/H32，三方法各32轮策略更新完成；峰值显存8.51 / 12.42 / 23.36 GiB，含独立预训练总0.533098 GPU-hours。均40/40失败，只用于资源资格 | [实测成本与吞吐](results/ablation/all40-resource-v1/) |
 | 全40段冻结WM资源测量 | hard/soft PPO与BPTT各32轮；含共享预训练总0.340834 GPU-hours。初始Actor/Critic/WM逐张量一致，最终WM及归一化状态不变；均40/40失败 | [物理评估、费用与冻结验收](results/ablation/all40-frozen-resource-v1/) |
 
-![正式seed1 PPO-Sim完整曲线，仅一个训练seed](results/ablation/confirmatory-seed1-ppo-v1/return-compute.png)
+![正式seed1 PPO-Sim与在线PPO-WM，仅一个训练seed](results/ablation/confirmatory-seed1-ppo-pair-v1/return-compute.png)
 
-该曲线只包含PPO-Sim，不与开发seed0或其他GPU数据混合排名；最终复评波动另见[三次复评图](results/ablation/confirmatory-seed1-ppo-v1/evaluation-repeatability.png)。
+两方法共用同一物理GPU及评估协议，不与开发seed0混合。中间时间轴为回溯核算；另提供[分数实际可用时的累计方法费用图](results/ablation/confirmatory-seed1-ppo-pair-v1/score-availability.png)。PPO-Sim最终复评波动另见[三次复评图](results/ablation/confirmatory-seed1-ppo-v1/evaluation-repeatability.png)。
 
 ![六条件长程探索，开发seed0且原PPO参数未合格](results/ablation/formal-seed0-complete/return-compute.png)
 

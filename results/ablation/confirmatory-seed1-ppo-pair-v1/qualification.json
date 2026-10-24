@@ -1,0 +1,90 @@
+{
+  "status": "two_methods_recording_and_cost_complete",
+  "training_seeds": [
+    1
+  ],
+  "physical_evaluations": 30,
+  "per_clip_rows": 540,
+  "methods": {
+    "ppo_sim": {
+      "training_iterations": 4000,
+      "wm_only_iterations": 0,
+      "execution_commit": "3526437a50fdc714cc77bc4527ca70124770b08a",
+      "gpu_uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+      "final_failed_clips": [
+        7,
+        5,
+        6
+      ],
+      "final": {
+        "method": "ppo_sim",
+        "seed": 1,
+        "iteration": 4000,
+        "physical_return": 0.40521154801050824,
+        "tracking_failure_rate": 0.3333333432674408,
+        "evaluation_repeats": 3,
+        "evaluation_return_std": 0.008720950851422283,
+        "evaluation_failure_rate_std": 0.0555555522441864,
+        "train_wall_seconds": 7707.3454746550415,
+        "cost_basis": "complete_process_allocation",
+        "end_to_end_seconds": 12534.245212692884,
+        "total_gpu_hours": 3.481734781303579,
+        "simulator_steps": 524550144,
+        "imagined_steps": 0,
+        "evaluation_simulator_steps": 2952504,
+        "total_simulator_steps": 527502648,
+        "wm_training_seconds": 0.0,
+        "imagined_rollout_seconds": 0.0,
+        "policy_optimization_seconds": 2539.253529611975,
+        "collection_seconds": 5115.649318987853,
+        "cumulative_evaluation_seconds": 4826.899738037842,
+        "simulator_steps_per_second": 102538.33116609797,
+        "imagined_steps_per_second": 0.0,
+        "checkpoint_sha256": "bfca0dcb93e30436ce0b792df20725bd2516662be2389ff5949b050ec4f9f7dd"
+      }
+    },
+    "ppo_wm_online": {
+      "training_iterations": 4000,
+      "wm_only_iterations": 500,
+      "execution_commit": "3526437a50fdc714cc77bc4527ca70124770b08a",
+      "gpu_uuid": "GPU-aa15d3ab-4db3-2464-bff6-af4d7e78c4c9",
+      "final_failed_clips": [
+        5,
+        5,
+        5
+      ],
+      "final": {
+        "method": "ppo_wm_online",
+        "seed": 1,
+        "iteration": 4000,
+        "physical_return": 0.4027360677719116,
+        "tracking_failure_rate": 0.2777777910232544,
+        "evaluation_repeats": 3,
+        "evaluation_return_std": 3.4352913504614954e-06,
+        "evaluation_failure_rate_std": 0.0,
+        "train_wall_seconds": 4931.407061369042,
+        "cost_basis": "complete_process_allocation",
+        "end_to_end_seconds": 8583.181864433107,
+        "total_gpu_hours": 2.384217184564752,
+        "simulator_steps": 41222144,
+        "imagined_steps": 458752000,
+        "evaluation_simulator_steps": 2142180,
+        "total_simulator_steps": 43364324,
+        "wm_training_seconds": 1117.408173205331,
+        "imagined_rollout_seconds": 1155.5425146477064,
+        "policy_optimization_seconds": 2217.9763776895124,
+        "collection_seconds": 397.6598114813678,
+        "cumulative_evaluation_seconds": 3651.774803064065,
+        "simulator_steps_per_second": 103661.83056426723,
+        "imagined_steps_per_second": 397001.4033969672,
+        "checkpoint_sha256": "eaae7d4ac2212df710ad04fe9579e21e405f30b0c68f7e1c00ba8f4f5bae2102"
+      }
+    }
+  },
+  "cohort_complete": false,
+  "uncertainty": "Repeat SD is not independent-training-seed uncertainty",
+  "native_tensor_qualification": "Pending completion of the full six-condition campaign",
+  "host_overlap": "Early seed1 shared CPU/disk host with other work; measured costs preserved",
+  "timing_scope": "Score availability charges the complete training process and all preceding physical evaluation processes for that method, including the current repeat group. Frozen methods also pay their complete shared pretraining allocation once. These are sums of measured subprocess wall times, not absolute timestamps; unrelated methods, queue waiting and orchestration gaps outside those processes are excluded. Checkpoint reconstruction uses the earlier checkpoint training snapshot instead.",
+  "scope": "Descriptive fixed-budget endpoints; no equivalence, causal attribution or quality-matched speedup claim"
+}
