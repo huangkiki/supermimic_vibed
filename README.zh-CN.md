@@ -8,7 +8,9 @@
 
 ## 已经得到什么结果
 
-完整 **Policy Parameter Gradient** 已完成15组真实MuJoCo-Warp诊断，累计0.169490 GPU-hours。同一checkpoint的两个run起点上，H1/H8实际Adam步改善了带Critic代理目标，却降低短时域物理回报；H32两者均改善。另有FP32检查揭示小随机方向的数值敏感性。它们不能证明BPTT优于PPO的原因。[数据、图与解释边界](docs/ablation/policy-gradient-native-v1.md)。
+[参数梯度结论与逐项验收](docs/ablation/policy-gradient-conclusions.md)：原路径诊断现为18组，H32同精度消融已补齐；全部原始张量重新通过梯度、裁剪和方向点积复核。H32此快照上Critic Bootstrap占完整梯度方向投影约58.5%，这不是物理收益归因比例。[分解、精度敏感性与数据](docs/ablation/policy-gradient-components.md)。
+
+前一批完整 **Policy Parameter Gradient** 完成15组真实MuJoCo-Warp诊断，累计0.169490 GPU-hours。同一checkpoint的两个run起点上，H1/H8实际Adam步改善了带Critic代理目标，却降低短时域物理回报；H32两者均改善。另有FP32检查揭示小随机方向的数值敏感性。它们不能证明BPTT优于PPO的原因。[数据、图与解释边界](docs/ablation/policy-gradient-native-v1.md)。
 
 同策略同目标的BPTT/PPO梯度对照也已完成：各H1/H8/H32使用16个梯度噪声批次、16个独立物理噪声批次。相同L2步长下，H32硬物理Return改善为 **BPTT +0.03676 ± 0.00152 SE / PPO -0.00132 ± 0.00119 SE**。PPO采样方差很大；这支持本批条件下的更新有效性，不证明全局梯度准确性或完整训练排名。[结果、图、失败修复与完整费用](docs/ablation/matched-policy-results.md)。
 
@@ -18,7 +20,7 @@
 
 [研究问题与证据边界](docs/ablation/results.md)逐项说明WM吞吐、同模型优化器收益、预测误差和梯度可靠性已经测到了什么、还缺什么。短程资源资格、单seed观察和正式多seed结论分别报告；历史预算不作为当前运行额度。
 
-**运行快照（2026-10-24 11:09，UTC+8）**：正式seed1的两个PPO方法已完成；SuperMimic的4000轮训练已成功结束，正在第4000轮checkpoint的第1次物理复评，尚未完成全部15次复评。其余正式条件随后串行，seed2/3等待，完整三方法、多seed结论尚未完成。运行源码固定为`3526437`，开发主分支更新不会改变活动实验。
+**运行快照（2026-10-24T11:34:12.023971+08:00）**：正式seed1三个在线方法的训练及45次物理复评已完成记录，SuperMimic完整费用与三方法对照尚待单独验收；当前进入冻结条件。seed2/3继续按原队列等待，完整六条件、多seed结论尚未完成。运行源码固定为`3526437`，开发主分支更新不会改变活动实验。
 
 开发进度按已验证的小批次提交、通过CI后合并到`main`，并同步本中文README。长时间实验未结束时也交付已完成代码和带时间的结果快照；未完成实验明确保留，不以整套实验完成作为代码合入条件。
 

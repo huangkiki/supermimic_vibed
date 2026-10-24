@@ -1,0 +1,47 @@
+{
+  "horizon": 32,
+  "gradient_dimension": 9116477,
+  "full_gradient_l2": 12.377658246505318,
+  "additive_residual_relative_l2": 1.3979591341290376e-06,
+  "components": [
+    {
+      "component": "state_reward_and_soft_survival",
+      "l2": 6.659136048816684,
+      "cosine_with_full": 0.7487919652159695,
+      "projection_on_full_unit": 4.986307568633951,
+      "fraction_of_full_projection": 0.4028474101748426
+    },
+    {
+      "component": "explicit_action_reward",
+      "l2": 0.9675369394495219,
+      "cosine_with_full": 0.15094529420414035,
+      "projection_on_full_unit": 0.14604514797858162,
+      "fraction_of_full_projection": 0.01179909358216573
+    },
+    {
+      "component": "critic_bootstrap",
+      "l2": 8.491574242299794,
+      "cosine_with_full": 0.8532341338176598,
+      "projection_on_full_unit": 7.245300993377016,
+      "fraction_of_full_projection": 0.5853531297345876
+    },
+    {
+      "component": "numerical_residual",
+      "l2": 1.7303460404829716e-05,
+      "cosine_with_full": 0.26217385934804516,
+      "projection_on_full_unit": 4.536514994410295e-06,
+      "fraction_of_full_projection": 3.665083414054613e-07
+    }
+  ],
+  "interpretation": "WM gradient contributions at one fixed snapshot; not physical gradient accuracy",
+  "direct_action_scope": "Only explicit reward action/previous-action arguments are detached; state-mediated paths remain",
+  "adam_scope": "Historical Adam moments retain previous critic/reward effects; updates are not additive",
+  "source": "6746e1a9fbec0de1d3206c6c09cf1ae8429d7327",
+  "probes": [
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01"
+  ],
+  "all_tensors_verified": true
+}
