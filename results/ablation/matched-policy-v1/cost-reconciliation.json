@@ -1,0 +1,13 @@
+{
+  "completed_probe_processes": 5,
+  "failed_probe_processes": 1,
+  "score_audit_processes": 1,
+  "total_processes": 7,
+  "matched_comparison_process_seconds": 509.38501092302613,
+  "matched_comparison_gpu_hours": 0.14149583636750726,
+  "prior_deterministic_diagnostic_gpu_hours": 0.16948981830336077,
+  "cumulative_diagnostic_gpu_hours": 0.31098565467086803,
+  "cumulative_cap_gpu_hours": 0.5,
+  "validation_cpu_seconds": 24.718879346037284,
+  "cuda_initialized_by_validation": false
+}

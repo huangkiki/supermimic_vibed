@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "probes": [
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/matched-policy-v1/h1-full-02",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/matched-policy-v1/h8-full-02",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/matched-policy-v1/h32-full-02"
+  ],
+  "tensor_validation": true,
+  "checkpoint_sha256": "54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac",
+  "scope": "conditional sampling and local update diagnostics; no algorithm ranking"
+}
