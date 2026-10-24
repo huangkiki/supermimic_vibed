@@ -1,0 +1,19 @@
+{
+  "probes": [
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-full-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-no-critic-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-no-critic-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-full-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-no-critic-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-no-critic-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-01"
+  ],
+  "tensor_validation": true,
+  "checkpoint_sha256": "54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac",
+  "scope": "single fixed-policy paired diagnostics; no independent-training-seed confidence interval"
+}

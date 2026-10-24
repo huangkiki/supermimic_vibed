@@ -2,7 +2,7 @@
 
 本阶段验证的是：固定 Policy、WM、Critic、起点和随机数后，原 SuperMimic 策略目标对**策略参数**的梯度，在物理仿真中是否给出可靠方向，以及实际 Adam 更新是否有效。
 
-**当前已验证：CPU 计算路径与数值检查。尚未运行新增入口的 MuJoCo-Warp 探针，也没有新的物理梯度结论。** 正式训练与物理复评仍按原队列执行；没有修改其源码、配置或启动并行 GPU 探针。已有 Action Gradient 实验仍然有效，但不能替代这里的参数梯度分析。
+**已完成 15 组 MuJoCo-Warp 参数梯度探针**：H1/8/32 的四种 Critic/直接动作梯度组合，以及 3 组 FP32 检查；累计 0.169490 GPU-hours。只覆盖一个 checkpoint、两个 run 起点。[结果、原始数据与局限](policy-gradient-native-v1.md)。正式队列在 GPU0 继续，本批使用独立 GPU2 与 checkout，未修改正式执行源码。
 
 ## 源码审计与目标
 
@@ -56,9 +56,9 @@ python -m unittest discover -s tests -v
 python -m experiments.ablation.fidelity --probe-space policy --help
 ```
 
-新增 15 项测试；全部 119 项测试通过。覆盖 H1/8/32 与完整原函数的 loss/Adam 位移逐值一致、光滑闭环中央差分、两次裁剪、非零历史 moments、同前向奖励的 gradient ablation、状态恢复、原生接口的 CPU 环境替身、旧 CLI 兼容和忙 GPU 拒绝。**环境替身不是 MuJoCo-Warp 资格验证。**
+原路径新增 15 项测试；新增分析与原生数据复算 8 项测试。覆盖 H1/8/32 与完整原函数的 loss/Adam 位移逐值一致、光滑闭环中央差分、两次裁剪、非零历史 moments、同前向奖励的 gradient ablation、状态恢复、原生接口的 CPU 环境替身、旧 CLI 兼容和忙 GPU 拒绝。**环境替身不是 MuJoCo-Warp 资格验证。**
 
-以下原生命令已提供入口，但尚未执行。须待既有正式队列结束、重新核验空闲 GPU 和 checkpoint/bank SHA 后，从独立 checkout 使用已固定的 Isaac Lab 环境运行；不更新执行中的 checkout。`CHECKPOINT` 必须为旧 bank 的同一个 SuperMimic collector checkpoint。
+以下 H1 命令及后续 H8/H32/消融已在固定输入上执行；新运行仍须重新核验空闲 GPU 和 checkpoint/bank SHA，从独立 checkout 使用已固定的 Isaac Lab 环境运行；不更新执行中的 checkout。正式队列运行期间，只在独立空闲 GPU 上做有明确预算的小规模诊断，并记录 CPU/磁盘资源与重叠时段；不得占用正式队列的 GPU 或中断其进程。`CHECKPOINT` 必须为旧 bank 的同一个 SuperMimic collector checkpoint。
 
 ```bash
 python -m experiments.ablation.fidelity --probe-space policy \
@@ -77,9 +77,9 @@ H1 验收后在新的输出目录运行 H8/H32，再分别增加 `--no-critic`�
 
 ## 剩余工作与可得结论
 
-1. 真实 checkpoint/bank 的 H1→H8→H32 原生资格、扰动尺度和重复噪声检查；再运行 Critic/direct-action-gradient 消融，按接触分层时使用独立固定 minibatch。
+1. H1/8/32 原生资格和两种消融已完成。扩展独立随机方向、held-out 状态和接触分层，检查小信号的精度/尺度敏感性。
 2. 复用不同 WM 阶段做同 Policy/任务/起点对照，保持前向误差与参数梯度指标独立。
 3. 完成上述验收后再加入 PPO 梯度采样和等预算更新。随机 Gaussian PPO 的期望目标与确定性 Policy 的 BPTT 目标不同，必须先统一动作随机性/目标，或把比较明确限制为相同物理评分下的更新有效性；不能把两种目标的梯度夹角直接叫作“准确率”。
 4. 正式多 seed 统计和最终归因仍未完成。
 
-目前能明确回答的是：**更好的最终 Policy Performance，本身不能证明 WM Policy Gradient 更准确。** 准确率需要匹配目标的局部数值参考；更新有效性需要实际步长、裁剪和历史优化器状态下的物理改善。新的测量路径已实现并通过 CPU 验证，两种解释尚待真实物理数据区分。
+目前能明确回答的是：**更好的最终 Policy Performance，本身不能证明 WM Policy Gradient 更准确。** 准确率需要匹配目标的局部数值参考；更新有效性需要实际步长、裁剪和历史优化器状态下的物理改善。真实物理数据已显示代理改善与物理改善可以分离，但范围有限；与 PPO 的匹配目标对照尚未完成。

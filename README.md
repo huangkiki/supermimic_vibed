@@ -4,6 +4,8 @@
 
 The added ablation experiments are separate from the original author-reported reproduction below. On one training seed and 18 locomotion clips, SuperMimic at iteration 4000 reaches a physical return of 0.8035 with 2/18 failures, costing 1.8824 GPU-hours including training and five physical evaluations. The original PPO settings fail; tuning only the Actor learning rate yields PPO-Sim return 0.2528 with 12/18 failures at iteration 1000. Seeds1/2/3 and their compute limits are preregistered; these exploratory results do not establish an efficiency ranking. See the [measured results and limitations](docs/ablation/results.md).
 
+The full policy-parameter gradient path now has **15 native MuJoCo-Warp probes** (0.169490 GPU-hours). At one checkpoint and two fixed run starts, historical Adam improves the critic-based proxy but lowers short-horizon physical return at H1/H8; H32 improves both. FP32 sensitivity is reported separately. These local diagnostics do not establish why BPTT outperforms PPO; matched-target PPO gradients remain untested. [Measurements, raw data and limitations](docs/ablation/policy-gradient-native-v1.md).
+
 **Unofficial** reproduction of *SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
 Model* (arXiv 2610.28480) — no official code is released, so everything here is implemented from
 the paper. Target experiment: the controlled LAFAN1 comparison (Fig. 4a): 40 G1-retargeted LAFAN1
