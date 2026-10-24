@@ -16,7 +16,7 @@ import time
 import torch
 
 from .common import Config, append_csv, identity, motion_files, sha256, write_json
-from .policy_fidelity import ClosedLoopPhysical, PolicyGradientProbe, scan_parameter_directions, summarize_direction_scan
+from .policy_fidelity import ClosedLoopPhysical, PolicyGradientProbe, scan_parameter_directions, summarize_direction_scan, validate_starts
 
 
 def select_bank(bank, indices):
@@ -25,7 +25,7 @@ def select_bank(bank, indices):
     if not indices or len(set(indices)) != len(indices) or min(indices) < 0 or max(indices) >= size:
         raise ValueError('Unique sample indices within the source bank required')
     result = deepcopy(bank)
-    for key in ('state', 'frames', 'xi', 'previous_action', 'history_before_probe', 'reset_frames'):
+    for key in ('state', 'legacy_state', 'frames', 'xi', 'previous_action', 'history_before_probe', 'reset_frames'):
         if bank.get(key) is not None:
             result[key] = bank[key][indices].clone()
     for key in ('actions', 'prefix_actions'):
@@ -45,12 +45,14 @@ def select_bank(bank, indices):
 
 
 @torch.no_grad()
-def reconstruct_history(env, bank, hist):
+def reconstruct_history(env, bank, hist, *, replay_endpoint=False, audit=None):
     """Replay the saved prefix once to recover raw histories missing in old banks.
 
     The recovered history is a new numerical reconstruction, NOT an archived
     historical training minibatch. The original endpoint is retained after a
-    strict drift check; the legacy bank is never overwritten.
+    strict drift check. Explicit replay_endpoint creates a distinct derived bank
+    from saved prefix actions; it must never be described as the legacy endpoint.
+    The input file is never overwritten.
     """
     from supermimic.mdp import flatten_state
 
@@ -58,18 +60,37 @@ def reconstruct_history(env, bank, hist):
     env.refresh()
     env.failed_eval.zero_()
     env.done_eval.zero_()
-    samples = []
+    samples, contacts = [], []
     for action in bank['prefix_actions']:
         samples.append(dict(s=flatten_state(env.state()).clone(), a_prev=env.a_prev.clone(),
                             xi=env.xi.clone(), f=env.f.clone()))
         env.step(action)
+        if replay_endpoint:
+            from .fidelity import contact_signature
+            contacts.append(contact_signature(env))
         if env.failed_eval.any():
             raise ValueError('Replayed prefix failed; cannot reconstruct a valid raw history')
     drift = (flatten_state(env.state()) - bank['state']).abs().amax(-1)
-    if not torch.isfinite(drift).all() or float(drift.max()) > 1e-5 or not torch.equal(env.f, bank['frames']):
+    if audit is not None:
+        audit.update(prefix_endpoint_drift=drift.cpu().tolist(), legacy_drift_tolerance=1e-5,
+                     exact_legacy_endpoint_retained=not replay_endpoint)
+    if not torch.isfinite(drift).all() or not torch.equal(env.f, bank['frames']):
+        raise ValueError('Replayed prefix has nonfinite state or changed frames')
+    if not replay_endpoint and float(drift.max()) > 1e-5:
         raise ValueError(f'Legacy prefix endpoint cannot be reproduced: max drift {float(drift.max())}')
     if not torch.equal(env.xi, bank['xi']) or not torch.equal(env.a_prev, bank['previous_action']):
         raise ValueError('Legacy prefix parameters/action differ')
+    if replay_endpoint:
+        bank['legacy_state'] = bank['state'].clone()
+        bank['state'] = flatten_state(env.state()).clone()
+        bank['prefix_contacts'] = contacts
+        bank['parent_prefix_controller'] = bank['prefix_controller']
+        bank['prefix_controller'] = 'saved_actions_replay'
+        bank['bank_kind'] = 'derived_prefix_replay_endpoint'
+        bank['prefix_rule'] = 'fixed parent reset frames/actions; newly recorded raw history and endpoint; no policy recollection'
+        # These belong to the parent trajectory and are invalid at the new endpoint.
+        bank.pop('actions', None)
+        bank.pop('history_before_probe', None)
     starts = dict(s=bank['state'].clone(), a_prev=bank['previous_action'].clone(),
                   xi=bank['xi'].clone(), f=bank['frames'].clone())
     samples.append(starts)
@@ -77,7 +98,8 @@ def reconstruct_history(env, bank, hist):
                for key in starts}
     return history, {'history_origin': 'saved held-out prefix replay; not historical training replay',
                      'prefix_endpoint_drift': drift.cpu().tolist(),
-                     'endpoint_convention': 'retain exact legacy-bank endpoint after drift <= 1e-5',
+                     'endpoint_convention': ('new replay endpoint; distinct from legacy bank' if replay_endpoint
+                                             else 'retain exact legacy-bank endpoint after drift <= 1e-5'),
                      'historical_training_update_recovered': False}
 
 
@@ -89,6 +111,8 @@ def parser():
     value.add_argument('--sample-indices', type=int, nargs='+', default=[0, 1])
     value.add_argument('--prepare-history-only', action='store_true',
                        help='replay the entire source bank in original environment order; no gradient or policy update')
+    value.add_argument('--replay-prefix-bank', action='store_true',
+                       help='history preparation only: make a DISTINCT bank from saved prefix actions and its actual replay endpoint')
     value.add_argument('--record-contacts', action='store_true',
                        help='retain native geometry contacts after every physical transition')
     value.add_argument('--gradient-horizon', type=int, choices=(1, 8, 32), default=32)
@@ -114,6 +138,8 @@ def main(argv=None):
     args, launcher = parser().parse_known_args(argv)
     if not math.isfinite(args.max_seconds) or args.max_seconds <= 0 or args.max_seconds > 1800:
         raise ValueError('This low-cost diagnostic requires 0 < max-seconds <= 1800')
+    if args.replay_prefix_bank and not args.prepare_history_only:
+        raise ValueError('A distinct replay-prefix bank requires history preparation only')
     limit = 64 if args.prepare_history_only else 16
     if len(args.sample_indices) > limit:
         raise ValueError(f'At most {limit} starts allowed for this diagnostic mode')
@@ -217,10 +243,18 @@ def _run(args, launcher, output, receipt, started):
     sim_cfg = make_sim(device, launch_args)
     with launch_simulation(sim_cfg, launch_args):
         env = TrackingSim(sim_cfg, len(args.sample_indices), motion, mdp, gamma=cfg.gamma, eval_mode=True)
+        if args.replay_prefix_bank and 'replay_history' in bank:
+            raise ValueError('A derived prefix bank requires a legacy parent, not an already prepared bank')
         if 'replay_history' not in bank:
-            bank['replay_history'], bank['history_provenance'] = reconstruct_history(env, bank, cfg.hist)
+            audit = receipt.setdefault('history_reconstruction', {})
+            bank['replay_history'], bank['history_provenance'] = reconstruct_history(
+                env, bank, cfg.hist, replay_endpoint=args.replay_prefix_bank, audit=audit)
+            if args.replay_prefix_bank:
+                bank['parent_bank_sha256'] = bank_hash
         if bank.get('history_provenance', {}).get('historical_training_update_recovered') is not False:
             raise ValueError('Explicit fixed-bank history provenance required')
+        starts = dict(s=bank['state'], a_prev=bank['previous_action'], xi=bank['xi'], f=bank['frames'])
+        validate_starts(starts, bank['replay_history'], env.N, cfg.hist)
         torch.save(bank, output / 'policy-bank.pt')
         if args.record_contacts:
             model = env.sim.backend_manager._solver.mj_model
@@ -237,7 +271,6 @@ def _run(args, launcher, output, receipt, started):
                 prefix_steps=len(bank['prefix_actions']), prefix_simulator_steps=len(bank['prefix_actions']) * env.N,
                 gradient_updates=0, peak_torch_memory_bytes=torch.cuda.max_memory_allocated())
             return
-        starts = dict(s=bank['state'], a_prev=bank['previous_action'], xi=bank['xi'], f=bank['frames'])
         probe = PolicyGradientProbe(policy=policy, wm=wm, critic=critic, mdp=mdp, motion=motion,
             starts=starts, history=bank['replay_history'], unflatten_state=unflatten_state, normalize_xi=normalize_xi,
             horizon=args.gradient_horizon, gamma=cfg.gamma, goal_frames=cfg.goal_frames, seed=args.probe_seed,

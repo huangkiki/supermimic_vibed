@@ -353,6 +353,26 @@ class NativeAdapterContractTests(unittest.TestCase):
         validate_starts(starts, history, 2, 4)
         torch.testing.assert_close(history['f'], torch.tensor([[0, 0, 1, 2], [0, 0, 1, 2]]))
         self.assertFalse(provenance['historical_training_update_recovered'])
+        # A drifted endpoint still fails the legacy path, with per-start evidence.
+        selected['state'] += .01
+        selected['prefix_controller'] = 'policy'
+        selected['actions'] = torch.zeros(2, 2, 1)
+        audit = {}
+        with patch.dict(sys.modules, {'supermimic.mdp': mdp_module}):
+            with self.assertRaisesRegex(ValueError, 'cannot be reproduced'):
+                reconstruct_history(Environment(), selected, 4, audit=audit)
+            self.assertGreater(max(audit['prefix_endpoint_drift']), 1e-5)
+            parent_endpoint = selected['state'].clone()
+            with patch('experiments.ablation.fidelity.contact_signature', return_value=[(), ()]):
+                recovered, provenance = reconstruct_history(Environment(), selected, 4, replay_endpoint=True)
+        torch.testing.assert_close(selected['legacy_state'], parent_endpoint, rtol=0, atol=0)
+        torch.testing.assert_close(selected['state'], recovered['s'][:, -1], rtol=0, atol=0)
+        self.assertEqual(selected['bank_kind'], 'derived_prefix_replay_endpoint')
+        self.assertNotIn('actions', selected)
+        self.assertNotIn('history_before_probe', selected)
+        self.assertEqual(len(selected['prefix_contacts']), 2)
+        self.assertIn('distinct', provenance['endpoint_convention'])
+        self.assertNotIn('legacy_state', bank)  # select_bank protected its input
 
     def test_entry_dispatch_preserves_action_default(self):
         from unittest.mock import patch
@@ -385,6 +405,8 @@ class NativeAdapterContractTests(unittest.TestCase):
                 main([*args, '--prepare-history-only'])
             idle.assert_called_once()
             load.assert_not_called()
+        with self.assertRaisesRegex(ValueError, 'requires history preparation'):
+            main([*args, '--replay-prefix-bank'])
         with self.assertRaisesRegex(ValueError, 'does not compute gradients'):
             main([*args, '--prepare-history-only', '--no-critic'])
 
