@@ -1,7 +1,8 @@
 """Fixed held-out trajectories, prediction errors, action-space directional derivatives.
 
-This probes finite-horizon action gradients, not full policy-parameter gradients.
-No critic bootstrap is used: the numerical simulator and WM objectives must match.
+Default mode probes finite-horizon action gradients. Use --probe-space policy
+for the original training actor objective and full policy-parameter directions.
+Action mode uses no critic bootstrap: its simulator and WM objectives must match.
 Both physical hard termination and the matching soft-survival diagnostic are saved.
 """
 from __future__ import annotations
@@ -303,7 +304,7 @@ def probe_checkpoint(env, wm, bank, baseline, ck_hash, output, epsilons, directi
         claim="finite-horizon action-space diagnostic; hard FD includes termination discontinuities; neither FD variant is an absolute Jacobian truth"))
 
 
-def main():
+def main(argv=None):
     started = STARTED
     from isaaclab.app import add_launcher_args, launch_simulation
     parser = argparse.ArgumentParser(__doc__)
@@ -325,7 +326,7 @@ def main():
     parser.add_argument("--epsilons", nargs="+", type=float, default=[0.003, 0.01, 0.03, 0.1])
     parser.add_argument("--probe-seed", type=int, default=9001)
     add_launcher_args(parser)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if min(args.samples, args.directions, args.prefix_steps) < 1:
         raise ValueError("samples, directions and prefix-steps must be positive")
     if args.epsilons != sorted(set(args.epsilons)) or min(args.epsilons) <= 0 or len(args.epsilons) < 2:
@@ -455,5 +456,15 @@ def main():
                    precision="fp32, TF32 disabled", initial_state_max_drift=drift))
 
 
+def dispatch(argv=None):
+    selector = argparse.ArgumentParser(add_help=False)
+    selector.add_argument("--probe-space", choices=("action", "policy"), default="action")
+    selected, remaining = selector.parse_known_args(argv)
+    if selected.probe_space == "policy":
+        from .policy_fidelity_run import main as policy_main
+        return policy_main(remaining)
+    return main(remaining)
+
+
 if __name__ == "__main__":
-    main()
+    dispatch()

@@ -399,3 +399,7 @@ python -m experiments.ablation.analyze \
 完整交付包中的`checkpoint-archive-index.csv`记录实际归档位置和历史远端路径；`Checkpoint归档与恢复.md`提供分批恢复命令。它也包含此前已归档的49个Smoke/Pilot文件，两批共52个文件。原始训练日志的路径保持原样，不能据此推断大文件仍位于原处。
 
 只读CSV绘图无需bootstrap。重新运行`validate_run`、冻结张量身份检查或依赖旧replay的实验前，先按清单恢复相应完整bootstrap；policy checkpoint不能替代其中的replay。恢复前重新检查当前磁盘余量及正式队列预留，使用保留已存在文件的复制方式，再核对SHA256；不批量覆盖原文件、不通过降低资源门槛腾空间。这里提供恢复说明，本次未执行恢复。
+
+## 完整 Policy 参数梯度入口
+
+新增 `fidelity --probe-space policy` 复用原 `policy_update()` actor 前缀，固定模型、raw history 与随机数；默认 Action Gradient 命令保持兼容。已有15项针对性CPU测试；原生GPU资格尚未执行。见[代码审计、最小命令、资源门禁和剩余验收](policy-gradient-fidelity.md)。正式队列运行期间不启动此新增探针。

@@ -1,0 +1,233 @@
+"""Bounded native entrypoint for one fixed-policy parameter-gradient diagnostic.
+
+Run through `python -m experiments.ablation.fidelity --probe-space policy --help`.
+This entrypoint is separate from, and never retrains, any policy or world model.
+"""
+from __future__ import annotations
+
+import argparse
+from copy import deepcopy
+import os
+import math
+from pathlib import Path
+import shutil
+import time
+
+import torch
+
+from .common import Config, append_csv, identity, motion_files, sha256, write_json
+from .policy_fidelity import ClosedLoopPhysical, PolicyGradientProbe, scan_parameter_directions, summarize_direction_scan
+
+
+def select_bank(bank, indices):
+    """Select explicit held-out starts while retaining the legacy bank unchanged."""
+    size = len(bank['frames'])
+    if not indices or len(set(indices)) != len(indices) or min(indices) < 0 or max(indices) >= size:
+        raise ValueError('Unique sample indices within the source bank required')
+    result = deepcopy(bank)
+    for key in ('state', 'frames', 'xi', 'previous_action', 'history_before_probe', 'reset_frames'):
+        if bank.get(key) is not None:
+            result[key] = bank[key][indices].clone()
+    for key in ('actions', 'prefix_actions'):
+        if key in bank:
+            result[key] = bank[key][:, indices].clone()
+    for key in ('prefix_contacts',):
+        if key in bank:
+            result[key] = [[step[i] for i in indices] for step in bank[key]]
+    for key in ('motion_names', 'start_sampling_attempts'):
+        if key in bank:
+            result[key] = [bank[key][i] for i in indices]
+    if 'replay_history' in bank:
+        result['replay_history'] = {k: v[indices].clone() for k, v in bank['replay_history'].items()}
+    result['source_sample_indices'] = indices
+    return result
+
+
+@torch.no_grad()
+def reconstruct_history(env, bank, hist):
+    """Replay the saved prefix once to recover raw histories missing in old banks.
+
+    The recovered history is a new numerical reconstruction, NOT an archived
+    historical training minibatch. The original endpoint is retained after a
+    strict drift check; the legacy bank is never overwritten.
+    """
+    from supermimic.mdp import flatten_state
+
+    env.reset(torch.arange(env.N, device=env.device), bank['reset_frames'])
+    env.refresh()
+    env.failed_eval.zero_()
+    env.done_eval.zero_()
+    samples = []
+    for action in bank['prefix_actions']:
+        samples.append(dict(s=flatten_state(env.state()).clone(), a_prev=env.a_prev.clone(),
+                            xi=env.xi.clone(), f=env.f.clone()))
+        env.step(action)
+        if env.failed_eval.any():
+            raise ValueError('Replayed prefix failed; cannot reconstruct a valid raw history')
+    drift = (flatten_state(env.state()) - bank['state']).abs().amax(-1)
+    if not torch.isfinite(drift).all() or float(drift.max()) > 1e-5 or not torch.equal(env.f, bank['frames']):
+        raise ValueError(f'Legacy prefix endpoint cannot be reproduced: max drift {float(drift.max())}')
+    if not torch.equal(env.xi, bank['xi']) or not torch.equal(env.a_prev, bank['previous_action']):
+        raise ValueError('Legacy prefix parameters/action differ')
+    starts = dict(s=bank['state'].clone(), a_prev=bank['previous_action'].clone(),
+                  xi=bank['xi'].clone(), f=bank['frames'].clone())
+    samples.append(starts)
+    history = {key: torch.stack([samples[max(0, len(samples) - hist + i)][key] for i in range(hist)], 1)
+               for key in starts}
+    return history, {'history_origin': 'saved held-out prefix replay; not historical training replay',
+                     'prefix_endpoint_drift': drift.cpu().tolist(),
+                     'endpoint_convention': 'retain exact legacy-bank endpoint after drift <= 1e-5',
+                     'historical_training_update_recovered': False}
+
+
+def parser():
+    value = argparse.ArgumentParser(__doc__)
+    value.add_argument('--checkpoint', required=True, help='fixed SuperMimic pi/wm/critic/opt_pi checkpoint')
+    value.add_argument('--bank', required=True, help='existing held-out bank; original file is read-only')
+    value.add_argument('--output', required=True)
+    value.add_argument('--sample-indices', type=int, nargs='+', default=[0, 1])
+    value.add_argument('--gradient-horizon', type=int, choices=(1, 8, 32), default=32)
+    value.add_argument('--probe-seed', type=int, default=9001)
+    value.add_argument('--directions', type=int, default=2, help='additional random unit L2 directions')
+    value.add_argument('--epsilons', type=float, nargs='+', default=[.001, .003, .01])
+    value.add_argument('--repeats', type=int, default=3)
+    value.add_argument('--no-critic', action='store_true')
+    value.add_argument('--detach-action-reward', action='store_true')
+    value.add_argument('--precision', choices=('training', 'fp32'), default='training')
+    value.add_argument('--gpu', type=int, required=True, help='physical GPU index, checked before CUDA allocation')
+    value.add_argument('--gpu-uuid', required=True)
+    value.add_argument('--max-seconds', type=float, default=600)
+    return value
+
+
+def main(argv=None):
+    started = time.perf_counter()
+    # Help and argument checking work without loading Isaac Lab or allocating a GPU.
+    args, launcher = parser().parse_known_args(argv)
+    if not math.isfinite(args.max_seconds) or args.max_seconds <= 0 or args.max_seconds > 1800:
+        raise ValueError('This low-cost diagnostic requires 0 < max-seconds <= 1800')
+    if len(args.sample_indices) > 16:
+        raise ValueError('Qualify at most 16 starts before planning a larger run')
+    if args.repeats < 2 or args.directions < 1 or len(args.epsilons) < 2 or args.epsilons != sorted(set(args.epsilons)) or any(not math.isfinite(e) or e <= 0 for e in args.epsilons):
+        raise ValueError('Invalid repeat/direction/epsilon design')
+    from .run_suite import wait_for_idle_gpu
+    resources, observations = wait_for_idle_gpu(args.gpu, args.gpu_uuid, timeout=1.)
+    if float(resources['memory_free_mib']) < 16384:
+        raise RuntimeError('Need 16 GiB free for initial small-batch parameter-gradient qualification')
+    output = Path(args.output)
+    if output.exists():
+        raise FileExistsError('Use a new output directory; preserve prior evidence')
+    parent = output.parent
+    while not parent.exists():
+        parent = parent.parent
+    if shutil.disk_usage(parent).free < 8 * 2**30:
+        raise RuntimeError('Need 8 GiB free including full vectors and historical optimizer states')
+    if torch.cuda.is_initialized():
+        raise RuntimeError('Select the diagnostic GPU before initializing CUDA')
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
+    output.mkdir(parents=True)
+    planned_rollouts = args.repeats + 2 * len(args.epsilons) * (3 + args.directions) + 1
+    receipt = dict(status='started', args=vars(args), resources=resources, preflight_observations=observations,
+        requested_time_budget_seconds=args.max_seconds, planned_physical_rollouts=planned_rollouts,
+        planned_physical_steps=planned_rollouts * args.gradient_horizon * len(args.sample_indices),
+        requested_gpu_hour_budget=args.max_seconds / 3600,
+        budget_enforcement="checked before capture and each rollout; initialization or one operation may overrun; actual time retained",
+        memory_estimate='16 GiB initial conservative reservation; not a measured peak',
+        claim='diagnostic source-path validation; no scientific result until native output is qualified')
+    write_json(output / 'probe.json', receipt)
+    try:
+        _run(args, launcher, output, receipt, started)
+    except BaseException as exc:
+        receipt.update(status='failed', error=f'{type(exc).__name__}: {exc}')
+        raise
+    finally:
+        receipt['seconds'] = time.perf_counter() - started
+        receipt['allocated_gpu_hours'] = receipt['seconds'] / 3600
+        write_json(output / 'probe.json', receipt)
+
+
+def _run(args, launcher, output, receipt, started):
+    from isaaclab.app import add_launcher_args, launch_simulation
+    launch_parser = argparse.ArgumentParser()
+    add_launcher_args(launch_parser)
+    launch_args = launch_parser.parse_args(launcher)
+    from supermimic.env import TrackingSim, make_sim
+    from supermimic.kinematics import G1Kinematics
+    from supermimic.mdp import CRITIC_EXTRA, INV_DIM, MDP, OBS_DIM, normalize_xi, unflatten_state
+    from supermimic.motion import MotionLib
+    from supermimic.networks import Critic, Policy, WorldModel
+    from supermimic.robot import default_joint_pos_list
+    import supermimic.networks as networks
+
+    device = 'cuda:0'
+    torch.set_num_threads(4)
+    checkpoint_hash, bank_hash = sha256(args.checkpoint), sha256(args.bank)
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    cfg = Config(**checkpoint['config'])
+    if cfg.method not in ('supermimic', 'bptt_wm_frozen'):
+        raise ValueError('A deterministic BPTT checkpoint with matching Adam history is required')
+    manifest = identity(cfg, hash_bootstrap=False)
+    for key in ('assets', 'motions', 'packages', 'torch', 'cuda'):
+        if manifest[key] != checkpoint['manifest'][key]:
+            raise ValueError(f'Checkpoint and diagnostic environment differ: {key}')
+    for name, digest in manifest['source_hashes'].items():
+        if name.startswith('supermimic/') and digest != checkpoint['manifest']['source_hashes'][name]:
+            raise ValueError(f'Original training source differs: {name}')
+    bank = select_bank(torch.load(args.bank, map_location=device, weights_only=False), args.sample_indices)
+    if bank['collector_sha256'] != checkpoint_hash or bank['motion_hashes'] != manifest['motions'] or bank['asset_hashes'] != manifest['assets']:
+        raise ValueError('Held-out bank collector, motions or assets differ from the checkpoint')
+    torch.backends.cuda.matmul.allow_tf32 = args.precision == 'training'
+    torch.backends.cudnn.allow_tf32 = args.precision == 'training'
+    networks.AMP_DTYPE = torch.bfloat16 if args.precision == 'training' and cfg.amp == 'bf16' else None
+    torch.manual_seed(args.probe_seed)
+    kin = G1Kinematics(device)
+    motion = MotionLib([str(p) for p in motion_files(cfg)], kin, device)
+    mdp = MDP(kin, motion, torch.tensor(default_joint_pos_list(), device=device))
+    policy = Policy(OBS_DIM, 73 * cfg.goal_frames, cfg.hist).to(device)
+    wm, critic = WorldModel().to(device), Critic(INV_DIM + CRITIC_EXTRA + 73 * cfg.goal_frames).to(device)
+    for key, module in (('pi', policy), ('wm', wm), ('critic', critic)):
+        module.load_state_dict(checkpoint[key])
+    sim_cfg = make_sim(device, launch_args)
+    with launch_simulation(sim_cfg, launch_args):
+        env = TrackingSim(sim_cfg, len(args.sample_indices), motion, mdp, gamma=cfg.gamma, eval_mode=True)
+        if 'replay_history' not in bank:
+            bank['replay_history'], bank['history_provenance'] = reconstruct_history(env, bank, cfg.hist)
+        if bank.get('history_provenance', {}).get('historical_training_update_recovered') is not False:
+            raise ValueError('Explicit fixed-bank history provenance required')
+        torch.save(bank, output / 'policy-bank.pt')
+        starts = dict(s=bank['state'], a_prev=bank['previous_action'], xi=bank['xi'], f=bank['frames'])
+        probe = PolicyGradientProbe(policy=policy, wm=wm, critic=critic, mdp=mdp, motion=motion,
+            starts=starts, history=bank['replay_history'], unflatten_state=unflatten_state, normalize_xi=normalize_xi,
+            horizon=args.gradient_horizon, gamma=cfg.gamma, goal_frames=cfg.goal_frames, seed=args.probe_seed,
+            no_critic=args.no_critic, detach_action_reward=args.detach_action_reward)
+        if time.perf_counter() - started > args.max_seconds:
+            raise TimeoutError('Parameter probe time budget exhausted before gradient capture')
+        captured = probe.capture(checkpoint['opt_pi'])
+        torch.save(captured, output / 'gradients.pt')
+        physical = ClosedLoopPhysical(probe, env, bank)
+        def bounded_physical():
+            if time.perf_counter() - started > args.max_seconds:
+                raise TimeoutError('Parameter probe time budget exhausted before next rollout')
+            return physical()
+        result = scan_parameter_directions(probe, captured, bounded_physical, epsilons=args.epsilons,
+                                           random_directions=args.directions, repeats=args.repeats)
+        torch.save(result, output / 'direction-rollouts.pt')
+        write_json(output / 'summary.json', summarize_direction_scan(result))
+        for row in result['rows']:
+            append_csv(output / 'directions.csv', row)
+        torch.cuda.synchronize()
+        if sha256(args.checkpoint) != checkpoint_hash or sha256(args.bank) != bank_hash:
+            raise RuntimeError('Input checkpoint or bank changed during the diagnostic')
+        receipt.update(status='complete', checkpoint_sha256=checkpoint_hash, bank_sha256=bank_hash,
+            prepared_bank_sha256=sha256(output / 'policy-bank.pt'), manifest=manifest, source=probe.provenance,
+            history_provenance=bank['history_provenance'], actual_adam_improvement=result['actual_adam_improvement'],
+            training_checkpoint_path='experiments/ablation/train.py; critic norm timing differs from original',
+            gradient_target='original supermimic/train.py actor prefix at fixed stored checkpoint; not historical update replay',
+            precision=dict(tf32=torch.backends.cuda.matmul.allow_tf32, amp=str(networks.AMP_DTYPE), compiled=False),
+            peak_torch_memory_bytes=torch.cuda.max_memory_allocated(),
+            reset_protocol='native state restore, nominal xi, Newton solver reset flags=0',
+            numerical_reference='central finite differences; not an absolute ground-truth Jacobian')
+
+
+if __name__ == '__main__':
+    main()
