@@ -39,7 +39,8 @@ def select_bank(bank, indices):
             result[key] = [bank[key][i] for i in indices]
     if 'replay_history' in bank:
         result['replay_history'] = {k: v[indices].clone() for k, v in bank['replay_history'].items()}
-    result['source_sample_indices'] = indices
+    source_indices = bank.get('source_sample_indices', list(range(size)))
+    result['source_sample_indices'] = [source_indices[i] for i in indices]
     return result
 
 

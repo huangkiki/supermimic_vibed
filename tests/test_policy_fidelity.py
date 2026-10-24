@@ -320,6 +320,7 @@ class NativeAdapterContractTests(unittest.TestCase):
         selected = select_bank(bank, [2, 0])
         self.assertEqual(selected['motion_names'], ['c', 'a'])
         self.assertEqual(len(bank['frames']), 3)
+        self.assertEqual(select_bank(selected, [0])['source_sample_indices'], [2])
         class Environment:
             N, device = 2, 'cpu'
             xi = torch.ones(2, 1)

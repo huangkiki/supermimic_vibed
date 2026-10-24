@@ -1,0 +1,10 @@
+{
+  "probes": [
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-full-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-full-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01"
+  ],
+  "tensor_validation": true,
+  "checkpoint_sha256": "54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac",
+  "scope": "single fixed-policy paired diagnostics; no independent-training-seed confidence interval"
+}

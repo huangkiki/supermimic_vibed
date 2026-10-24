@@ -402,4 +402,4 @@ python -m experiments.ablation.analyze \
 
 ## 完整 Policy 参数梯度入口
 
-新增 `fidelity --probe-space policy` 复用原 `policy_update()` actor 前缀，固定模型、raw history 与随机数；默认 Action Gradient 命令保持兼容。已有15项针对性CPU测试；原生GPU资格尚未执行。见[代码审计、最小命令、资源门禁和剩余验收](policy-gradient-fidelity.md)。正式队列运行期间不启动此新增探针。
+新增 `fidelity --probe-space policy` 复用原 `policy_update()` actor 前缀，固定模型、raw history 与随机数；默认 Action Gradient 命令保持兼容。15组原生探针已完成，包含H1/8/32四组合消融和FP32敏感性检查。[结果、CSV与复算](policy-gradient-native-v1.md)。见[代码审计、最小命令、资源门禁和剩余验收](policy-gradient-fidelity.md)。正式队列运行期间，新增诊断只使用独立空闲GPU与独立checkout，先检查资源、给定预算并记录并发时段；不得中断正式队列或占用其GPU。
