@@ -1,0 +1,158 @@
+{
+  "status": "passed",
+  "source": "6746e1a9fbec0de1d3206c6c09cf1ae8429d7327",
+  "probes": 4,
+  "all_raw_tensors_verified": true,
+  "all_prior_probes_strongly_revalidated": 18,
+  "prior_training_probes": [
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-full-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-no-critic-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-no-critic-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-detach-action-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-full-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-no-critic-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-no-critic-detach-action-01"
+  ],
+  "prior_fp32_probes": [
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h1-full-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01",
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h8-full-fp32-01"
+  ],
+  "input_sha256": {
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01/gradients.pt": {
+      "sha256": "7bf5e3098c0b9407fe429995888dfef0053d49ab5c657373c67900f32ebf0a2b",
+      "bytes": 364698059
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01/policy-bank.pt": {
+      "sha256": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+      "bytes": 46600
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01/directions.csv": {
+      "sha256": "9180428bd3e9b0444cd89c30afaaf85201fe273c88a140ffa6635169ec202169",
+      "bytes": 7750
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01/direction-rollouts.pt": {
+      "sha256": "1a5f8a1a5b1d47e07199e61a2ec4e655826ebdcf067a39ac4357e26b3937711e",
+      "bytes": 182679052
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01/probe.json": {
+      "sha256": "aa8a60655a55058ad580d0a8c822de3c1f1f323f26a4da9e84ef1fbef9dc1e89",
+      "bytes": 17223
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-full-fp32-01/summary.json": {
+      "sha256": "f0bf4de22ae6d2c7150b428d4fa823c2b6eb46c8f3c00eae7ad24fcf62538d19",
+      "bytes": 4206
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01/gradients.pt": {
+      "sha256": "905883e054a405ca9ea8223bc94945a5c3d9572535016c2357e0f40249897f9f",
+      "bytes": 364698059
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01/policy-bank.pt": {
+      "sha256": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+      "bytes": 46600
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01/directions.csv": {
+      "sha256": "df2cb8ef912c0de4a2f42629055296e3c07cb27ad4f668ea8bb9d60bb8951cf9",
+      "bytes": 7794
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01/direction-rollouts.pt": {
+      "sha256": "195621cb4f7abfc6d466a3ead8ccd8610af919953368f1394a42aff9cfa861c3",
+      "bytes": 182679052
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01/probe.json": {
+      "sha256": "495a59999c51c9f7c2b9c5c38c1cbb8b5f4abe97f20e78ae2d896c162ad50fd5",
+      "bytes": 17228
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-fp32-01/summary.json": {
+      "sha256": "dade909efdeb6bd510bec204c3df0020b26ae40193435adf1fbc078f39df7983",
+      "bytes": 4141
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01/gradients.pt": {
+      "sha256": "3e488ec146e67a2df1c95881d3d175cfbd7c5b1bec524a49ca5c0e531355fd33",
+      "bytes": 364698059
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01/policy-bank.pt": {
+      "sha256": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+      "bytes": 46600
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01/directions.csv": {
+      "sha256": "c829adb9158792f9653fad4edf6e493430ad5fdfc47b30749aff4de0e198cb57",
+      "bytes": 7920
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01/direction-rollouts.pt": {
+      "sha256": "34258950dea76f6e846f21b9ca3a7545259089ddf40353e393d4a98f64adefb6",
+      "bytes": 182679052
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01/probe.json": {
+      "sha256": "84ca08a056e34cb235c373bf454ef7c471bca9ba9192b7fc18a539aab4554901",
+      "bytes": 17233
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-detach-action-fp32-01/summary.json": {
+      "sha256": "64aab5c6e5c6193f12bc8d0c0a771b4487336f6c19999b174b096e5e6aad39e6",
+      "bytes": 4207
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01/gradients.pt": {
+      "sha256": "4a677c18d5ab3d66f98bb57884d7a4041a98e88289e8cf2c780dd4e5d60c8119",
+      "bytes": 364698059
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01/policy-bank.pt": {
+      "sha256": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+      "bytes": 46600
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01/directions.csv": {
+      "sha256": "cb6aadec45a761548ff923ac93c1debe1f97045763089536f3ddb8596fef4d8d",
+      "bytes": 7729
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01/direction-rollouts.pt": {
+      "sha256": "25c4c207e08631ca8f598df38e4a6d95ea496c9c4bdad8d23584c4bdf484001c",
+      "bytes": 182679052
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01/probe.json": {
+      "sha256": "8a47d5d3b1751445236fae3a4a9cbf821be9193ec4f4c1dd0095d736a4b6db95",
+      "bytes": 17240
+    },
+    "/home/huangyue/work/supermimic-ablation-20261023/runtime/policy-gradient-v1/h32-no-critic-detach-action-fp32-01/summary.json": {
+      "sha256": "719e69bc5c186c1cd82d0352b26004ee1110dcba6c11b3dcfb5d84af5180a690",
+      "bytes": 4139
+    }
+  },
+  "small_input_sha256": {
+    "h32-full-fp32-01/policy-bank.pt": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+    "h32-full-fp32-01/directions.csv": "9180428bd3e9b0444cd89c30afaaf85201fe273c88a140ffa6635169ec202169",
+    "h32-full-fp32-01/probe.json": "aa8a60655a55058ad580d0a8c822de3c1f1f323f26a4da9e84ef1fbef9dc1e89",
+    "h32-full-fp32-01/summary.json": "f0bf4de22ae6d2c7150b428d4fa823c2b6eb46c8f3c00eae7ad24fcf62538d19",
+    "h32-full-fp32-01.log": "d3804808e3aa2691e0ef40ab8d74a59234232fe30c5450d095138be51987b28b",
+    "h32-no-critic-fp32-01/policy-bank.pt": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+    "h32-no-critic-fp32-01/directions.csv": "df2cb8ef912c0de4a2f42629055296e3c07cb27ad4f668ea8bb9d60bb8951cf9",
+    "h32-no-critic-fp32-01/probe.json": "495a59999c51c9f7c2b9c5c38c1cbb8b5f4abe97f20e78ae2d896c162ad50fd5",
+    "h32-no-critic-fp32-01/summary.json": "dade909efdeb6bd510bec204c3df0020b26ae40193435adf1fbc078f39df7983",
+    "h32-no-critic-fp32-01.log": "be8ca15f3caaa21c74a9b7d533006947e54e0a80ff979d636df519a8bd6c7e85",
+    "h32-detach-action-fp32-01/policy-bank.pt": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+    "h32-detach-action-fp32-01/directions.csv": "c829adb9158792f9653fad4edf6e493430ad5fdfc47b30749aff4de0e198cb57",
+    "h32-detach-action-fp32-01/probe.json": "84ca08a056e34cb235c373bf454ef7c471bca9ba9192b7fc18a539aab4554901",
+    "h32-detach-action-fp32-01/summary.json": "64aab5c6e5c6193f12bc8d0c0a771b4487336f6c19999b174b096e5e6aad39e6",
+    "h32-detach-action-fp32-01.log": "bb313873c79df652e40379dc18c44d155aa64bc3d0b2d64067c81ac1665ad0f7",
+    "h32-no-critic-detach-action-fp32-01/policy-bank.pt": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+    "h32-no-critic-detach-action-fp32-01/directions.csv": "cb6aadec45a761548ff923ac93c1debe1f97045763089536f3ddb8596fef4d8d",
+    "h32-no-critic-detach-action-fp32-01/probe.json": "8a47d5d3b1751445236fae3a4a9cbf821be9193ec4f4c1dd0095d736a4b6db95",
+    "h32-no-critic-detach-action-fp32-01/summary.json": "719e69bc5c186c1cd82d0352b26004ee1110dcba6c11b3dcfb5d84af5180a690",
+    "h32-no-critic-detach-action-fp32-01.log": "6cdfb2381305b9daf41e65f6a19658c729256b244de2585bfa3c0cc993bb44d0",
+    "h32-fp32-ablations-campaign.json": "7529d792a3706f339985a70358ddb8337dc78e7ad98858d7835ee88ec0aefcf4"
+  },
+  "new_probe_seconds": 147.46875900099985,
+  "prior_diagnostic_gpu_hours": 0.31098565467086803,
+  "cumulative_diagnostic_gpu_hours": 0.3519491988378124,
+  "cumulative_cap_gpu_hours": 0.5,
+  "cpu_analysis_seconds": 55.54038900695741,
+  "cuda_initialized": false,
+  "archive_sha256": "e9375247b665e5dc6946b65c1e232e0c7ba78c3b389ed0d8bc8a5d51e4fbdcf0",
+  "archive_bytes": 163997
+}

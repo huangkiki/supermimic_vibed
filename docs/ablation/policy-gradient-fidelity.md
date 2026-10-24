@@ -2,7 +2,9 @@
 
 本阶段验证的是：固定 Policy、WM、Critic、起点和随机数后，原 SuperMimic 策略目标对**策略参数**的梯度，在物理仿真中是否给出可靠方向，以及实际 Adam 更新是否有效。
 
-**已完成 15 组 MuJoCo-Warp 参数梯度探针**：H1/8/32 的四种 Critic/直接动作梯度组合，以及 3 组 FP32 检查；累计 0.169490 GPU-hours。只覆盖一个 checkpoint、两个 run 起点。[结果、原始数据与局限](policy-gradient-native-v1.md)。正式队列在 GPU0 继续，本批使用独立 GPU2 与 checkout，未修改正式执行源码。
+**前一批完成 15 组 MuJoCo-Warp 参数梯度探针**：H1/8/32 的四种 Critic/直接动作梯度组合，以及 3 组 FP32 检查；累计 0.169490 GPU-hours。只覆盖一个 checkpoint、两个 run 起点。[结果、原始数据与局限](policy-gradient-native-v1.md)。正式队列在 GPU0 继续，本批使用独立 GPU2 与 checkout，未修改正式执行源码。
+
+后续已补齐[H32 FP32消融与梯度分解](policy-gradient-components.md)，原路径探针共18组；[七项要求的证据与最终解释](policy-gradient-conclusions.md)明确准确性和更新有效性的区别。
 
 ## 源码审计与目标
 

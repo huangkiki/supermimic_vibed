@@ -240,7 +240,7 @@ def plot_comparison(probes, output, epsilon):
         fig.savefig(output / f'actual-adam-improvement.{ext}', dpi=180)
     plt.close(fig)
 
-    fig, axes = plt.subplots(len(critic_levels), len(horizons), figsize=(4.2 * len(horizons), 3.6 * len(critic_levels)), squeeze=False)
+    fig, axes = plt.subplots(len(critic_levels), len(horizons), figsize=(max(11, 4.2 * len(horizons)), 3.6 * len(critic_levels)), squeeze=False)
     for row_index, no_critic in enumerate(critic_levels):
         for column, horizon in enumerate(horizons):
             axis = axes[row_index, column]

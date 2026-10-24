@@ -1,0 +1,15 @@
+SSH warring: Authorized users only. All activity may be monitored and reported 
+Traceback (most recent call last):
+  File "<stdin>", line 21, in <module>
+  File "/home/huangyue/work/supermimic-ablation-20261023/component-audit-repo/experiments/ablation/analyze_policy_fidelity.py", line 171, in compare
+    probes = [load_probe(path, verify_tensors=verify_tensors) for path in paths]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/huangyue/work/supermimic-ablation-20261023/component-audit-repo/experiments/ablation/analyze_policy_fidelity.py", line 125, in load_probe
+    torch.testing.assert_close(direction, vector / vector.norm(), rtol=2e-5, atol=1e-8)
+  File "/home/huangyue/work/supermimic-ablation-20261023/runtime/venv/lib/python3.12/site-packages/torch/testing/_comparison.py", line 1600, in assert_close
+    raise error_metas[0].to_error(msg)
+AssertionError: Tensor-likes are not close!
+
+Mismatched elements: 967936 / 9116477 (10.6%)
+Greatest absolute difference: 5.058944225311279e-06 at index (9109610,) (up to 1e-08 allowed)
+Greatest relative difference: 6.9460817030631e-05 at index (4350114,) (up to 2e-05 allowed)
