@@ -408,3 +408,7 @@ python -m experiments.ablation.analyze \
 同策略同目标的辅助随机梯度入口、独立噪声划分和等参数步长协议见[匹配估计器](matched-policy-estimators.md)，已完成的H1/H8/H32数据与原始张量复核见[首批结果](matched-policy-results.md)。该入口不更改原生产训练。
 
 H32完整FP32消融的数据包和CPU复算见[组件对照说明](../../results/ablation/policy-gradient-components-v1/README.md)；当前参数梯度阶段的[逐项验收与结论](policy-gradient-conclusions.md)单独列出未证实范围。
+
+## Policy 参数梯度的接触历史分组
+
+[派生库、固定分组、运行命令、原生结果和全部成本](policy-gradient-contacts.md)。旧库保持原末端的严格重建失败时停止；`--prepare-history-only --replay-prefix-bank`显式创建不同的新库，不更改原状态容限。过去接触选择、起点对称邻域和未来H32标签分开导出。

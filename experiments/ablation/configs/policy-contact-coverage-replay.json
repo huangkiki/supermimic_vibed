@@ -1,0 +1,68 @@
+{
+  "status": "revised_before_new_gradients",
+  "source_bank_sha256": "a79f08f281b288e8f8001aa994fc127789c080e42b67fa809dce1cbeb48d3abb",
+  "checkpoint_sha256": "54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac",
+  "prior_diagnostic_gpu_hours": 0.3573775077108682,
+  "cumulative_cap_gpu_hours": 0.5,
+  "sample_selection": "Exclude previous indices0/1; first8 motion names in source-bank order having both past-contact groups; first eligible index per motion/group; no gradient/return used",
+  "contact_definition": "Body-pair signature from the end of the recorded16-step prefix; changes during last2-step neighborhood inclusive; past-only, not stable for futureH32",
+  "motion_names": [
+    "run1_subject5",
+    "run2_subject1",
+    "run2_subject4",
+    "sprint1_subject4",
+    "walk1_subject2",
+    "walk1_subject5",
+    "walk2_subject4",
+    "walk3_subject2"
+  ],
+  "cases": {
+    "stable_contact": [
+      55,
+      20,
+      21,
+      5,
+      43,
+      8,
+      29,
+      31
+    ],
+    "switch_nearby": [
+      19,
+      2,
+      3,
+      41,
+      7,
+      44,
+      11,
+      13
+    ]
+  },
+  "horizon": 32,
+  "precision": "fp32_no_tf32_no_amp",
+  "probe_seed": 9001,
+  "random_directions": 8,
+  "epsilons": [
+    0.001,
+    0.003,
+    0.01
+  ],
+  "repeats": 3,
+  "history_preparation": "derive a distinct bank using the same64 parent reset frames and fixed16-step action tapes; retain actual replay endpoint/raw history/contacts and original endpoint drift; do not pool with original bank",
+  "maximum_gpu_seconds": {
+    "history_preparation": 90,
+    "each_cohort": 180
+  },
+  "forecast_gpu_seconds": {
+    "history_preparation": 30,
+    "each_cohort": 110
+  },
+  "forecast_peak_device_mib": 4096,
+  "minimum_free_device_mib": 16384,
+  "minimum_disk_reserve_gib": 24,
+  "estimated_additional_artifact_gib": 1.65,
+  "interpretation": "paired motion identities but distinct states/phases; descriptive batch-mean directional diagnostics, not contact causal effect or independent training seeds",
+  "previous_plan": "policy-contact-coverage.json",
+  "previous_failure": "policy-contact-v1/history64: strict endpoint drift 0.0009658634662628174 > 1e-5; no gradients calculated",
+  "contact_revalidation": "The exact originally predeclared indices must retain their past-only contact labels and motion names in the new bank; reject before any gradients if they do not"
+}

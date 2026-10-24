@@ -251,17 +251,18 @@ class ClosedLoopPhysical:
     pre-transition hard-survival mask stops accumulation of the physical return.
     """
 
-    def __init__(self, probe, env, bank):
+    def __init__(self, probe, env, bank, *, record_contacts=False):
         if not env.eval_mode:
             raise ValueError("Physical probe requires eval_mode without automatic resets")
         for key, start_key in (("state", "s"), ("frames", "f"), ("xi", "xi"), ("previous_action", "a_prev")):
             if not torch.equal(bank[key], probe.starts[start_key]):
                 raise ValueError(f"Physical bank and raw replay start differ: {key}")
         self.probe, self.env, self.bank = probe, env, bank
+        self.record_contacts = record_contacts
 
     @torch.no_grad()
     def __call__(self):
-        from .fidelity import restore_probe_state, returns
+        from .fidelity import contact_signature, restore_probe_state, returns
         from supermimic.mdp import flatten_state
 
         restore_probe_state(self.env, self.bank)
@@ -269,12 +270,15 @@ class ClosedLoopPhysical:
         if not torch.isfinite(drift).all() or float(drift.max()) > 1e-5:
             raise RuntimeError(f"Native initial state restore drift exceeds 1e-5: {float(drift.max())}")
         env = self.env
-        hard = []
+        hard, contacts = [], []
+        record_contacts = self.record_contacts
 
         class PhysicalTransitions(nn.Module):
             def step(self, state, action, xi):
                 transition = env.step(action)
                 hard.append(transition["done"].clone())
+                if record_contacts:
+                    contacts.append(contact_signature(env))
                 # Snapshot tensors because the simulator reuses its state storage.
                 return tuple(x.clone() for x in env.state())
 
@@ -282,6 +286,8 @@ class ClosedLoopPhysical:
         result["hard"] = returns(result["rewards"], torch.stack(hard).float(), self.probe.gamma)
         result["hard_termination"] = torch.stack(hard)
         result["initial_state_drift"] = drift
+        if record_contacts:
+            result["geometry_contacts"] = contacts
         return result
 
 

@@ -296,6 +296,15 @@ class NativeAdapterContractTests(unittest.TestCase):
             physical = ClosedLoopPhysical(probe, env, bank)
             result = physical()
             repeat = physical()
+            with patch('experiments.ablation.fidelity.contact_signature',
+                       side_effect=lambda env: [((0, env.count),)] * probe.batch) as contacts:
+                recorded = ClosedLoopPhysical(probe, env, bank, record_contacts=True)()
+                self.assertEqual(contacts.call_count, probe.horizon)
+                self.assertEqual(recorded['geometry_contacts'][0], [((0, 1),)] * probe.batch)
+                self.assertEqual(recorded['geometry_contacts'][-1], [((0, 8),)] * probe.batch)
+            torch.testing.assert_close(recorded['proxy'], result['proxy'], rtol=0, atol=0)
+            torch.testing.assert_close(recorded['hard'], result['hard'], rtol=0, atol=0)
+            self.assertNotIn('geometry_contacts', result)
         expected = probe.objective()
         torch.testing.assert_close(result['proxy'], expected['proxy'], rtol=0, atol=0)
         torch.testing.assert_close(result['actions'], expected['actions'], rtol=0, atol=0)
@@ -344,6 +353,26 @@ class NativeAdapterContractTests(unittest.TestCase):
         validate_starts(starts, history, 2, 4)
         torch.testing.assert_close(history['f'], torch.tensor([[0, 0, 1, 2], [0, 0, 1, 2]]))
         self.assertFalse(provenance['historical_training_update_recovered'])
+        # A drifted endpoint still fails the legacy path, with per-start evidence.
+        selected['state'] += .01
+        selected['prefix_controller'] = 'policy'
+        selected['actions'] = torch.zeros(2, 2, 1)
+        audit = {}
+        with patch.dict(sys.modules, {'supermimic.mdp': mdp_module}):
+            with self.assertRaisesRegex(ValueError, 'cannot be reproduced'):
+                reconstruct_history(Environment(), selected, 4, audit=audit)
+            self.assertGreater(max(audit['prefix_endpoint_drift']), 1e-5)
+            parent_endpoint = selected['state'].clone()
+            with patch('experiments.ablation.fidelity.contact_signature', return_value=[(), ()]):
+                recovered, provenance = reconstruct_history(Environment(), selected, 4, replay_endpoint=True)
+        torch.testing.assert_close(selected['legacy_state'], parent_endpoint, rtol=0, atol=0)
+        torch.testing.assert_close(selected['state'], recovered['s'][:, -1], rtol=0, atol=0)
+        self.assertEqual(selected['bank_kind'], 'derived_prefix_replay_endpoint')
+        self.assertNotIn('actions', selected)
+        self.assertNotIn('history_before_probe', selected)
+        self.assertEqual(len(selected['prefix_contacts']), 2)
+        self.assertIn('distinct', provenance['endpoint_convention'])
+        self.assertNotIn('legacy_state', bank)  # select_bank protected its input
 
     def test_entry_dispatch_preserves_action_default(self):
         from unittest.mock import patch
@@ -362,6 +391,24 @@ class NativeAdapterContractTests(unittest.TestCase):
                 main(['--checkpoint', 'missing.pt', '--bank', 'missing-bank.pt', '--output', 'unused',
                       '--gpu', '0', '--gpu-uuid', 'GPU-test'])
             load.assert_not_called()
+
+    def test_history_only_allows_full_bank_without_expanding_gradient_batch_limit(self):
+        from unittest.mock import patch
+        from experiments.ablation.policy_fidelity_run import main
+        args = ['--checkpoint', 'missing.pt', '--bank', 'missing-bank.pt', '--output', 'unused',
+                '--gpu', '0', '--gpu-uuid', 'GPU-test', '--sample-indices', *map(str, range(64))]
+        with patch('experiments.ablation.run_suite.wait_for_idle_gpu', side_effect=RuntimeError('busy')) as idle, patch('torch.load') as load:
+            with self.assertRaisesRegex(ValueError, 'At most 16'):
+                main(args)
+            idle.assert_not_called()
+            with self.assertRaisesRegex(RuntimeError, 'busy'):
+                main([*args, '--prepare-history-only'])
+            idle.assert_called_once()
+            load.assert_not_called()
+        with self.assertRaisesRegex(ValueError, 'requires history preparation'):
+            main([*args, '--replay-prefix-bank'])
+        with self.assertRaisesRegex(ValueError, 'does not compute gradients'):
+            main([*args, '--prepare-history-only', '--no-critic'])
 
 
 if __name__ == '__main__':

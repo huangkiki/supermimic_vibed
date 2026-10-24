@@ -37,6 +37,22 @@ def write_probe(path, horizon=1, detach=False):
 
 
 class PolicyAnalysisTests(unittest.TestCase):
+    def test_eight_return_reduction_uses_fp64_reference_and_rejects_large_changes(self):
+        from experiments.ablation.analyze_policy_fidelity import validate_mean_difference
+        # Retained native eight-start hard returns: CUDA and CPU reductions
+        # differ although the stored input tensors are identical.
+        before = torch.tensor([1.7264854907989502,1.6348857879638672,2.279447555541992,1.6722633838653564,
+                               2.5959744453430176,2.367046356201172,1.9530115127563477,2.6150083541870117])
+        after = torch.tensor([1.760850191116333,1.6465466022491455,2.3013861179351807,1.7047035694122314,
+                              2.586393356323242,2.392570734024048,1.972632884979248,2.6294169425964355])
+        cuda_report = 0.018796920776367188
+        self.assertNotEqual(float(after.mean() - before.mean()), cuda_report)
+        reference, bound = validate_mean_difference(cuda_report, after, before)
+        self.assertEqual(reference, 0.018797188997268677)
+        self.assertLess(bound, 3e-6)
+        with self.assertRaisesRegex(ValueError, 'beyond recorded-dtype roundoff'):
+            validate_mean_difference(cuda_report + .001, after, before)
+
     def test_complete_paired_probes_recompute_from_raw_tensors(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
