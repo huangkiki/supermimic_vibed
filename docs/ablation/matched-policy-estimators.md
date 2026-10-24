@@ -2,7 +2,7 @@
 
 这是完整确定性 Policy 梯度实验之后的辅助对照。两种估计器共用同一个 Policy mean、固定 Gaussian σ、WM、Critic、起点及完整软终止目标。原确定性训练与已有探针不变；**不能将辅助随机目标的结果改写为原确定性梯度的准确率。**
 
-当前先完成 CPU 数学与实现验收；真实机器人结果须以成功的原生收据为准。PPO 使用 [PPO 原论文](https://arxiv.org/abs/1707.06347) 的 likelihood-ratio clipped surrogate，在 θ=θ_old 计算首次梯度，此处 ratio=1、clipping 尚不生效。本实验不是完整多 epoch PPO 训练。
+CPU数学验收与修复版H1/H8/H32原生实验均已完成；各16个梯度噪声tape和16个独立物理噪声tape。[结果、费用与限制](matched-policy-results.md)。PPO 使用 [PPO 原论文](https://arxiv.org/abs/1707.06347) 的 likelihood-ratio clipped surrogate，在 θ=θ_old 计算首次梯度，此处 ratio=1、clipping 尚不生效。本实验不是完整多 epoch PPO 训练。
 
 ## 匹配条件
 
@@ -13,6 +13,12 @@
 - 尾部回报 `G_H=V_H`，`G_t=r_t+γ(1-d_t)G_{t+1}`；无 Critic 时 `G_H=0`。使用 λ=1，无 advantage 标准化，无 entropy term。
 - `A_t=G_t-V(s_t)`，value 是动作发生前的冻结基线；目标权重为 `γ^t c_t`。原 PPO loss 平均 H×B 个项，本对照乘 H，恢复原目标按时间求和、按起点求均值的单位。
 - 原路径两种 gradient clipping 和历史 Adam 实验保留在独立报告。本对照使用两种**平均原始梯度的单位 L2 方向**和相同 ε，隔离参数步长；没有把沿 BPTT 历史 moments 预条件后的 PPO 方向称为标准 PPO 更新。
+
+## 为什么必须先统一目标
+
+在可交换期望与微分等正则条件下，固定同一随机策略与可微 WM 目标后，score-function 与 pathwise derivative 都估计同一个 `∇E[J_WM]`。因此，本对照主要分离有限采样的方差、计算费用和实际更新效果；它不把 PPO 的一个高方差样本与 BPTT 的差异解释为两者期望梯度不同。该解释来自随机计算图梯度恒等式在本设计中的应用，适用条件见 [Schulman 等，§2.1](https://arxiv.org/pdf/1506.05254)。
+
+即使两个估计器都准确估计了 WM 目标，`∇E[J_WM]` 也可能偏离物理目标。代理目标的 Critic Bootstrap 又与硬终止物理回报不同。必须分别检查模型偏差、采样误差、目标差异和给定步长下的物理收益；不能从算法最终回报高直接推出 WM 梯度更准确。
 
 ## 采样与解释
 
@@ -43,7 +49,7 @@ python -m experiments.ablation.fidelity --probe-space policy \
   --output logs/ablation/matched-policy-h1-v1
 ```
 
-该命令计划 54 次物理 rollout（4×13+2）和两种估计器各4×H×2个 imagined transition。后续 H8/H32 需根据资格实测独立审查，不能按示例自动启动长实验。原生结果、完整进程计费与硬超时由外部收据保留；脚本内预算是 cooperative，单个操作可能超时。
+该命令计划 54 次物理 rollout（4×13+2）和两种估计器各4×H×2个 imagined transition。本批H8/H32已根据资格实测审查并执行；修复版三horizon均使用16个梯度噪声tape和16个物理噪声tape，完整命令见数据包controller。新批次仍需资源复查，不能按示例自动启动长实验。原生结果、完整进程计费与硬超时由外部收据保留；脚本内预算是 cooperative，单个操作可能超时。
 
 产物：每个 seed 的 `estimate-*.pt`，`mean-gradients.pt`，`physical-reference.pt`，`estimator-costs.csv`、`sampling-variance.csv`、`comparison.csv`、`comparison-summary.json` 及原生环境收据。两个方法在同 GPU、同精度、同起点的相同 trajectory 数量下比较；计时包含各自 WM rollout 和梯度计算，但单次微小诊断的 CUDA 热身/顺序效应使其不适合直接报告训练加速比。
 

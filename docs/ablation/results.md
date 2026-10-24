@@ -1,6 +1,6 @@
 # 已验证的阶段结果（更新至2026-10-24）
 
-新增[完整 Policy 参数梯度原生诊断](policy-gradient-native-v1.md)：15组、同一checkpoint两个run起点、0.169490 GPU-hours。分别报告匹配代理导数、实际Adam物理收益和FP32敏感性；尚未完成PPO梯度对照。
+新增[完整 Policy 参数梯度原生诊断](policy-gradient-native-v1.md)：15组、同一checkpoint两个run起点、0.169490 GPU-hours。分别报告匹配代理导数、实际Adam物理收益和FP32敏感性；[同策略同目标PPO梯度对照](matched-policy-results.md)亦已完成首批，含独立物理噪声与相同L2步长检验；尚无跨状态/训练seed的完整结论。
 
 本PR已完成原生Smoke、100迭代单seed Pilot、18段及40段全部六条件的4096规模资源资格、64状态探索性梯度诊断及开发seed0的六条件4000轮矩阵。尚无完整三seed或40段正式结果；正式seed1正在运行，seeds2/3串行等待。
 
