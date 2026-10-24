@@ -1,0 +1,39 @@
+{
+  "images": {
+    "return-compute.png": {
+      "pixels": [
+        2880,
+        827
+      ],
+      "dpi": [
+        180.00979999999998,
+        180.00979999999998
+      ],
+      "viewed": true
+    },
+    "compute-breakdown.png": {
+      "pixels": [
+        2160,
+        1044
+      ],
+      "dpi": [
+        180.00979999999998,
+        180.00979999999998
+      ],
+      "viewed": true
+    },
+    "score-availability.png": {
+      "pixels": [
+        2160,
+        810
+      ],
+      "dpi": [
+        180.00979999999998,
+        180.00979999999998
+      ],
+      "viewed": true
+    }
+  },
+  "visual_observation": "Labels and legends readable; no visible clipped titles; full normalized return range retained; one-seed scope shown",
+  "journal_qa": "Unavailable: figure-qa helper scripts not installed; no journal-compliance claim"
+}

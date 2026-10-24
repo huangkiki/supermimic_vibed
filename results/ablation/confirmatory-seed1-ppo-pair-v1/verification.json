@@ -1,0 +1,22 @@
+{
+  "raw_files": 72,
+  "training_rows": 8000,
+  "stdout_rows_reconciled": 8000,
+  "physical_evaluations": 30,
+  "per_clip_rows": 540,
+  "byte_identical_csv_json": [
+    "analysis.json",
+    "curve-statistics.csv",
+    "evaluation-repeats.csv",
+    "evaluations.csv",
+    "per-clip-evaluations.csv",
+    "process-allocations.csv",
+    "qualification.json",
+    "registered-targets.csv",
+    "score-timing.csv"
+  ],
+  "missing_repeat_rejected_before_output": true,
+  "original_ppo_publication_unchanged": true,
+  "raw_archive_sha256": "8ac91a91928116d912a892ff1eb38548c1b5f4b36d0946038cdc6494f411c4f6",
+  "scope": "CPU reproduction of real recorded inputs, not a new training run or independent-seed validation"
+}
