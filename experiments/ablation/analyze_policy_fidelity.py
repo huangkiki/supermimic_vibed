@@ -104,6 +104,29 @@ def load_probe(path, *, verify_tensors=True):
         torch.testing.assert_close(capture['raw_ascent_gradient'], -capture['raw_loss_gradient'], rtol=0, atol=0)
         torch.testing.assert_close(capture['clipped_ascent_gradient'], -capture['clipped_loss_gradient'], rtol=0, atol=0)
         torch.testing.assert_close(capture['clipped_loss_gradient'], capture['norm_clipped_loss_gradient'].clamp(-.1, .1), rtol=0, atol=0)
+        raw_norm = float(capture['raw_loss_gradient'].double().norm())
+        if not np.isclose(float(capture['raw_gradient_norm']), raw_norm, rtol=2e-5, atol=1e-7):
+            raise ValueError('Recorded raw norm differs from saved gradient')
+        scale = (1 / (capture['raw_gradient_norm'] + 1e-6)).clamp(max=1)
+        torch.testing.assert_close(capture['norm_clipped_loss_gradient'],
+                                   capture['raw_loss_gradient'] * scale, rtol=2e-6, atol=1e-8)
+        torch.testing.assert_close(capture['loss'], -capture['objective'].mean(), rtol=2e-6, atol=1e-7)
+        if set(rollout['unit_directions']) != directions:
+            raise ValueError('Saved parameter directions do not match the measured grid')
+        selected = dict(raw_gradient=capture['raw_ascent_gradient'],
+                        clipped_gradient=capture['clipped_ascent_gradient'],
+                        historical_adam=capture['adam_displacement'])
+        for name, direction in rollout['unit_directions'].items():
+            if (direction.shape != (dimensions,) or not torch.isfinite(direction).all()
+                    or not np.isclose(float(direction.double().norm()), 1., rtol=2e-5, atol=1e-7)):
+                raise ValueError('Saved parameter direction is not a finite unit vector')
+            if name in selected:
+                vector = selected[name]
+                torch.testing.assert_close(direction, vector / vector.norm(), rtol=2e-5, atol=1e-8)
+            predicted = float(capture['raw_ascent_gradient'].double() @ direction.double())
+            if any(not np.isclose(row['predicted_derivative'], predicted, rtol=2e-5, atol=1e-7)
+                   for row in rows if row['direction'] == name):
+                raise ValueError('Predicted derivative differs from saved gradient dot direction')
         if capture['horizon'] != arguments['gradient_horizon'] or capture['no_critic'] != arguments['no_critic'] or capture['detach_action_reward'] != arguments['detach_action_reward']:
             raise ValueError('Gradient tensor and reported target differ')
         if rollout['rows'] != rows:

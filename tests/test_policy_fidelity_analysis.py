@@ -96,6 +96,34 @@ class PolicyAnalysisTests(unittest.TestCase):
             result=load_probe(write_probe(Path(directory)/'run',detach=True))
             self.assertTrue(all(row['interpretation']=='update_direction_effectiveness_only' for row in result['rows']))
 
+    def test_gradient_vector_and_direction_corruption_is_rejected(self):
+        for kind in ('raw_norm', 'norm_clip', 'loss', 'direction', 'prediction'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                path = write_probe(Path(directory) / 'run')
+                capture = torch.load(path / 'gradients.pt', weights_only=False)
+                rollout = torch.load(path / 'direction-rollouts.pt', weights_only=False)
+                if kind == 'raw_norm':
+                    capture['raw_gradient_norm'] *= 2
+                elif kind == 'norm_clip':
+                    capture['norm_clipped_loss_gradient'] *= .5
+                    capture['clipped_loss_gradient'] = capture['norm_clipped_loss_gradient'].clamp(-.1, .1)
+                    capture['clipped_ascent_gradient'] = -capture['clipped_loss_gradient']
+                elif kind == 'loss':
+                    capture['loss'] += 1
+                elif kind == 'direction':
+                    rollout['unit_directions']['random_0'] *= 2
+                else:
+                    # Keep CSV and summary internally consistent: the actual
+                    # saved gradient dot direction must expose the corruption.
+                    for row in rollout['rows']:
+                        row['predicted_derivative'] *= 2
+                    save_csv(path / 'directions.csv', rollout['rows'])
+                    write_json(path / 'summary.json', summarize_direction_scan(rollout))
+                torch.save(capture, path / 'gradients.pt')
+                torch.save(rollout, path / 'direction-rollouts.pt')
+                with self.assertRaises((ValueError, AssertionError)):
+                    load_probe(path)
+
 
 if __name__=='__main__':
     unittest.main()
