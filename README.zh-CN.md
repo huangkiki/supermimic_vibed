@@ -8,6 +8,8 @@
 
 ## 已经得到什么结果
 
+完整 **Policy Parameter Gradient** 诊断入口现已实现：直接复用原 `policy_update()` 的闭环、软终止和 Critic Bootstrap，保存原始/裁剪梯度及历史 Adam 位移。H1/8/32 源码路径和数值回归共15项新增测试通过，全套119项CPU测试通过；新增 MuJoCo-Warp 探针尚未执行。[实现、可复现命令与证据边界](docs/ablation/policy-gradient-fidelity.md)。
+
 **目前尚无多种子效率结论。** 开发seed0的六条件均完成4000次迭代和物理评估：在线SuperMimic的物理Return为0.8035、失败2/18；冻结BPTT为0.001907、失败18/18，原参数PPO也全部失败。调整Actor学习率后，PPO-Sim在独立1000轮调参批次达到0.2528、失败12/18。开发seed0不计入正式统计；正式seeds1/2/3已预登记，seed1已开始，seeds2/3串行等待。正式结论仍需至少3个训练seed和全部40段动作。
 
 正式seed1的PPO-Sim与在线PPO-WM均已完成4000轮和各15次物理复评。最终物理Return分别为**0.405212 ± 0.008721 / 0.402736 ± 0.000003**，完整训练加评估分别为**3.481735 / 2.384217 GPU-hours**。在线PPO-WM的记录费用低31.52%，但这是一个训练seed，SD来自同一checkpoint的复评；两者均未达到预登记质量门槛，不报告同等质量加速比。[完整对照、原始日志/CSV与CPU复算命令](docs/ablation/confirmatory-seed1-ppo-pair.md)。
