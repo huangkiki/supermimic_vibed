@@ -95,6 +95,9 @@ def parser():
     value.add_argument('--no-critic', action='store_true')
     value.add_argument('--detach-action-reward', action='store_true')
     value.add_argument('--precision', choices=('training', 'fp32'), default='training')
+    value.add_argument('--estimator-seeds', type=int, nargs='+', help='auxiliary matched Gaussian BPTT/PPO comparison; independent gradient noise tapes')
+    value.add_argument('--reference-seeds', type=int, nargs='+', help='held-out physical noise tapes, disjoint from estimator seeds')
+    value.add_argument('--action-std', type=float, default=.1, help='shared fixed Gaussian std for the auxiliary comparison only')
     value.add_argument('--gpu', type=int, required=True, help='physical GPU index, checked before CUDA allocation')
     value.add_argument('--gpu-uuid', required=True)
     value.add_argument('--max-seconds', type=float, default=600)
@@ -111,6 +114,15 @@ def main(argv=None):
         raise ValueError('Qualify at most 16 starts before planning a larger run')
     if args.repeats < 2 or args.directions < 1 or len(args.epsilons) < 2 or args.epsilons != sorted(set(args.epsilons)) or any(not math.isfinite(e) or e <= 0 for e in args.epsilons):
         raise ValueError('Invalid repeat/direction/epsilon design')
+    if args.estimator_seeds is not None:
+        from .compare_policy_estimators import validate_design
+        if args.reference_seeds is None or args.detach_action_reward or args.precision != 'fp32':
+            raise ValueError('Matched estimators require held-out reference seeds, full reward gradients and explicit fp32')
+        validate_design(args.estimator_seeds, args.reference_seeds, args.epsilons)
+        if not math.isfinite(args.action_std) or args.action_std <= 0:
+            raise ValueError('Shared action std must be positive and finite')
+    elif args.reference_seeds is not None:
+        raise ValueError('Reference noise seeds require the matched-estimator mode')
     from .run_suite import wait_for_idle_gpu
     resources, observations = wait_for_idle_gpu(args.gpu, args.gpu_uuid, timeout=1.)
     if float(resources['memory_free_mib']) < 16384:
@@ -128,6 +140,8 @@ def main(argv=None):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
     output.mkdir(parents=True)
     planned_rollouts = args.repeats + 2 * len(args.epsilons) * (3 + args.directions) + 1
+    if args.estimator_seeds is not None:
+        planned_rollouts = len(args.reference_seeds) * (1 + 4 * len(args.epsilons)) + args.repeats - 1
     receipt = dict(status='started', args=vars(args), resources=resources, preflight_observations=observations,
         requested_time_budget_seconds=args.max_seconds, planned_physical_rollouts=planned_rollouts,
         planned_physical_steps=planned_rollouts * args.gradient_horizon * len(args.sample_indices),
@@ -201,27 +215,38 @@ def _run(args, launcher, output, receipt, started):
             starts=starts, history=bank['replay_history'], unflatten_state=unflatten_state, normalize_xi=normalize_xi,
             horizon=args.gradient_horizon, gamma=cfg.gamma, goal_frames=cfg.goal_frames, seed=args.probe_seed,
             no_critic=args.no_critic, detach_action_reward=args.detach_action_reward)
-        if time.perf_counter() - started > args.max_seconds:
-            raise TimeoutError('Parameter probe time budget exhausted before gradient capture')
-        captured = probe.capture(checkpoint['opt_pi'])
-        torch.save(captured, output / 'gradients.pt')
-        physical = ClosedLoopPhysical(probe, env, bank)
-        def bounded_physical():
+        def check_budget():
             if time.perf_counter() - started > args.max_seconds:
-                raise TimeoutError('Parameter probe time budget exhausted before next rollout')
-            return physical()
-        result = scan_parameter_directions(probe, captured, bounded_physical, epsilons=args.epsilons,
-                                           random_directions=args.directions, repeats=args.repeats)
-        torch.save(result, output / 'direction-rollouts.pt')
-        write_json(output / 'summary.json', summarize_direction_scan(result))
-        for row in result['rows']:
-            append_csv(output / 'directions.csv', row)
+                raise TimeoutError('Policy diagnostic time budget exhausted before next operation')
+        check_budget()
+        if args.estimator_seeds is not None:
+            from .policy_estimators import stochastic_probe
+            from .compare_policy_estimators import run_comparison
+            probe = stochastic_probe(probe, args.action_std)
+            result = run_comparison(probe, ClosedLoopPhysical(probe, env, bank), output,
+                gradient_seeds=args.estimator_seeds, reference_seeds=args.reference_seeds,
+                epsilons=args.epsilons, repeats=args.repeats, check_budget=check_budget)
+            receipt['estimator_comparison'] = result
+        else:
+            captured = probe.capture(checkpoint['opt_pi'])
+            torch.save(captured, output / 'gradients.pt')
+            physical = ClosedLoopPhysical(probe, env, bank)
+            def bounded_physical():
+                check_budget()
+                return physical()
+            result = scan_parameter_directions(probe, captured, bounded_physical, epsilons=args.epsilons,
+                                               random_directions=args.directions, repeats=args.repeats)
+            torch.save(result, output / 'direction-rollouts.pt')
+            write_json(output / 'summary.json', summarize_direction_scan(result))
+            for row in result['rows']:
+                append_csv(output / 'directions.csv', row)
+            receipt['actual_adam_improvement'] = result['actual_adam_improvement']
         torch.cuda.synchronize()
         if sha256(args.checkpoint) != checkpoint_hash or sha256(args.bank) != bank_hash:
             raise RuntimeError('Input checkpoint or bank changed during the diagnostic')
         receipt.update(status='complete', checkpoint_sha256=checkpoint_hash, bank_sha256=bank_hash,
             prepared_bank_sha256=sha256(output / 'policy-bank.pt'), manifest=manifest, source=probe.provenance,
-            history_provenance=bank['history_provenance'], actual_adam_improvement=result['actual_adam_improvement'],
+            history_provenance=bank['history_provenance'],
             training_checkpoint_path='experiments/ablation/train.py; critic norm timing differs from original',
             gradient_target='original supermimic/train.py actor prefix at fixed stored checkpoint; not historical update replay',
             precision=dict(tf32=torch.backends.cuda.matmul.allow_tf32, amp=str(networks.AMP_DTYPE), compiled=False),
