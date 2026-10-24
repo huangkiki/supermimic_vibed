@@ -100,7 +100,7 @@ def load_probe(path, *, verify_tensors=True):
             vector = capture[key]
             if vector.shape != (dimensions,) or not torch.isfinite(vector).all():
                 raise ValueError(f'Invalid saved parameter vector: {key}')
-            norms[key + '_l2'] = float(vector.norm())
+            norms[key + '_l2'] = float(vector.double().norm())
         torch.testing.assert_close(capture['raw_ascent_gradient'], -capture['raw_loss_gradient'], rtol=0, atol=0)
         torch.testing.assert_close(capture['clipped_ascent_gradient'], -capture['clipped_loss_gradient'], rtol=0, atol=0)
         torch.testing.assert_close(capture['clipped_loss_gradient'], capture['norm_clipped_loss_gradient'].clamp(-.1, .1), rtol=0, atol=0)
@@ -121,8 +121,11 @@ def load_probe(path, *, verify_tensors=True):
                     or not np.isclose(float(direction.double().norm()), 1., rtol=2e-5, atol=1e-7)):
                 raise ValueError('Saved parameter direction is not a finite unit vector')
             if name in selected:
-                vector = selected[name]
-                torch.testing.assert_close(direction, vector / vector.norm(), rtol=2e-5, atol=1e-8)
+                # A 9M-element FP32 CPU norm can lose substantially more
+                # precision than the original CUDA reduction. Reconstruct the
+                # unit direction in FP64 rather than relaxing the acceptance.
+                vector = selected[name].double()
+                torch.testing.assert_close(direction.double(), vector / vector.norm(), rtol=2e-5, atol=1e-8)
             predicted = float(capture['raw_ascent_gradient'].double() @ direction.double())
             if any(not np.isclose(row['predicted_derivative'], predicted, rtol=2e-5, atol=1e-7)
                    for row in rows if row['direction'] == name):
@@ -161,7 +164,7 @@ def load_probe(path, *, verify_tensors=True):
             actual = float(rollout['actual_adam'][key].mean() - rollout['baselines'][0][key].mean())
             if actual != improvement:
                 raise ValueError('Actual Adam improvement differs from saved physical rollouts')
-        raw, adam = capture['raw_ascent_gradient'], capture['adam_displacement']
+        raw, adam = capture['raw_ascent_gradient'].double(), capture['adam_displacement'].double()
         norms['raw_adam_cosine'] = float((raw @ adam) / (raw.norm() * adam.norm())) if raw.norm() * adam.norm() > 0 else None
     return dict(path=str(path), receipt=receipt, rows=rows, summary=summary, norms=norms,
                 tensors_verified=verify_tensors, per_start=per_start)
