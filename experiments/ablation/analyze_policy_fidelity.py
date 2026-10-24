@@ -19,6 +19,39 @@ from .fidelity_math import reference_quality
 from .policy_fidelity import summarize_direction_scan
 
 
+
+def mean_difference_reference(after, before):
+    """FP64 reference plus a recorded-dtype reduction/subtraction roundoff bound.
+
+    Saved per-start returns are the inputs, not recomputed trajectories. For n
+    additions/division operations, gamma_n = n*u/(1-n*u), u = eps/2. Allow n+2
+    operations per mean and one final subtraction. This bounds roundoff only;
+    it is not a bound on simulator error, model bias or sampling uncertainty.
+    """
+    if (after.dtype not in (torch.float32, torch.float64) or before.dtype != after.dtype or after.shape != before.shape
+            or after.ndim != 1 or after.numel() == 0 or not torch.isfinite(after).all()
+            or not torch.isfinite(before).all()):
+        raise ValueError('Expected paired finite FP32/FP64 per-start returns')
+    unit = torch.finfo(after.dtype).eps / 2
+    operations = after.numel() + 2
+    if operations * unit >= 1:
+        raise ValueError('Return batch exceeds the reduction-bound domain')
+    a, b = after.double(), before.double()
+    reference = float(a.mean() - b.mean())
+    mean_error = operations * unit / (1 - operations * unit) * float(a.abs().mean() + b.abs().mean())
+    bound = mean_error + unit * (abs(reference) + mean_error)
+    if after.dtype == torch.float64:
+        bound *= 2  # The FP64 audit reference itself also undergoes this rounding.
+    return reference, bound
+
+
+def validate_mean_difference(reported, after, before):
+    reference, bound = mean_difference_reference(after, before)
+    if not np.isfinite(reported) or abs(reported - reference) > bound:
+        raise ValueError('Actual Adam improvement differs from saved physical rollouts beyond recorded-dtype roundoff')
+    return reference, bound
+
+
 def load_probe(path, *, verify_tensors=True):
     path = Path(path)
     receipt = json.loads((path / 'probe.json').read_text())
@@ -161,9 +194,9 @@ def load_probe(path, *, verify_tensors=True):
                                       baseline_return=float(before[i]), updated_return=float(after[i]),
                                       actual_adam_improvement=float(after[i] - before[i])))
         for key, improvement in summary['actual_adam_improvement'].items():
-            actual = float(rollout['actual_adam'][key].mean() - rollout['baselines'][0][key].mean())
-            if actual != improvement:
-                raise ValueError('Actual Adam improvement differs from saved physical rollouts')
+            reference, bound = validate_mean_difference(improvement, rollout['actual_adam'][key], rollout['baselines'][0][key])
+            norms['adam_improvement_fp64_' + key] = reference
+            norms['adam_improvement_roundoff_bound_' + key] = bound
         raw, adam = capture['raw_ascent_gradient'].double(), capture['adam_displacement'].double()
         norms['raw_adam_cosine'] = float((raw @ adam) / (raw.norm() * adam.norm())) if raw.norm() * adam.norm() > 0 else None
     return dict(path=str(path), receipt=receipt, rows=rows, summary=summary, norms=norms,
