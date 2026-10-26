@@ -1,0 +1,23 @@
+{
+  "question": "Independent policy-direction BPTT/PPO sampling convergence versus matched WM and physical numerical references",
+  "checkpoint_sha256": "54d0854c1b4a8af9770b0c6f11c29d6ad8d0c9e6f870913e81234ac9caf0cbac",
+  "bank_sha256": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0",
+  "sample_indices": [0, 1],
+  "horizon": 32,
+  "action_std": 0.1,
+  "epsilons": [0.003, 0.01, 0.03],
+  "primary_epsilon": 0.01,
+  "repeats": 3,
+  "qualification": {"gradient_start": 60001, "counts": [2, 4], "reference_start": 70001, "reference_count": 4, "directions": 2, "direction_seed": 80001},
+  "experiment": {"gradient_start": 30001, "counts": [16, 64, 256], "reference_start": 40001, "reference_count": 32, "directions": 8, "direction_seed": 50001},
+  "gpu_uuid": "GPU-cc40495e-8e3b-d4c0-894a-63ce2fb079a9",
+  "gpu_model": "NVIDIA A100-PCIE-40GB",
+  "hard_gpu_hours": 1.0,
+  "qualification_max_seconds": 240,
+  "minimum_free_memory_mib": 16384,
+  "initial_peak_memory_forecast_mib": 8192,
+  "minimum_disk_reserve_gib": 16,
+  "artifact_forecast_gib": 0.75,
+  "forecast_safety_factor": 1.25,
+  "scope": "One fixed trained seed0 snapshot and two run starts; noise tapes are not independent training seeds. No retraining. This new explicitly requested campaign has a separate cap; prior diagnostic costs remain in their original ledger."
+}

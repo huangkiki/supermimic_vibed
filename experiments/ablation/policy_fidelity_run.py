@@ -125,6 +125,10 @@ def parser():
     value.add_argument('--precision', choices=('training', 'fp32'), default='training')
     value.add_argument('--estimator-seeds', type=int, nargs='+', help='auxiliary matched Gaussian BPTT/PPO comparison; independent gradient noise tapes')
     value.add_argument('--reference-seeds', type=int, nargs='+', help='held-out physical noise tapes, disjoint from estimator seeds')
+    value.add_argument('--convergence-counts', type=int, nargs='+',
+                       help='independent-direction convergence mode; nested estimator sample counts')
+    value.add_argument('--direction-seed', type=int, default=50001,
+                       help='independent Rademacher directions, generated before any gradient')
     value.add_argument('--action-std', type=float, default=.1, help='shared fixed Gaussian std for the auxiliary comparison only')
     value.add_argument('--gpu', type=int, required=True, help='physical GPU index, checked before CUDA allocation')
     value.add_argument('--gpu-uuid', required=True)
@@ -136,8 +140,11 @@ def main(argv=None):
     started = time.perf_counter()
     # Help and argument checking work without loading Isaac Lab or allocating a GPU.
     args, launcher = parser().parse_known_args(argv)
-    if not math.isfinite(args.max_seconds) or args.max_seconds <= 0 or args.max_seconds > 1800:
-        raise ValueError('This low-cost diagnostic requires 0 < max-seconds <= 1800')
+    time_limit = 3600 if args.convergence_counts is not None else 1800
+    if not math.isfinite(args.max_seconds) or args.max_seconds <= 0 or args.max_seconds > time_limit:
+        raise ValueError(f'This diagnostic requires 0 < max-seconds <= {time_limit}')
+    if args.convergence_counts is not None and args.estimator_seeds is None:
+        raise ValueError('Convergence counts require the matched estimator mode')
     if args.replay_prefix_bank and not args.prepare_history_only:
         raise ValueError('A distinct replay-prefix bank requires history preparation only')
     limit = 64 if args.prepare_history_only else 16
@@ -151,7 +158,12 @@ def main(argv=None):
         from .compare_policy_estimators import validate_design
         if args.reference_seeds is None or args.detach_action_reward or args.precision != 'fp32':
             raise ValueError('Matched estimators require held-out reference seeds, full reward gradients and explicit fp32')
-        validate_design(args.estimator_seeds, args.reference_seeds, args.epsilons)
+        if args.convergence_counts is None:
+            validate_design(args.estimator_seeds, args.reference_seeds, args.epsilons)
+        else:
+            from .estimator_convergence import validate_design as validate_convergence
+            validate_convergence(args.estimator_seeds, args.reference_seeds, args.convergence_counts,
+                                 args.epsilons, args.directions, args.direction_seed)
         if not math.isfinite(args.action_std) or args.action_std <= 0:
             raise ValueError('Shared action std must be positive and finite')
     elif args.reference_seeds is not None:
@@ -175,6 +187,8 @@ def main(argv=None):
     planned_rollouts = args.repeats + 2 * len(args.epsilons) * (3 + args.directions) + 1
     if args.estimator_seeds is not None:
         planned_rollouts = len(args.reference_seeds) * (1 + 4 * len(args.epsilons)) + args.repeats - 1
+    if args.convergence_counts is not None:
+        planned_rollouts = len(args.reference_seeds) * (1 + 2 * args.directions * len(args.epsilons)) + args.repeats - 1
     if args.prepare_history_only:
         planned_rollouts = 0
     receipt = dict(status='started', args=vars(args), resources=resources, preflight_observations=observations,
@@ -283,9 +297,15 @@ def _run(args, launcher, output, receipt, started):
             from .policy_estimators import stochastic_probe
             from .compare_policy_estimators import run_comparison
             probe = stochastic_probe(probe, args.action_std)
-            result = run_comparison(probe, ClosedLoopPhysical(probe, env, bank, record_contacts=args.record_contacts), output,
-                gradient_seeds=args.estimator_seeds, reference_seeds=args.reference_seeds,
-                epsilons=args.epsilons, repeats=args.repeats, check_budget=check_budget)
+            physical = ClosedLoopPhysical(probe, env, bank, record_contacts=args.record_contacts)
+            options = dict(gradient_seeds=args.estimator_seeds, reference_seeds=args.reference_seeds,
+                           epsilons=args.epsilons, repeats=args.repeats, check_budget=check_budget)
+            if args.convergence_counts is None:
+                result = run_comparison(probe, physical, output, **options)
+            else:
+                from .estimator_convergence import run_convergence
+                result = run_convergence(probe, physical, output, **options,
+                    counts=args.convergence_counts, directions=args.directions, direction_seed=args.direction_seed)
             receipt['estimator_comparison'] = result
         else:
             captured = probe.capture(checkpoint['opt_pi'])
