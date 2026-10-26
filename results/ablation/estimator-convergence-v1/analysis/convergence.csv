@@ -1,0 +1,55 @@
+source,method,samples,epsilon,total,resolved,unresolved,sign_agreement,pearson,all_direction_rmse,resolved_rmse,estimator_projection_se_rms,reference_se_rms,interpretation
+wm,bptt,16,0.003,8,8,0,1.0,0.9959837761306048,0.00047660687726968953,0.00047660687726968953,0.00028508336369296647,0.0001855611734028717,projected derivative error against a finite-sample numerical reference
+wm,bptt,16,0.01,8,8,0,1.0,0.9958078805043657,0.0004784407147189752,0.0004784407147189752,0.00028508336369296647,0.00017605410066015147,projected derivative error against a finite-sample numerical reference
+wm,bptt,16,0.03,8,8,0,1.0,0.995806518642051,0.00048296616892226673,0.00048296616892226673,0.00028508336369296647,0.0001765225511377149,projected derivative error against a finite-sample numerical reference
+wm,ppo,16,0.003,8,8,0,0.5,-0.14438923738621495,0.10395258249044967,0.10395258249044967,0.07411835246410846,0.0001855611734028717,projected derivative error against a finite-sample numerical reference
+wm,ppo,16,0.01,8,8,0,0.5,-0.148248915329865,0.10393931058877949,0.10393931058877949,0.07411835246410846,0.00017605410066015147,projected derivative error against a finite-sample numerical reference
+wm,ppo,16,0.03,8,8,0,0.5,-0.149437709275003,0.10394002316215382,0.10394002316215382,0.07411835246410846,0.0001765225511377149,projected derivative error against a finite-sample numerical reference
+wm,bptt,64,0.003,8,8,0,1.0,0.9989045989688161,0.0002572995931615441,0.0002572995931615441,0.0001361856092172571,0.0001855611734028717,projected derivative error against a finite-sample numerical reference
+wm,bptt,64,0.01,8,8,0,1.0,0.9989067293097708,0.0002564722631120065,0.0002564722631120065,0.0001361856092172571,0.00017605410066015147,projected derivative error against a finite-sample numerical reference
+wm,bptt,64,0.03,8,8,0,1.0,0.998932825841543,0.0002602489811458139,0.0002602489811458139,0.0001361856092172571,0.0001765225511377149,projected derivative error against a finite-sample numerical reference
+wm,ppo,64,0.003,8,8,0,0.5,0.38821335821878555,0.036027282090678577,0.036027282090678577,0.03640784557115978,0.0001855611734028717,projected derivative error against a finite-sample numerical reference
+wm,ppo,64,0.01,8,8,0,0.5,0.3856530440219436,0.03602490850755403,0.03602490850755403,0.03640784557115978,0.00017605410066015147,projected derivative error against a finite-sample numerical reference
+wm,ppo,64,0.03,8,8,0,0.5,0.3860225106154028,0.03602493719535448,0.03602493719535448,0.03640784557115978,0.0001765225511377149,projected derivative error against a finite-sample numerical reference
+wm,bptt,256,0.003,8,8,0,1.0,0.9994261891045163,0.0001970929601709047,0.0001970929601709047,6.672391456970746e-05,0.0001855611734028717,projected derivative error against a finite-sample numerical reference
+wm,bptt,256,0.01,8,8,0,1.0,0.9994644904896278,0.00018754655038134084,0.00018754655038134084,6.672391456970746e-05,0.00017605410066015147,projected derivative error against a finite-sample numerical reference
+wm,bptt,256,0.03,8,8,0,1.0,0.9994980811608387,0.0001901685963378623,0.0001901685963378623,6.672391456970746e-05,0.0001765225511377149,projected derivative error against a finite-sample numerical reference
+wm,ppo,256,0.003,8,8,0,0.75,0.5789324249180798,0.014323038541586739,0.014323038541586739,0.01871138340878745,0.0001855611734028717,projected derivative error against a finite-sample numerical reference
+wm,ppo,256,0.01,8,8,0,0.75,0.5813653070084681,0.014309555909841887,0.014309555909841887,0.01871138340878745,0.00017605410066015147,projected derivative error against a finite-sample numerical reference
+wm,ppo,256,0.03,8,8,0,0.75,0.5817293858879335,0.01431072322093371,0.01431072322093371,0.01871138340878745,0.0001765225511377149,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,16,0.003,8,1,7,1.0,,0.004423803352356911,0.0015835814230849617,0.00028508336369296647,0.0032612385915187355,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,16,0.01,8,1,7,1.0,,0.03258376312462907,0.0027379247102350263,0.00028508336369296647,0.033804823106776384,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,16,0.03,8,0,8,,,0.009434849349863985,,0.00028508336369296647,0.011417933238834015,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,16,0.003,8,1,7,1.0,,0.10538841303020301,0.07442816575691444,0.07411835246410846,0.0032612385915187355,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,16,0.01,8,1,7,1.0,,0.10704005487712372,0.07327382246976437,0.07411835246410846,0.033804823106776384,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,16,0.03,8,0,8,,,0.10290112834633877,,0.07411835246410846,0.011417933238834015,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,64,0.003,8,1,7,1.0,,0.0043314857504412425,0.0016564471616107718,0.0001361856092172571,0.0032612385915187355,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,64,0.01,8,1,7,1.0,,0.03253559290639425,0.0028107904487608363,0.0001361856092172571,0.033804823106776384,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,64,0.03,8,0,8,,,0.009386839679375225,,0.0001361856092172571,0.011417933238834015,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,64,0.003,8,1,7,1.0,,0.038254437639507206,0.04397761879817524,0.03640784557115978,0.0032612385915187355,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,64,0.01,8,1,7,1.0,,0.0500078311407329,0.042823275511025174,0.03640784557115978,0.033804823106776384,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,64,0.03,8,0,8,,,0.03831156338617683,,0.03640784557115978,0.011417933238834015,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,256,0.003,8,1,7,1.0,,0.004316067977504771,0.0017440824263791144,6.672391456970746e-05,0.0032612385915187355,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,256,0.01,8,1,7,1.0,,0.03253377656423603,0.002898425713529179,6.672391456970746e-05,0.033804823106776384,projected derivative error against a finite-sample numerical reference
+physical_proxy,bptt,256,0.03,8,0,8,,,0.009377608726269608,,6.672391456970746e-05,0.011417933238834015,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,256,0.003,8,1,7,1.0,,0.01510740887095792,0.019548059085740616,0.01871138340878745,0.0032612385915187355,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,256,0.01,8,1,7,1.0,,0.04360203095586236,0.01839371579859055,0.01871138340878745,0.033804823106776384,projected derivative error against a finite-sample numerical reference
+physical_proxy,ppo,256,0.03,8,0,8,,,0.022535216756092658,,0.01871138340878745,0.011417933238834015,projected derivative error against a finite-sample numerical reference
+physical_hard,bptt,16,0.003,8,0,8,,,0.006597954578912882,,0.00028508336369296647,0.003990269023186197,different hard target; directional effectiveness only
+physical_hard,bptt,16,0.01,8,0,8,,,0.017346918507103723,,0.00028508336369296647,0.01517054161423257,different hard target; directional effectiveness only
+physical_hard,bptt,16,0.03,8,0,8,,,0.005580346436157309,,0.00028508336369296647,0.006335189653636755,different hard target; directional effectiveness only
+physical_hard,ppo,16,0.003,8,0,8,,,0.10706526406121868,,0.07411835246410846,0.003990269023186197,different hard target; directional effectiveness only
+physical_hard,ppo,16,0.01,8,0,8,,,0.1061834607112878,,0.07411835246410846,0.01517054161423257,different hard target; directional effectiveness only
+physical_hard,ppo,16,0.03,8,0,8,,,0.10417885878907679,,0.07411835246410846,0.006335189653636755,different hard target; directional effectiveness only
+physical_hard,bptt,64,0.003,8,0,8,,,0.006413009556860136,,0.0001361856092172571,0.003990269023186197,different hard target; directional effectiveness only
+physical_hard,bptt,64,0.01,8,0,8,,,0.01726883766020314,,0.0001361856092172571,0.01517054161423257,different hard target; directional effectiveness only
+physical_hard,bptt,64,0.03,8,0,8,,,0.005517064928578156,,0.0001361856092172571,0.006335189653636755,different hard target; directional effectiveness only
+physical_hard,ppo,64,0.003,8,0,8,,,0.04118971608497684,,0.03640784557115978,0.003990269023186197,different hard target; directional effectiveness only
+physical_hard,ppo,64,0.01,8,0,8,,,0.04321718356777911,,0.03640784557115978,0.01517054161423257,different hard target; directional effectiveness only
+physical_hard,ppo,64,0.03,8,0,8,,,0.03780830098047403,,0.03640784557115978,0.006335189653636755,different hard target; directional effectiveness only
+physical_hard,bptt,256,0.003,8,0,8,,,0.006372678211003493,,6.672391456970746e-05,0.003990269023186197,different hard target; directional effectiveness only
+physical_hard,bptt,256,0.01,8,0,8,,,0.01725267155156297,,6.672391456970746e-05,0.01517054161423257,different hard target; directional effectiveness only
+physical_hard,bptt,256,0.03,8,0,8,,,0.005514553273688788,,6.672391456970746e-05,0.006335189653636755,different hard target; directional effectiveness only
+physical_hard,ppo,256,0.003,8,0,8,,,0.017908849583637587,,0.01871138340878745,0.003990269023186197,different hard target; directional effectiveness only
+physical_hard,ppo,256,0.01,8,0,8,,,0.029743666189964775,,0.01871138340878745,0.01517054161423257,different hard target; directional effectiveness only
+physical_hard,ppo,256,0.03,8,0,8,,,0.01880987989003726,,0.01871138340878745,0.006335189653636755,different hard target; directional effectiveness only
