@@ -146,7 +146,7 @@ python -m experiments.ablation.analyze_calibrated_updates \
 python -m unittest discover -s tests -p 'test_native_checkpoint_publication.py' -v
 ```
 
-测试核验压缩包与逐文件身份，重新计算CSV、校准KL、原始物理收益、完整步骤覆盖和费用谱系；所有发布CSV要求逐字节一致。完整CPU测试182项通过。科学图已目视检查。
+测试核验压缩包与逐文件身份，重新计算CSV、校准KL、原始物理收益、完整步骤覆盖和费用谱系；主批次CSV逐字节一致；衍生参考统计表按FP64容差验收（rtol=1e-13、atol=1e-15），字段身份和原始数据哈希严格相同。首次CI在不同CPU上暴露约2×10⁻¹⁸的归约末位差异，已加入容差及实质性数据篡改拒绝测试；该容差不用于物理校准或有限差分筛选。完整CPU测试183项通过。科学图已目视检查。
 
 ### 原生实验入口
 

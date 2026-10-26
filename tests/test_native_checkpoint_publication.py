@@ -1,6 +1,7 @@
 """Recompute the physical checkpoint study from published native evidence."""
 import csv
 import json
+import math
 from pathlib import Path
 import tarfile
 import tempfile
@@ -72,7 +73,40 @@ class NativeCheckpointPublicationTests(unittest.TestCase):
             analyze_calibrated(self.raw / 'calibrated/experiment', output,
                                parent=self.raw / 'primary/experiment')
             for path in (PUBLICATION / 'calibrated-analysis').glob('*.csv'):
-                self.assertEqual((output / path.name).read_bytes(), path.read_bytes())
+                self.assert_derived_csv_equal(output / path.name, path)
+
+    def assert_derived_csv_equal(self, actual, expected):
+        """Allow FP64 reduction rounding across CPUs; identities stay exact."""
+        with actual.open() as stream:
+            actual_rows = list(csv.reader(stream))
+        with expected.open() as stream:
+            expected_rows = list(csv.reader(stream))
+        self.assertEqual(actual_rows[0], expected_rows[0])
+        self.assertEqual(len(actual_rows), len(expected_rows))
+        for actual_row, expected_row in zip(actual_rows[1:], expected_rows[1:]):
+            self.assertEqual(len(actual_row), len(expected_row))
+            for value, reference in zip(actual_row, expected_row):
+                try:
+                    number, expected_number = float(value), float(reference)
+                except ValueError:
+                    self.assertEqual(value, reference)
+                else:
+                    self.assertTrue(
+                        math.isclose(number, expected_number, rel_tol=1e-13, abs_tol=1e-15),
+                        f'{actual.name}: {value} != {reference}',
+                    )
+
+    def test_derived_csv_allows_roundoff_but_rejects_changed_values_or_identity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            expected = Path(temp) / 'expected.csv'
+            actual = Path(temp) / 'actual.csv'
+            expected.write_text('method,value\nBPTT,1.0\n')
+            actual.write_text('method,value\nBPTT,1.00000000000001\n')
+            self.assert_derived_csv_equal(actual, expected)
+            for changed in ('BPTT,1.00000001', 'PPO,1.0'):
+                actual.write_text(f'method,value\n{changed}\n')
+                with self.assertRaises(AssertionError):
+                    self.assert_derived_csv_equal(actual, expected)
 
     def test_all_allocations_include_failure_and_share_one_cap(self):
         campaigns = {
