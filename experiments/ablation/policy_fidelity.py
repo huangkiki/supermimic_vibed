@@ -260,8 +260,16 @@ class ClosedLoopPhysical:
         self.probe, self.env, self.bank = probe, env, bank
         self.record_contacts = record_contacts
 
-    @torch.no_grad()
     def __call__(self):
+        return self._collect(self.probe.objective)
+
+    def score_rollout(self):
+        """Detached real transitions for the matched on-policy score estimator."""
+        from .policy_estimators import collect_score_rollout
+        return self._collect(lambda **kwargs: collect_score_rollout(self.probe, **kwargs))
+
+    @torch.no_grad()
+    def _collect(self, collector):
         from .fidelity import contact_signature, restore_probe_state, returns
         from supermimic.mdp import flatten_state
 
@@ -282,7 +290,7 @@ class ClosedLoopPhysical:
                 # Snapshot tensors because the simulator reuses its state storage.
                 return tuple(x.clone() for x in env.state())
 
-        result = self.probe.objective(dynamics=PhysicalTransitions())
+        result = collector(dynamics=PhysicalTransitions())
         result["hard"] = returns(result["rewards"], torch.stack(hard).float(), self.probe.gamma)
         result["hard_termination"] = torch.stack(hard)
         result["initial_state_drift"] = drift
