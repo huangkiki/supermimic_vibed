@@ -25,12 +25,20 @@ def analyze(root,output,*,parent=None):
     tapes=torch.load(root/'calibration-means.pt',map_location='cpu',weights_only=False)
     baselines=torch.load(root/'baseline-tapes.pt',map_location='cpu',weights_only=False)
     calibration=rows(root/'calibration.csv');updates=rows(root/'updates.csv')
+    rejected=json.loads((root/'calibration-rejections.json').read_text())
     batch=len(baselines[0]['proxy']);references=plan['reference_seeds'];targets=plan['target_action_rms'];methods=summary['methods']
     expected={(method,target) for method in methods for target in targets}
-    if {(r['method'],float(r['requested_action_rms'])) for r in calibration}!=expected or len(calibration)!=len(expected):
+    rejected_keys={(r['method'],float(r['requested_action_rms'])) for r in rejected}
+    accepted_keys={(r['method'],float(r['requested_action_rms'])) for r in calibration}
+    if (accepted_keys|rejected_keys!=expected or accepted_keys&rejected_keys
+            or len(calibration)!=len(accepted_keys) or len(rejected)!=len(rejected_keys)):
         raise ValueError('Calibration method/scale coverage differs')
+    for row in rejected:
+        if (abs(row['actual_action_rms']-row['requested_action_rms'])<=.01*row['requested_action_rms']
+                and row['parameter_rounding_relative_l2']<=.02):
+            raise ValueError('Rejected calibration does not violate registered criteria')
     means={(r['method'],r['target']):r for r in tapes}
-    if set(means)!=expected or len(tapes)!=len(expected):raise ValueError('Calibration means coverage differs')
+    if set(means)!=accepted_keys or len(tapes)!=len(accepted_keys):raise ValueError('Calibration means coverage differs')
     sigma=receipt['args']['action_std']
     for row in calibration:
         target=float(row['requested_action_rms']);tape=means[(row['method'],target)]
@@ -43,6 +51,7 @@ def analyze(root,output,*,parent=None):
     seen=set()
     for row in updates:
         key=(row['method'],float(row['target_action_rms']),int(row['seed']),int(row['sample']))
+        if key[:2] not in accepted_keys:raise ValueError('Update at an unresolved calibration')
         if key in seen:raise ValueError('Duplicate physical update')
         seen.add(key)
         baseline=baselines[references.index(key[2])]
@@ -53,14 +62,17 @@ def analyze(root,output,*,parent=None):
             expected_delta=float(torch.tensor(float(row['updated_'+objective]),dtype=torch.float32)
                                  -torch.tensor(float(row['baseline_'+objective]),dtype=torch.float32))
             if expected_delta!=float(row[objective+'_improvement']):raise ValueError('Physical improvement differs')
-    if len(seen)!=len(methods)*len(targets)*len(references)*batch:raise ValueError('Incomplete physical update coverage')
-    if summary['simulator_steps']!=32*batch*(1+len(references)*(1+len(methods)*len(targets))+len(plan['physical_reference_seeds'])):
+    if len(seen)!=len(accepted_keys)*len(references)*batch:raise ValueError('Incomplete physical update coverage')
+    new_reference=0 if summary['reference_reused'] else len(plan['physical_reference_seeds'])
+    if summary['simulator_steps']!=32*batch*(1+len(references)*(1+len(accepted_keys))+new_reference):
         raise ValueError('Calibrated simulator step ledger differs')
     result={kind:batch_statistics(updates,('method','target_action_rms'),kind+'_improvement') for kind in ('proxy','hard')}
     for kind,values in result.items():save_csv(output/(kind+'-improvement.csv'),values)
     save_csv(output/'calibration.csv',calibration)
+    if rejected:save_csv(output/'unresolved-calibrations.csv',rejected)
     validation=dict(status='passed',raw_physical_updates=len(updates),batch=batch,noise_batches=len(references),
-        calibration_points=len(calibration),max_rms_relative_error=max(abs(float(r['actual_action_rms'])/float(r['requested_action_rms'])-1) for r in calibration),
+        calibration_points=len(calibration),unresolved_calibrations=len(rejected),reference_reused=summary['reference_reused'],
+        max_rms_relative_error=max(abs(float(r['actual_action_rms'])/float(r['requested_action_rms'])-1) for r in calibration),
         simulator_steps=summary['simulator_steps'],independent_training_seeds=1,
         scope='paired physical effects at equal calibration-distribution Gaussian KL; noise SE only')
     write_json(output/'validation.json',validation)

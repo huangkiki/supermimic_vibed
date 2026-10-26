@@ -211,7 +211,7 @@ def main(argv=None):
                                + (1 + 2*len(a['wm_checkpoints']))*len(a['epsilons'])) + a['repeats']-1)
         if a.get('update_only_parent'):
             planned_rollouts = (1 + len(a['reference_seeds']) * (1 + 3*len(a['target_action_rms']))
-                                + len(a['physical_reference_seeds']))
+                                + (0 if a.get('completed_reference') else len(a['physical_reference_seeds'])))
     receipt = dict(status='started', args=vars(args), resources=resources, preflight_observations=observations,
         requested_time_budget_seconds=args.max_seconds, planned_physical_rollouts=planned_rollouts,
         planned_physical_steps=planned_rollouts * args.gradient_horizon * len(args.sample_indices)
