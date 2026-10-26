@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from .analyze import save_csv
-from .common import write_json
+from .common import sha256, write_json
 from .fidelity_math import reference_quality
 
 
@@ -40,6 +40,70 @@ def batch_statistics(records, keys, field):
         out.append(dict(zip(keys, group), mean=mean, standard_error=se, noise_batches=len(seeds),
                         observations=sum(map(len, seeds.values()))))
     return out
+
+
+def validate_native(root, *, means=None):
+    """Bind compact statistics to stored native tensors and optional full vectors."""
+    import torch
+    root = Path(root)
+    plan = json.loads((root/'audit-plan.json').read_text())
+    summary = json.loads((root/'audit-summary.json').read_text())
+    receipt = json.loads((root/'probe.json').read_text())
+    if receipt['status'] != 'complete' or receipt['precision'] != dict(tf32=False,amp='None',compiled=False):
+        raise ValueError('Incomplete native run or changed precision')
+    if (sha256(root/'physical-tapes.pt') != summary['physical_tapes_sha256']
+            or sha256(root/'policy-bank.pt') != receipt['prepared_bank_sha256']):
+        raise ValueError('Native tensor identity changed')
+    tapes = torch.load(root/'physical-tapes.pt',map_location='cpu',weights_only=False)
+    bank = torch.load(root/'policy-bank.pt',map_location='cpu',weights_only=False)
+    if [tape['seed'] for tape in tapes] != plan['reference_seeds']:
+        raise ValueError('Physical tape order changed')
+    batch = len(bank['frames'])
+    if batch != bank['original_start_count']*plan['replicas']:
+        raise ValueError('Replica layout differs')
+    for key in ('state','frames','xi','previous_action'):
+        torch.testing.assert_close(bank[key],bank[key][:bank['original_start_count']].repeat(
+            (plan['replicas'],)+(1,)*(bank[key].ndim-1)),rtol=0,atol=0)
+    baselines = {(int(row['seed']),int(row['sample'])):row for row in rows(root/'physical-baselines.csv')}
+    max_drift=0.
+    for tape in tapes:
+        if tape['actions'].shape != (32,batch,29) or any(len(s)!=33 or not torch.isfinite(s).all() for s in tape['states']):
+            raise ValueError('Physical trajectory shape/finiteness differs')
+        max_drift=max(max_drift,float(tape['drift'].max()))
+        if max_drift > 1e-5:
+            raise ValueError('Physical state restore drift exceeds declared bound')
+        for n in range(batch):
+            row=baselines[(tape['seed'],n)]
+            if (float(tape['proxy'][n]) != float(row['proxy']) or float(tape['hard'][n]) != float(row['hard'])
+                    or bool(tape['hard_termination'][:,n].any()) != (row['failed']=='True')):
+                raise ValueError('Published baseline differs from physical tape')
+    b=32*batch; r=len(plan['reference_seeds']); g=len(plan['gradient_seeds']); d=plan['directions']; e=len(plan['epsilons']); m=len(plan['wm_checkpoints'])
+    expected=dict(simulator_steps=b*(g+r+plan['repeats']-1+2*d*e*r+(1+2*m)*e*r),
+                  imagined_gradient_steps=b*2*m*g,imagined_reference_steps=b*m*r*(2*d+1),
+                  wm_training_seconds=0.,policy_optimization_updates=0)
+    if summary['allocations'] != expected:
+        raise ValueError('Step ledger differs from complete design')
+    result=dict(status='passed', physical_tapes=len(tapes), initial_state_drift_max=max_drift,
+                allocations=expected, full_means_verified=False)
+    if means is not None:
+        if sha256(means) != summary['gradient_means_sha256']:
+            raise ValueError('Complete gradient mean identity changed')
+        vectors=torch.load(means,map_location='cpu',weights_only=True)
+        draws=json.loads((root/'gradient-draws.json').read_text())
+        section=slice(summary['bias_offset'],summary['bias_offset']+summary['bias_dimensions'])
+        if set(vectors)!=set(summary['gradient_statistics']):
+            raise ValueError('Full gradient method set differs')
+        for method,vector in vectors.items():
+            if vector.shape!=(summary['parameter_count'],) or not torch.isfinite(vector).all():
+                raise ValueError('Invalid complete gradient vector')
+            expected_norm=summary['gradient_statistics'][method]['mean_l2']
+            if not math.isclose(float(vector.double().norm()),expected_norm,rel_tol=1e-6):
+                raise ValueError('Full gradient norm differs')
+            bias=np.mean([row['bias'] for row in draws if row['method']==method],axis=0)
+            np.testing.assert_allclose(vector[section].numpy(),bias,rtol=1e-6,atol=1e-8)
+        result.update(full_means_verified=True,gradient_means_sha256=summary['gradient_means_sha256'],
+                      full_mean_vectors=len(vectors))
+    return result
 
 
 def analyze(root, output):
@@ -151,7 +215,7 @@ def analyze(root, output):
                                           for group in sorted(set(row['contact_group'] for row in baselines))),
                       independent_training_seeds=1, statement='Noise SEs do not quantify training or state-distribution uncertainty')
     write_json(output / 'validation.json', validation)
-    return dict(predictions=prediction_summary, accuracy=comparisons, updates=update_summary,
+    return dict(predictions=prediction_summary, accuracy=comparisons, directional=directional, updates=update_summary,
                 hard_updates=hard_summary, internal=internal, validation=validation)
 
 
@@ -184,19 +248,41 @@ def plot(result, output):
     axes[1].axhspan(update['mean']-2*update['standard_error'],update['mean']+2*update['standard_error'],color='grey',alpha=.15)
     axes[1].axhline(0,color='grey',lw=.7)
     axes[0].set(ylabel='RMSE to physical finite differences (all directions)',
-                title=f"Output-bias subspace: {physical['resolved']}/{physical['total']} resolved")
+                yscale='log', title=f"Output-bias subspace: {physical['resolved']}/{physical['total']} resolved")
     axes[1].set(ylabel='Paired physical hard-return improvement',title=f'Full-vector unit step {primary:g}; 2 noise SE')
     for ax in axes: ax.set_xlabel('WM iteration');ax.legend(fontsize=8)
     fig.savefig(output/'gradient-and-update.png',dpi=180);plt.close(fig)
+    fig, axes = plt.subplots(1,3,figsize=(12,4.5),constrained_layout=True)
+    selected_methods = [models[-1]+'_bptt', models[-1]+'_ppo', 'ppo_sim']
+    selected = [[row for row in result['directional'] if row['method']==method and row['epsilon']==primary]
+                for method in selected_methods]
+    bound = max(abs(row[key])+2*row[key+'_se'] for group in selected for row in group
+                for key in ('reference','estimate'))*1.05
+    for ax, group, label in zip(axes, selected, ('BPTT (WM4000)','PPO-WM (WM4000)','PPO-Sim')):
+        for row in group:
+            color = '#2563eb' if row['resolved'] else '#bd6428'
+            ax.errorbar(row['reference'],row['estimate'],xerr=2*row['reference_se'],yerr=2*row['estimate_se'],
+                        fmt='o',color=color,mfc=color if row['resolved'] else 'white',capsize=2)
+            ax.annotate(str(row['direction']),(row['reference'],row['estimate']),xytext=(4,3),textcoords='offset points',fontsize=7)
+        ax.plot([-bound,bound],[-bound,bound],color='grey',ls='--',lw=.8)
+        ax.set(title=label,xlabel='Physical numerical reference',xlim=(-bound,bound),ylim=(-bound,bound))
+        ax.set_aspect('equal')
+    axes[0].set_ylabel('Gradient projection estimate')
+    fig.suptitle('Same output-bias directions; bars = 2 noise SE; hollow = unresolved reference',fontsize=11)
+    fig.savefig(output/'directional-fidelity.png',dpi=180);plt.close(fig)
 
 
 def main():
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument('--input',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--verify-native',action='store_true')
+    parser.add_argument('--means',type=Path)
     args = parser.parse_args()
     result=analyze(args.input,args.output)
     plot(result,args.output)
+    if args.verify_native or args.means:
+        write_json(args.output/'native-validation.json',validate_native(args.input,means=args.means))
     print(json.dumps(result['validation'],indent=2))
 
 

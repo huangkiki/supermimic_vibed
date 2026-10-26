@@ -70,6 +70,9 @@ def bias_slice(policy):
 
 def run_audit(probe, physical, output, plan, check_budget, *, expected_manifest):
     validate_plan(plan)
+    if plan.get('update_only_parent'):
+        from .calibrated_updates import run_updates
+        return run_updates(probe, physical, output, plan, check_budget)
     output = Path(output)
     device = probe.device
     layout = parameter_layout(probe.policy)
