@@ -83,5 +83,14 @@
       71016
     ],
     "directions": 8
-  }
+  },
+  "earlier_attempt_gpu_hours": 0.0005038377513927925,
+  "earlier_attempts": [
+    {
+      "path": "runtime/checkpoint-audit-v1",
+      "seconds": 1.813815905014053,
+      "status": "failed_before_simulator_initialization",
+      "source": "a419cbe55cd81f7b482e9c0fba819d066e02cfd9"
+    }
+  ]
 }

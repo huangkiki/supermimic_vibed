@@ -1,4 +1,5 @@
 from copy import copy, deepcopy
+import json
 import unittest
 
 import torch
@@ -8,9 +9,15 @@ from test_policy_fidelity import fixture, TinyWM
 from experiments.ablation.checkpoint_audit import bias_slice, repeat_bank, validate_plan
 from experiments.ablation.policy_estimators import collect_score_rollout, score_gradient, stochastic_probe
 from experiments.ablation.run_checkpoint_audit import forecast_seconds
+from experiments.ablation.policy_fidelity_run import parser
 
 
 class CheckpointAuditTests(unittest.TestCase):
+    def test_native_audit_arguments_are_json_serializable_before_initialization(self):
+        args = parser().parse_args(['--checkpoint', 'checkpoint.pt', '--bank', 'bank.pt', '--output', 'out',
+                                   '--gpu', '2', '--gpu-uuid', 'gpu', '--checkpoint-audit', 'plan.json'])
+        self.assertEqual(json.loads(json.dumps(vars(args)))['checkpoint_audit'], 'plan.json')
+
     def test_forecast_scales_reference_axes_and_preserves_setup_cost(self):
         small = dict(gradient_seeds=[1, 2], reference_seeds=[3, 4], directions=2)
         full = dict(gradient_seeds=list(range(16)), reference_seeds=list(range(16)), directions=8)

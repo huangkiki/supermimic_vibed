@@ -45,6 +45,9 @@ def main():
     plan = json.loads(args.plan.read_text())
     if not 0 < plan['hard_gpu_hours'] <= 1 or plan['forecast_safety_factor'] < 1:
         raise ValueError('Require a bounded one-GPU-hour audit with forecast margin')
+    earlier = plan.get('earlier_attempt_gpu_hours', 0.)
+    if not 0 <= earlier < plan['hard_gpu_hours']:
+        raise ValueError('Earlier attempt costs must fit the cumulative audit cap')
     root = Path(__file__).resolve().parents[2]
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=root, text=True).strip():
         raise ValueError('Require a clean committed native source tree')
@@ -67,7 +70,8 @@ def main():
 
     def persist():
         campaign['allocated_gpu_hours'] = math.fsum(c.get('seconds', 0.) for c in campaign['commands']) / 3600
-        campaign['diagnostic_gpu_hours_including_prior'] = campaign['allocated_gpu_hours'] + sum(plan['prior_diagnostic_gpu_hours'].values())
+        campaign['audit_gpu_hours_including_earlier_attempts'] = campaign['allocated_gpu_hours'] + earlier
+        campaign['diagnostic_gpu_hours_including_prior'] = campaign['allocated_gpu_hours'] + earlier + sum(plan['prior_diagnostic_gpu_hours'].values())
         write_json(output / 'campaign.json', campaign)
 
     def terminate(signum, frame):
@@ -77,7 +81,7 @@ def main():
     persist()
     try:
         for phase in ('qualification', 'experiment'):
-            maximum = 3600 * (plan['hard_gpu_hours'] - campaign['allocated_gpu_hours'])
+            maximum = 3600 * (plan['hard_gpu_hours'] - earlier - campaign['allocated_gpu_hours'])
             peak = plan['initial_peak_memory_forecast_mib']
             if phase == 'qualification':
                 maximum = min(maximum, plan['qualification_max_seconds'])

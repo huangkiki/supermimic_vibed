@@ -131,7 +131,7 @@ def parser():
     value.add_argument('--direction-seed', type=int, default=50001,
                        help='independent Rademacher directions, generated before any gradient')
     value.add_argument('--action-std', type=float, default=.1, help='shared fixed Gaussian std for the auxiliary comparison only')
-    value.add_argument('--checkpoint-audit', type=Path,
+    value.add_argument('--checkpoint-audit',
                        help='fixed-policy WM checkpoint / physical PPO plan; separate diagnostic mode')
     value.add_argument('--gpu', type=int, required=True, help='physical GPU index, checked before CUDA allocation')
     value.add_argument('--gpu-uuid', required=True)
@@ -151,7 +151,7 @@ def main(argv=None):
     audit_plan = None
     if args.checkpoint_audit:
         from .checkpoint_audit import validate_plan
-        audit_plan = json.loads(args.checkpoint_audit.read_text())
+        audit_plan = json.loads(Path(args.checkpoint_audit).read_text())
         validate_plan(audit_plan)
         if (args.estimator_seeds is not None or args.prepare_history_only or args.no_critic
                 or args.detach_action_reward or args.precision != 'fp32' or args.gradient_horizon != 32):
@@ -265,7 +265,7 @@ def _run(args, launcher, output, receipt, started):
     audit_plan = None
     if args.checkpoint_audit:
         from .checkpoint_audit import repeat_bank
-        audit_plan = json.loads(args.checkpoint_audit.read_text())
+        audit_plan = json.loads(Path(args.checkpoint_audit).read_text())
         if 'replay_history' not in bank:
             raise ValueError('Prepare original raw histories before replicating audit starts')
         bank = repeat_bank(bank, audit_plan['replicas'])
