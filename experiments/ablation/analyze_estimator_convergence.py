@@ -38,6 +38,52 @@ def paired_decomposition(raw):
     return rows
 
 
+def reference_tapes(raw):
+    """Expose every per-start finite difference, including large observations."""
+    rows = []
+    for source in ('wm', 'physical_proxy', 'physical_hard'):
+        for d in range(raw[source].shape[0]):
+            for e, epsilon in enumerate(raw['epsilons']):
+                for n, seed in enumerate(raw['reference_seeds']):
+                    for start in range(raw[source].shape[-1]):
+                        plus, minus = raw[source][d, e, :, n, start]
+                        baseline = raw[source + '_baseline'][n, start]
+                        rows.append(dict(source=source, direction=d, epsilon=float(epsilon),
+                            seed=int(seed), start=start, plus=float(plus), minus=float(minus), baseline=float(baseline),
+                            derivative=float((plus-minus)/(2*epsilon)), plus_improvement=float(plus-baseline)))
+    return rows
+
+
+def reference_audit(primary, audit, output):
+    """Recompute the post-hoc repeats without replacing any primary observation."""
+    primary, audit = Path(primary), Path(audit)
+    record = json.loads((audit / 'campaign.json').read_text())
+    parent = json.loads((primary.parent / 'campaign.json').read_text())
+    if (record['status'] != 'complete' or record['parent_campaign_sha256'] != sha256(primary.parent / 'campaign.json')
+            or record['source'] != parent['source'] or record['combined_allocated_gpu_hours'] > record['combined_cap_gpu_hours']):
+        raise ValueError('Post-hoc audit does not match the completed primary campaign or budget')
+    base_receipt = json.loads((primary / 'probe.json').read_text())
+    base_signs = np.load(primary / 'directions.npz')['packed_signs'][:1]
+    rows = []
+    cases = [('primary', primary), *[(f'repeat-{i}', audit / f'repeat-{i}') for i in range(1, record['repetitions']+1)]]
+    for name, path in cases:
+        raw, summary, _, _ = validate(path)
+        receipt = json.loads((path / 'probe.json').read_text())
+        for key in ('checkpoint_sha256', 'bank_sha256', 'prepared_bank_sha256', 'precision'):
+            if receipt[key] != base_receipt[key]:
+                raise ValueError(f'Numerical repeat changed {key}')
+        np.testing.assert_array_equal(np.load(path / 'directions.npz')['packed_signs'][:1], base_signs)
+        for source in ('wm', 'physical_proxy', 'physical_hard'):
+            for seed in record['reference_seeds']:
+                index = summary['reference_seeds'].index(seed)
+                for e, epsilon in enumerate(summary['epsilons']):
+                    plus, minus = raw[source][0, e, :, index].mean(axis=-1)
+                    rows.append(dict(case=name, source=source, direction=0, seed=seed, epsilon=epsilon,
+                                     plus=float(plus), minus=float(minus), derivative=float((plus-minus)/(2*epsilon))))
+    save_csv(Path(output) / 'reference-audit.csv', rows)
+    return rows
+
+
 def validate(path, *, means_path=None):
     path = Path(path)
     summary = json.loads((path / 'convergence-summary.json').read_text())
@@ -143,7 +189,9 @@ def plot(output, rows, costs, summary, epsilon):
             selected = [r for r in rows if r['method'] == method and r['source'] == source and r['epsilon'] == epsilon]
             axis.plot(counts, [r['all_direction_rmse'] for r in selected], 'o-', color=colors[method], label=method.upper())
         axis.axhline(selected[0]['reference_se_rms'], color='#555555', ls=':', label='Reference SE RMS')
-        axis.set(xscale='log', yscale='log', xlabel='Noise samples per estimator', ylabel='Projected RMSE (all directions)', title=title)
+        resolved = selected[0]['resolved']
+        axis.set(xscale='log', yscale='log', xlabel='Noise samples per estimator', ylabel='Projected RMSE (all directions)',
+                 title=f'{title}\n{resolved}/{summary["directions"]} reference directions resolved')
         axis.set_xticks(counts, [str(c) for c in counts])
         axis.grid(alpha=.2)
         axis.legend(fontsize=8)
@@ -153,9 +201,11 @@ def plot(output, rows, costs, summary, epsilon):
         axes[2].plot(times, [r['all_direction_rmse'] for r in selected], 'o-', color=colors[method], label=method.upper())
         for t, row in zip(times, selected):
             axes[2].annotate(str(row['samples']), (t, row['all_direction_rmse']), xytext=(4, 5), textcoords='offset points', fontsize=8)
-    axes[2].set(xscale='log', yscale='log', xlabel='Cumulative estimator operation seconds', ylabel='Projected physical-reference RMSE', title='Measured cost at sampled budgets')
+    axes[2].set(xscale='log', yscale='log', xlabel='Cumulative estimator operation seconds', ylabel='Projected physical-reference RMSE',
+                title=f'Measured cost at sampled budgets\nPhysical reference: {selected[0]["resolved"]}/{summary["directions"]} resolved')
     axes[2].grid(alpha=.2)
     axes[2].legend(fontsize=8)
+    axes[2].margins(x=.12, y=.15)
     fig.suptitle(f'H{summary["horizon"]}: {summary["directions"]} preselected directions, epsilon={epsilon:g}')
     fig.text(.5, .025, 'One snapshot, two fixed starts. SE is conditional noise-tape uncertainty; dotted line is not an accuracy floor.\nOperation timing excludes setup, serialization and reference evaluations; allocated campaign cost is reported separately.', ha='center', fontsize=9)
     fig.tight_layout(rect=(0, .11, 1, .94))
@@ -190,16 +240,19 @@ def plot(output, rows, costs, summary, epsilon):
         axis.errorbar(x+offset, [float(r['reference']) for r in values], yerr=[2*float(r['reference_se']) for r in values], fmt='s', color=color, capsize=3, label=label+' ±2 SE')
         if source == 'wm':
             axis.errorbar(x, [float(r['prediction']) for r in values], yerr=[2*float(r['prediction_se']) for r in values], fmt='o', color=colors['bptt'], capsize=3, label='BPTT ±2 SE')
-    axis.set_xticks(x, [str(i) for i in x])
+    axis.set_xticks(x, [str(i)+('' if row['resolved'] == 'True' else '*') for i, row in enumerate(values)])
     axis.axhline(0, color='#888888', lw=.7)
     axis.set(xlabel='Independent parameter direction', ylabel='Directional derivative', title=f'WM target and physical target, N={counts[-1]}, epsilon={epsilon:g}')
     axis.grid(axis='y', alpha=.2)
     axis.legend(fontsize=9)
-    fig.text(.5, .025, 'All directions shown. Bars describe noise tapes, not finite-difference error. See CSV for scale-resolution flags.', ha='center', fontsize=9)
+    fig.text(.5, .025, '* Physical reference unresolved. Bars describe noise tapes, not finite-difference error. All directions retained.', ha='center', fontsize=9)
     fig.tight_layout(rect=(0, .06, 1, 1))
     for ext in ('png', 'svg'):
         fig.savefig(output / f'wm-physics-reference.{ext}', dpi=180)
     plt.close(fig)
+    for name in ('convergence', 'directional-estimates', 'wm-physics-reference'):
+        path = output / f'{name}.svg'
+        path.write_text('\n'.join(line.rstrip() for line in path.read_text().splitlines()) + '\n')
 
 
 def main():
@@ -208,6 +261,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--means', type=Path, help='Optional retained full-vector means for independent norm/projection checks')
     parser.add_argument('--epsilon', type=float, default=.01)
+    parser.add_argument('--reference-audit', type=Path, help='Optional separately selected post-hoc numerical repeats')
     args = parser.parse_args()
     raw, summary, costs, variance = validate(args.probe, means_path=args.means)
     if args.epsilon not in summary['epsilons']:
@@ -224,10 +278,14 @@ def main():
                 operation_seconds=sum(float(c[method + '_seconds']) for c in costs[:size])))
     save_csv(args.output / 'estimator-compute.csv', accounting)
     save_csv(args.output / 'paired-decomposition.csv', paired_decomposition(raw))
+    save_csv(args.output / 'reference-tapes.csv', reference_tapes(raw))
     plot(args.output, rows, costs, summary, args.epsilon)
+    if args.reference_audit is not None:
+        reference_audit(args.probe, args.reference_audit, args.output)
     write_json(args.output / 'validation.json', dict(status='passed', raw_sha256=summary['raw_sha256'],
         directions_sha256=summary['directions_sha256'], means_sha256=summary['means_sha256'],
         full_vector_means_checked=args.means is not None, cuda_initialized=torch.cuda.is_initialized(),
+        posthoc_reference_audit_checked=args.reference_audit is not None,
         scope='Raw reference/projection CSV recomputation; norms conserve streaming variance. Full-vector validation only when --means supplied.'))
 
 

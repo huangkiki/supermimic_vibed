@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from test_policy_fidelity import fixture
-from experiments.ablation.analyze_estimator_convergence import paired_decomposition, validate
+from experiments.ablation.analyze_estimator_convergence import paired_decomposition, reference_tapes, validate
 from experiments.ablation.common import sha256, write_json
 from experiments.ablation.estimator_convergence import run_convergence
 from experiments.ablation.policy_estimators import stochastic_probe
@@ -57,6 +57,11 @@ class ConvergenceAnalysisTests(unittest.TestCase):
             self.assertEqual(len(variance),4)
             self.assertEqual(len(costs),4)
             self.assertEqual(summary['counts'],[2,4])
+            tapes = reference_tapes(raw)
+            self.assertEqual(len(tapes), 3*3*2*4*summary['starts'])
+            first = tapes[0]
+            self.assertAlmostEqual(first['derivative'],
+                (raw['wm'][0,0,0,0,0]-raw['wm'][0,0,1,0,0])/(2*raw['epsilons'][0]))
             self.assertFalse(torch.cuda.is_initialized())
 
     def test_modified_raw_returns_are_rejected_by_hash(self):

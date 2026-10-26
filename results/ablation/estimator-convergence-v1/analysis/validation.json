@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "raw_sha256": "aaadbc037db412be0c36330413331425eb9c7467c0b202c4f69d939e1a0c02c7",
+  "directions_sha256": "a588db4bb9fe08f254ea1689de63d6f789cd47b23d873ea820cd9f476c64bec8",
+  "means_sha256": "de39552d5f1eb820b295d7872f962642cf5035b106069db759b30f16fe8a49d6",
+  "full_vector_means_checked": true,
+  "cuda_initialized": false,
+  "posthoc_reference_audit_checked": true,
+  "scope": "Raw reference/projection CSV recomputation; norms conserve streaming variance. Full-vector validation only when --means supplied."
+}
