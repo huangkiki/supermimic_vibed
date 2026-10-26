@@ -13,7 +13,7 @@ from .analyze_checkpoint_audit import batch_statistics,rows
 from .common import sha256,write_json
 
 
-def analyze(root,output):
+def analyze(root,output,*,parent=None):
     root,output=Path(root),Path(output);output.mkdir(parents=True,exist_ok=True)
     summary=json.loads((root/'calibrated-summary.json').read_text())
     plan=json.loads((root/'audit-plan.json').read_text())
@@ -54,7 +54,7 @@ def analyze(root,output):
                                  -torch.tensor(float(row['baseline_'+objective]),dtype=torch.float32))
             if expected_delta!=float(row[objective+'_improvement']):raise ValueError('Physical improvement differs')
     if len(seen)!=len(methods)*len(targets)*len(references)*batch:raise ValueError('Incomplete physical update coverage')
-    if summary['simulator_steps']!=32*batch*(1+len(references)*(1+len(methods)*len(targets))):
+    if summary['simulator_steps']!=32*batch*(1+len(references)*(1+len(methods)*len(targets))+len(plan['physical_reference_seeds'])):
         raise ValueError('Calibrated simulator step ledger differs')
     result={kind:batch_statistics(updates,('method','target_action_rms'),kind+'_improvement') for kind in ('proxy','hard')}
     for kind,values in result.items():save_csv(output/(kind+'-improvement.csv'),values)
@@ -64,6 +64,8 @@ def analyze(root,output):
         simulator_steps=summary['simulator_steps'],independent_training_seeds=1,
         scope='paired physical effects at equal calibration-distribution Gaussian KL; noise SE only')
     write_json(output/'validation.json',validation)
+    from .analyze_score_reference import analyze as analyze_reference
+    analyze_reference(root,output,parent=parent)
     return result
 
 
@@ -85,7 +87,8 @@ def plot(result,output):
 
 def main():
     parser=argparse.ArgumentParser(__doc__);parser.add_argument('--input',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
-    args=parser.parse_args();result=analyze(args.input,args.output);plot(result,args.output)
+    parser.add_argument('--parent',type=Path)
+    args=parser.parse_args();result=analyze(args.input,args.output,parent=args.parent);plot(result,args.output)
 
 
 if __name__=='__main__':main()

@@ -109,6 +109,9 @@ def run_updates(probe,physical,output,plan,check_budget):
         probe.seed=seed;result=rollout()
         baselines.append({key:result[key].cpu() for key in ('proxy','hard','actions','initial_state_drift')})
     torch.save(baselines,output/'baseline-tapes.pt')
+    from .physical_score_reference import reference_estimates
+    reference=reference_estimates(probe,physical,output,plan,check_budget,candidate_means=vectors)
+    steps+=reference['simulator_steps']
     for method in methods:
         direction=vectors[method]/vectors[method].norm()
         for target in targets:
@@ -131,7 +134,8 @@ def run_updates(probe,physical,output,plan,check_budget):
             print(f'CALIBRATED {method} action RMS {target:g} complete',flush=True)
     save_csv(output/'timings.csv',timings)
     torch.save({name:vectors[name].cpu() for name in methods},output/'selected-means.pt')
-    result=dict(status='complete',simulator_steps=steps,imagined_steps=0,seconds=time.perf_counter()-started,
+    result=dict(status='complete',simulator_steps=steps,imagined_steps=reference['imagined_steps'],seconds=time.perf_counter()-started,
+        physical_reference=reference,
         parent=str(parent),parent_summary_sha256=sha256(parent/'audit-summary.json'),
         parent_mean_sha256=summary['gradient_means_sha256'],calibration_seed=plan['calibration_seed'],
         calibration_tape_sha256=sha256(output/'calibration-tape.pt'),baseline_tapes_sha256=sha256(output/'baseline-tapes.pt'),
