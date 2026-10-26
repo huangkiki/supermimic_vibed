@@ -29,11 +29,12 @@ def main():
     remaining=3600*(plan['hard_gpu_hours']-consumed)
     native=json.loads((parent/'experiment/probe.json').read_text())
     design=json.loads((parent/'experiment/audit-plan.json').read_text())
-    design.update(update_only_parent=str(parent/'experiment'),calibration_seed=91001,target_action_rms=[.0003,.001,.003])
+    design.update(update_only_parent=str(parent/'experiment'),calibration_seed=91001,target_action_rms=[.0003,.001,.003],
+                  physical_reference_seeds=list(range(101001,101065)))
     timings=list(csv.DictReader((parent/'experiment/timings.csv').open()))
     physical=[float(row['seconds']) for row in timings if row['operation'].endswith('_physical_update')]
-    rollout_count=1+len(design['reference_seeds'])*(1+3*len(design['target_action_rms']))
-    # Explicit 240-second calibration/setup allowance plus measured rollout
+    rollout_count=1+len(design['reference_seeds'])*(1+3*len(design['target_action_rms']))+len(design['physical_reference_seeds'])
+    # Explicit 240-second calibration/auxiliary-gradient/setup allowance plus measured rollout
     # duration with 30% headroom. Qualification already used this exact batch.
     forecast=240+1.3*rollout_count*sum(physical)/len(physical)
     if forecast>remaining-20:raise TimeoutError('Calibrated follow-up exceeds the original remaining audit cap')
