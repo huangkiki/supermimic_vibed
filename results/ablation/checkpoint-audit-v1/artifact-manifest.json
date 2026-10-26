@@ -1,0 +1,350 @@
+{
+  "primary_native_source": "c04862a094d96102e6bd37e2ed8e2a14cb1d24b8",
+  "calibrated_native_source": "0f705e17e15d3699c82ecb7cad9bc4d90e0ae04e",
+  "published_files": {
+    "primary/campaign.json": {
+      "bytes": 7890,
+      "sha256": "6d9ba8e60fda4272311f6fc541cc95c1f9152f173517140c9e107c9d0865ce29"
+    },
+    "primary/cpu-validation/experiment.json": {
+      "bytes": 441,
+      "sha256": "01eefd98881c21402d46ef41b626858c085562c43b475bd9f0693087670100b7"
+    },
+    "primary/cpu-validation/qualification.json": {
+      "bytes": 435,
+      "sha256": "3e8bb30663304bacdb044004928d0d42ac0a7f1796446ac0bca2cc288468da1d"
+    },
+    "primary/experiment/audit-plan.json": {
+      "bytes": 1299,
+      "sha256": "15071f6c5a38569fafdb5a55f5073c6fdf3225c9760e64e508c092d09ff7d370"
+    },
+    "primary/experiment/audit-summary.json": {
+      "bytes": 3834,
+      "sha256": "ae2190c976b942e22c98f868af27e6896a155f8daad3783433b95e6e844d97f9"
+    },
+    "primary/experiment/baseline-repeats.json": {
+      "bytes": 3349,
+      "sha256": "59c68bbacb90203eb5cf8be56bf6ad8ea42733327e523db7310456daeba70b09"
+    },
+    "primary/experiment/bias-directions.npy": {
+      "bytes": 1984,
+      "sha256": "ffd4a0b5d372dc1d35b8200050cbc4614659572f090cb3ff3d2608b7c379e925"
+    },
+    "primary/experiment/contact-map.json": {
+      "bytes": 5677,
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599"
+    },
+    "primary/experiment/directional-returns.csv": {
+      "bytes": 5104479,
+      "sha256": "d8348903eb1ccea54942fcd169350fee8c907d7383445fe01b413ca456c01fa4"
+    },
+    "primary/experiment/gradient-draws.json": {
+      "bytes": 209515,
+      "sha256": "0e3630d708172a52e6a2839a22883d89bedf6084c41c4cca786bf94c81e2749d"
+    },
+    "primary/experiment/parameter-layout.json": {
+      "bytes": 2094,
+      "sha256": "cc35481dd6ac7e018b4cc83343afdedff00a56a7f88d2258989b6ae603734e4d"
+    },
+    "primary/experiment/physical-baselines.csv": {
+      "bytes": 34550,
+      "sha256": "800f848dcbcd09ae966b43decc4bba12726392b2fcddc1c996bd27375a3c6f64"
+    },
+    "primary/experiment/physical-tapes.pt": {
+      "bytes": 7472409,
+      "sha256": "eff74de510a64fa4c487006c669cd5eb32f147513dcef76ed0f0b49e8141b5ce"
+    },
+    "primary/experiment/physical-updates.csv": {
+      "bytes": 1813552,
+      "sha256": "acda6fa8dfbbc9bcb58f3feef2022fac45ae8ebe5692dc2e8970a254619eddef"
+    },
+    "primary/experiment/policy-bank.pt": {
+      "bytes": 512264,
+      "sha256": "5a5cc1e75b055e3b92bfe66e6b4b249a8a50eec0ab7064ec7df29a3e9e7dbbd3"
+    },
+    "primary/experiment/prediction.csv": {
+      "bytes": 1485678,
+      "sha256": "9361b6d14c29ca50c4640fc9b81f93104b0477a92e752157c4f8be0160ad4047"
+    },
+    "primary/experiment/probe.json": {
+      "bytes": 22927,
+      "sha256": "17cdf90465491f160db6e19c1b81309cf04591bdfd106640492dad274f9acca4"
+    },
+    "primary/experiment/timings.csv": {
+      "bytes": 37684,
+      "sha256": "21f883fe140870c163fee17f93a2b9d1622470df48f547c01d4a56fe7f64a46e"
+    },
+    "primary/experiment-plan.json": {
+      "bytes": 1299,
+      "sha256": "15071f6c5a38569fafdb5a55f5073c6fdf3225c9760e64e508c092d09ff7d370"
+    },
+    "primary/experiment.log": {
+      "bytes": 7925,
+      "sha256": "b2c0615a48095c8d4d679a93d9217184112a4e46ffd32cb7ee892af8a9a5e508"
+    },
+    "primary/qualification/audit-plan.json": {
+      "bytes": 991,
+      "sha256": "1496d0f9ae912fcc4bdf81cf194a8da061a3c84053d3e45685affdb83fb11d63"
+    },
+    "primary/qualification/audit-summary.json": {
+      "bytes": 3816,
+      "sha256": "797a81da2aab5afd7ba99e3b6866fc727f6ae1d5cd9a81cd5354294a9f6b0a30"
+    },
+    "primary/qualification/baseline-repeats.json": {
+      "bytes": 3353,
+      "sha256": "d45470328b3b6a053d7974fe3b08f0665b80f01037c93df14b949bae4357a25e"
+    },
+    "primary/qualification/bias-directions.npy": {
+      "bytes": 592,
+      "sha256": "de453ddbebe18426351ef6b392149918650c5c5ebe0b4d96db969494aba822fd"
+    },
+    "primary/qualification/contact-map.json": {
+      "bytes": 5677,
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599"
+    },
+    "primary/qualification/directional-returns.csv": {
+      "bytes": 159610,
+      "sha256": "d4884c888db49fcf12b5fa1a876de50a518665c79c146f7bceda0a44d163f91b"
+    },
+    "primary/qualification/gradient-draws.json": {
+      "bytes": 22620,
+      "sha256": "e85267036c9b995102aee5e670ee3159570db3413f6d7b5e18847836d9b50c16"
+    },
+    "primary/qualification/parameter-layout.json": {
+      "bytes": 2094,
+      "sha256": "cc35481dd6ac7e018b4cc83343afdedff00a56a7f88d2258989b6ae603734e4d"
+    },
+    "primary/qualification/physical-baselines.csv": {
+      "bytes": 4363,
+      "sha256": "788b1c1683a040bcd70aa768c53977fcdd37da33c0a3d9f5cbda51b4f85f18cb"
+    },
+    "primary/qualification/physical-tapes.pt": {
+      "bytes": 935141,
+      "sha256": "18bedde2cc4fbea0e4307168330f32dea21437f76a27b5446fff9cfd8bf453bf"
+    },
+    "primary/qualification/physical-updates.csv": {
+      "bytes": 227681,
+      "sha256": "d67cf279fd86ff84a85e06a83fef08e2363f013f56c3e0c953bafbc9fc0e9b22"
+    },
+    "primary/qualification/policy-bank.pt": {
+      "bytes": 512264,
+      "sha256": "5a5cc1e75b055e3b92bfe66e6b4b249a8a50eec0ab7064ec7df29a3e9e7dbbd3"
+    },
+    "primary/qualification/prediction.csv": {
+      "bytes": 185758,
+      "sha256": "24a95e77c8a133f42cf9c14eb4f011632f1efd7e36aee083e38cf872e910eac9"
+    },
+    "primary/qualification/probe.json": {
+      "bytes": 22887,
+      "sha256": "5b7c38e65abced3196aa3c6442cab93d92884c64725c3a103654f50919be9281"
+    },
+    "primary/qualification/timings.csv": {
+      "bytes": 5092,
+      "sha256": "e6de3ad2ac15e6ec1aa12e902b51084d0e66e47d830363fed9056e54ccb2fbb3"
+    },
+    "primary/qualification-plan.json": {
+      "bytes": 991,
+      "sha256": "1496d0f9ae912fcc4bdf81cf194a8da061a3c84053d3e45685affdb83fb11d63"
+    },
+    "primary/qualification.log": {
+      "bytes": 7697,
+      "sha256": "507f476b4e458bf38ba94b9912ec7e9bc9ec84318f14212d5f7522f9926d041a"
+    },
+    "calibrated/campaign.json": {
+      "bytes": 2718,
+      "sha256": "641f110198044bde4958058b9d5e552aea2bf39ab6a67d19286c085017749839"
+    },
+    "calibrated/experiment/audit-plan.json": {
+      "bytes": 2429,
+      "sha256": "d000a180ffe3dc367d1d9b312b6df3b6525f5efccde0cdf8b12ae010d86ec0f2"
+    },
+    "calibrated/experiment/baseline-tapes.pt": {
+      "bytes": 1924877,
+      "sha256": "e1a12f364c6046088147797e0716769a914f4f4121c21ee7e834a7668779a442"
+    },
+    "calibrated/experiment/calibrated-summary.json": {
+      "bytes": 3593,
+      "sha256": "ddb1adc89f5c73eed2476101406db52fc78e9e6b7e3bc3aa9cac2ee818a43b9b"
+    },
+    "calibrated/experiment/calibration-means.pt": {
+      "bytes": 1430131,
+      "sha256": "79be1876729c7167c4269aca23d68ec1d147df822b9aacf20bbad3e89f57af71"
+    },
+    "calibrated/experiment/calibration-rejections.json": {
+      "bytes": 879,
+      "sha256": "cd7ab9fc4df95a37df39c5bdbd1e81434a7b692b2704ee98627d9d4cfe1f2960"
+    },
+    "calibrated/experiment/calibration-tape.pt": {
+      "bytes": 7166519,
+      "sha256": "807ee53cad8f994b4ae6fbe72ef329959405bb868347ec1dc2531177f900d99b"
+    },
+    "calibrated/experiment/calibration.csv": {
+      "bytes": 675,
+      "sha256": "9bc6deec43ca6188b7b59dfd626a3cca4980a418b6634e2964f3692ecff342a0"
+    },
+    "calibrated/experiment/contact-map.json": {
+      "bytes": 5677,
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599"
+    },
+    "calibrated/experiment/physical-progress.json": {
+      "bytes": 32,
+      "sha256": "f0ea67c7f999fcf4c11df2624300f81af85d26fc0e4ac32f6034968680756a6e"
+    },
+    "calibrated/experiment/policy-bank.pt": {
+      "bytes": 512264,
+      "sha256": "5a5cc1e75b055e3b92bfe66e6b4b249a8a50eec0ab7064ec7df29a3e9e7dbbd3"
+    },
+    "calibrated/experiment/probe.json": {
+      "bytes": 23553,
+      "sha256": "754ab454177a29e6c38192f6eb520157376c0c172089ae518653be98c94d22b9"
+    },
+    "calibrated/experiment/reference-error-differences.json": {
+      "bytes": 153404,
+      "sha256": "df61829ff2c7ee6607d9b6288e585510dea89bc6a27a074c13ff1d82ae3c003e"
+    },
+    "calibrated/experiment/reference-gradient-draws.json": {
+      "bytes": 308322,
+      "sha256": "43a316789c6ef2fe37fec8539fd2864c2dd8d8f5be1dfbde5db0b866d9bf3482"
+    },
+    "calibrated/experiment/reference-gradient-summary.json": {
+      "bytes": 2077,
+      "sha256": "bb9b914c2984bab3cbf83020fef2b593e69cb26dfbdda1872155a219fb15b733"
+    },
+    "calibrated/experiment/reference-reuse.json": {
+      "bytes": 356,
+      "sha256": "f6a37e61f34a3fb3123c9650864704728fa2ca6e4305e96612920ad39dacf854"
+    },
+    "calibrated/experiment/timings.csv": {
+      "bytes": 3509,
+      "sha256": "ca623a51fae8b5093b8481836b7fad635c32679208af7e75d07f4853ac1c4eb4"
+    },
+    "calibrated/experiment/updates.csv": {
+      "bytes": 513753,
+      "sha256": "720b431d2ad41cbb6e34bd85a589d8cd9e58f211c01b862cbe3e0ab3105e1d59"
+    },
+    "calibrated/experiment.log": {
+      "bytes": 7843,
+      "sha256": "04f0c478e69606c08648a0c5df6f37d12a54ff643d072f21cfc89e3b1d7a8fb1"
+    },
+    "calibrated/plan.json": {
+      "bytes": 2429,
+      "sha256": "d000a180ffe3dc367d1d9b312b6df3b6525f5efccde0cdf8b12ae010d86ec0f2"
+    },
+    "failed-attempt/campaign.json": {
+      "bytes": 5527,
+      "sha256": "a6e647f2392d7556115de2eb2368d4b037449975f6f5feea83ed0cdda26bda2a"
+    },
+    "failed-attempt/qualification-plan.json": {
+      "bytes": 991,
+      "sha256": "1496d0f9ae912fcc4bdf81cf194a8da061a3c84053d3e45685affdb83fb11d63"
+    },
+    "failed-attempt/qualification.log": {
+      "bytes": 2467,
+      "sha256": "b98c5f8c6445ede69c0b4e52999b462827cd9cf0268440095983501f8c06c32b"
+    },
+    "reference-attempt/campaign.json": {
+      "bytes": 2648,
+      "sha256": "c83254af2b3a8424a039c1c79afd811152cfcf03e94dd7eadce92ebf155f3fe1"
+    },
+    "reference-attempt/cpu-validation.json": {
+      "bytes": 3531,
+      "sha256": "d4a0fbea553e0c9d1395cc698f799fa7a20ff13bad43b774e2402251dc0c6ca5"
+    },
+    "reference-attempt/experiment/audit-plan.json": {
+      "bytes": 2311,
+      "sha256": "c752b1fde7d333f3f6552ff6233b1e57197f42ba1b4de8f8ec5abb6f3a7c5f09"
+    },
+    "reference-attempt/experiment/baseline-tapes.pt": {
+      "bytes": 1924877,
+      "sha256": "6f20d2c5378f68a777e756ee55878a747bc2cba710fa53af82ec79bc6ea23f88"
+    },
+    "reference-attempt/experiment/calibration-tape.pt": {
+      "bytes": 7166519,
+      "sha256": "6eb51eaf39f1ffa434c38b0cbcfab356e241cc3b0f5f6c0b6b5e0ed1a0ac5976"
+    },
+    "reference-attempt/experiment/contact-map.json": {
+      "bytes": 5677,
+      "sha256": "16e1106932ee49d70a82853329bd3eff1a97598dff2c9edc38ad4ab6ed596599"
+    },
+    "reference-attempt/experiment/policy-bank.pt": {
+      "bytes": 512264,
+      "sha256": "5a5cc1e75b055e3b92bfe66e6b4b249a8a50eec0ab7064ec7df29a3e9e7dbbd3"
+    },
+    "reference-attempt/experiment/probe.json": {
+      "bytes": 2449,
+      "sha256": "41c67688094856f03efe7c895758d7ded08216eb2e220725753591ba6be559c2"
+    },
+    "reference-attempt/experiment/reference-error-differences.json": {
+      "bytes": 153404,
+      "sha256": "df61829ff2c7ee6607d9b6288e585510dea89bc6a27a074c13ff1d82ae3c003e"
+    },
+    "reference-attempt/experiment/reference-gradient-draws.json": {
+      "bytes": 308322,
+      "sha256": "43a316789c6ef2fe37fec8539fd2864c2dd8d8f5be1dfbde5db0b866d9bf3482"
+    },
+    "reference-attempt/experiment/reference-gradient-summary.json": {
+      "bytes": 2077,
+      "sha256": "bb9b914c2984bab3cbf83020fef2b593e69cb26dfbdda1872155a219fb15b733"
+    },
+    "reference-attempt/experiment.log": {
+      "bytes": 11261,
+      "sha256": "2e81583ce19c9afcb37fb277812339e5667baf5a2512fa8e24f534af67d57ca1"
+    },
+    "reference-attempt/plan.json": {
+      "bytes": 2311,
+      "sha256": "c752b1fde7d333f3f6552ff6233b1e57197f42ba1b4de8f8ec5abb6f3a7c5f09"
+    },
+    "reference-attempt/verify_vectors.py": {
+      "bytes": 3390,
+      "sha256": "c4cd3da257938ff6c48c1d774a73c1d7ffe997182bbdad0b5c7b3473b0fd748d"
+    },
+    "failed-attempt/controller.log": {
+      "bytes": 871,
+      "sha256": "ebe91c2c898820c7db4f635d2c3396618086af075be4d7d79f61be160777e04c"
+    },
+    "primary/controller.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "reference-attempt/controller.log": {
+      "bytes": 974,
+      "sha256": "020c97322d7a417f607bc45e42d002e57653979b7264b6d1fee6152a34bde944"
+    },
+    "calibrated/controller.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "inputs/original-bank.pt": {
+      "bytes": 46600,
+      "sha256": "8567f64d7e316d96b0e4b0c0014af2bcedb0be85d27626ec457f2b46287291d0"
+    },
+    "inputs/original-plan.json": {
+      "bytes": 1865,
+      "sha256": "f66fa3324f93bda8f858f24a4675ece293b03df977b07917f7930fb797b89aed"
+    }
+  },
+  "retained_large_files": {
+    "primary/experiment/gradient-means.pt": {
+      "native_path": "/home/huangyue/work/supermimic-ablation-20261023/runtime/checkpoint-audit-v1b/experiment/gradient-means.pt",
+      "bytes": 401128825,
+      "sha256": "65790491cecdc0c817040d143eaec965d510f59c83fdbc1235b20a64b04c7d53"
+    },
+    "primary/qualification/gradient-means.pt": {
+      "native_path": "/home/huangyue/work/supermimic-ablation-20261023/runtime/checkpoint-audit-v1b/qualification/gradient-means.pt",
+      "bytes": 401128825,
+      "sha256": "ab253ca5ea2a0d330946afbd1bba12f0e3c31990cbd8400c7d548b51a696d71c"
+    },
+    "calibrated/experiment/selected-means.pt": {
+      "native_path": "/home/huangyue/work/supermimic-ablation-20261023/runtime/calibrated-updates-v1-resume/experiment/selected-means.pt",
+      "bytes": 109399776,
+      "sha256": "3e1e845577ccda8cc0dbb3823d2960e7808224727367640f0966794ea3569112"
+    },
+    "reference-attempt/experiment/reference-gradient-means.pt": {
+      "native_path": "/home/huangyue/work/supermimic-ablation-20261023/runtime/calibrated-updates-v1/experiment/reference-gradient-means.pt",
+      "bytes": 145866311,
+      "sha256": "2b4053148189da4b7207c35504fb2df45eedc457f74b776c4873efb68c49ef68"
+    }
+  },
+  "combined_audit_gpu_hours": 0.564807806009776,
+  "archive_sha256": "a56641934a647c4b6d0f856b1d054f27cdf479a3ba31532d27fbf3ffd221bfb4"
+}

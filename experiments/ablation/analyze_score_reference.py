@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+import csv
 from pathlib import Path
 
 import numpy as np
@@ -96,3 +97,45 @@ def analyze(root,output,*,parent=None):
         projected_variance_ratio=float(arrays['corrected'].var(0,ddof=1).sum()/arrays['ppo_sim'].var(0,ddof=1).sum()),
         full_variance_ratio=summary['statistics']['corrected']['variance_trace']/summary['statistics']['ppo_sim']['variance_trace'],
         full_vector_comparisons=7,scope='relative squared errors conditional on primary gradient estimates; Monte Carlo SE, no analytic ground truth'))
+
+
+def plot_comparisons(output):
+    """Show all seven declared comparisons, with their simultaneous intervals."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    output = Path(output)
+    with (output / 'full-gradient-comparison-intervals.csv').open() as stream:
+        rows = {(row['left'], row['right']): row for row in csv.DictReader(stream)}
+    panels = [
+        ('WM training stages; fixed policy', [
+            (f'ckpt_{step:06d}_bptt', f'ckpt_{step-1000:06d}_bptt',
+             f'BPTT {step} minus {step-1000}')
+            for step in (1000, 2000, 3000, 4000)
+        ]),
+        ('Final WM; 512 trajectories per candidate', [
+            ('ckpt_004000_bptt', 'ckpt_004000_ppo', 'BPTT minus PPO-WM'),
+            ('ckpt_004000_bptt', 'ppo_sim', 'BPTT minus PPO-Sim'),
+            ('ckpt_004000_ppo', 'ppo_sim', 'PPO-WM minus PPO-Sim'),
+        ]),
+    ]
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.3), layout='constrained')
+    for ax, (title, comparisons) in zip(axes, panels):
+        for index, (left, right, label) in enumerate(comparisons):
+            row = rows[left, right]
+            mean = float(row['mean'])
+            lower = float(row['lower_simultaneous_95'])
+            upper = float(row['upper_simultaneous_95'])
+            color = '#b45309' if lower > 0 else '#2563a6' if upper < 0 else '#64748b'
+            ax.errorbar(mean, index, xerr=[[mean-lower], [upper-mean]],
+                        fmt='o', color=color, capsize=4)
+        ax.set_yticks(range(len(comparisons)), [row[2] for row in comparisons])
+        ax.invert_yaxis()
+        ax.axvline(0, color='#475569', linewidth=1)
+        ax.grid(axis='x', alpha=.2)
+        ax.set(title=title, xlabel='Squared gradient error: left minus right\nNegative = left closer to physical expected gradient')
+    fig.suptitle('Full 9.1M-parameter estimates; independent physical score reference\n'
+                 'Approximate simultaneous 95% intervals; fixed candidates, two starts, one training seed', fontsize=11)
+    fig.savefig(output / 'full-gradient-comparisons.png', dpi=180)
+    plt.close(fig)

@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "raw_physical_updates": 3072,
+  "batch": 32,
+  "noise_batches": 16,
+  "calibration_points": 6,
+  "unresolved_calibrations": 3,
+  "reference_reused": true,
+  "max_rms_relative_error": 0.007456819526851177,
+  "simulator_steps": 115712,
+  "independent_training_seeds": 1,
+  "scope": "paired physical effects at equal calibration-distribution Gaussian KL; noise SE only"
+}

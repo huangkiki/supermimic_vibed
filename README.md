@@ -2,15 +2,24 @@
 
 [中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md)
 
-The added ablation experiments are separate from the original author-reported reproduction below. On one training seed and 18 locomotion clips, SuperMimic at iteration 4000 reaches a physical return of 0.8035 with 2/18 failures, costing 1.8824 GPU-hours including training and five physical evaluations. The original PPO settings fail; tuning only the Actor learning rate yields PPO-Sim return 0.2528 with 12/18 failures at iteration 1000. Seeds1/2/3 and their compute limits are preregistered; these exploratory results do not establish an efficiency ranking. See the [measured results and limitations](docs/ablation/results.md).
+## What the added ablations have measured
 
-[New contact-history diagnostics](docs/ablation/policy-gradient-contacts.md) cover two batches of eight walk/run/sprint starts. Actual Adam improves mean hard return by +0.006009 / +0.018797, while random-direction numerical references remain scale-sensitive. Seven of eight past-stable starts switch contact within H32, preventing a stable-contact accuracy claim. Failed legacy reconstruction and the explicitly derived bank remain separate; cumulative diagnostics cost 0.408913 GPU-hours.
+The experiments separate **WM rollout cost**, **gradient estimation**, and **physical policy improvement**. They preserve the original trainer. Results below are this fork's measurements; the original author's reproduction and animation follow separately.
 
-[Policy-gradient conclusions and requirement audit](docs/ablation/policy-gradient-conclusions.md): all 18 original-path probes now pass raw-vector, clipping and directional-projection checks. The H32 FP32 2×2 control is complete; the critic-bootstrap term contributes 58.5% of the full-gradient projection at this snapshot, not 58.5% of physical improvement. [Components and precision sensitivity](docs/ablation/policy-gradient-components.md).
+| Experiment | Measured finding | Evidence |
+|---|---|---|
+| Five WM checkpoints, one fixed policy | H32 prediction MSE falls **0.494 → 0.066** from WM0 to WM1000, while full policy-gradient squared error increases; the simultaneous interval excludes zero | [Checkpoint comparison and raw data](docs/ablation/checkpoint-audit-results.md) |
+| BPTT / PPO-WM / PPO-Sim gradient comparison | At WM4000 and 512 trajectories per estimator, BPTT has lower conditional full-vector squared error against an independent physical score reference | [Seven comparisons and uncertainty](docs/ablation/checkpoint-audit-results.md) |
+| Matched policy-change physical updates | At calibration KL ≈ .00145, hard-return changes are **+.001071 / +.000309 / +.000297**, respectively | [Calibrated updates](docs/ablation/checkpoint-audit-results.md) |
+| PPO-Sim / online PPO-WM training, seed1 | Physical returns **.4052 / .4027**; training plus evaluation **3.4817 / 2.3842 GPU-hours**; neither reaches the quality threshold | [Training curves and cost ledger](docs/ablation/confirmatory-seed1-ppo-pair.md) |
 
-The earlier full policy-parameter gradient batch has **15 native MuJoCo-Warp probes** (0.169490 GPU-hours). At one checkpoint and two fixed run starts, historical Adam improves the critic-based proxy but lowers short-horizon physical return at H1/H8; H32 improves both. FP32 sensitivity is reported separately. These local diagnostics do not establish why BPTT outperforms PPO. [Measurements, raw data and limitations](docs/ablation/policy-gradient-native-v1.md).
+![Full policy-gradient comparison with independent physical reference](results/ablation/checkpoint-audit-v1/calibrated-analysis/full-gradient-comparisons.png)
 
-A [matched Gaussian-policy BPTT/PPO comparison](docs/ablation/matched-policy-results.md) is now complete at H1/8/32: 16 gradient-noise tapes and 16 held-out physical-noise tapes per horizon. At equal parameter step, H32 hard-return change is **BPTT +0.03676 ± 0.00152 SE / PPO -0.00132 ± 0.00119 SE**. The PPO estimate has high sampling variance. This supports local update effectiveness at two fixed starts, not global gradient accuracy or a full-training ranking.
+The gradient study uses **one training seed and two fixed run starts**. Negative values favor the left estimate; bars are approximate simultaneous95% intervals conditional on the sampled candidate gradients. The reference is Monte Carlo, not an analytic simulator Jacobian. WM0 is untrained. PPO denotes the first on-policy score gradient for a matched Gaussian target, not a full optimized PPO training run. The study cost **0.564808 GPU-hours**, including failures and resource qualification.
+
+These measurements show that prediction accuracy does not guarantee gradient accuracy, while BPTT can still provide better finite-sample gradients and useful updates. They do **not** establish an end-to-end efficiency ranking across three training seeds or all40 motions. [CPU reproduction commands](docs/ablation/checkpoint-audit-results.md#不需要gpu的结果复算) · [Earlier gradient diagnostics](docs/ablation/policy-gradient-conclusions.md) · [Training protocol](docs/ablation/protocol.md)
+
+## Original author's reproduction
 
 **Unofficial** reproduction of *SuperMimic: Scaling Humanoid Whole-Body Control with One Differentiable World
 Model* (arXiv 2610.28480) — no official code is released, so everything here is implemented from

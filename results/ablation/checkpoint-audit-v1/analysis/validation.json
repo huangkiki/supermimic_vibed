@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "reference_scope": "output-bias subspace",
+  "full_parameters": 9116477,
+  "directions": 8,
+  "gradient_noise_batches": 16,
+  "reference_noise_batches": 16,
+  "batch": 32,
+  "original_starts": 2,
+  "primary_epsilon": 0.003,
+  "baseline_repeat_noise": 1.4901161193847656e-07,
+  "resolved_by_epsilon": {
+    "0.001": 0,
+    "0.003": 1,
+    "0.01": 2
+  },
+  "contact_counts": {
+    "switch_nearby": 512
+  },
+  "independent_training_seeds": 1,
+  "statement": "Noise SEs do not quantify training or state-distribution uncertainty"
+}

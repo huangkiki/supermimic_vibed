@@ -1,0 +1,8 @@
+left,right,mean,lower_simultaneous_95,upper_simultaneous_95,bootstrap_max_t_critical,noise_batches,interpretation
+ckpt_001000_bptt,ckpt_000000_bptt,138.68975974129802,84.91259010705306,192.46692937554297,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
+ckpt_002000_bptt,ckpt_001000_bptt,-232.94753243781224,-284.3195843375292,-181.5754805380954,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
+ckpt_003000_bptt,ckpt_002000_bptt,-44.87636456873595,-71.5129460829471,-18.239783054524864,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
+ckpt_004000_bptt,ckpt_003000_bptt,-26.389072102023228,-42.321746781832026,-10.456397422214428,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
+ckpt_004000_bptt,ckpt_004000_ppo,-3729.8481905666595,-3928.8748893966804,-3530.8214917366404,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
+ckpt_004000_bptt,ppo_sim,-3764.3787187000094,-3971.500558695474,-3557.256878704544,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
+ckpt_004000_ppo,ppo_sim,-34.530528133349776,-86.2178142154417,17.156757948742175,2.740796976600376,64,negative: left has lower conditional squared error; approximate simultaneous bootstrap
