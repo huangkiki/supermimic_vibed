@@ -48,8 +48,6 @@ class PhysicalReferenceTests(unittest.TestCase):
         self.assertAlmostEqual(float(model_score-pathwise),0.,places=12)
 
 
-if __name__=='__main__':unittest.main()
-
 class ComparisonBootstrapTests(unittest.TestCase):
     def test_simultaneous_interval_preserves_shared_noise_rows_and_location(self):
         from experiments.ablation.analyze_score_reference import simultaneous_intervals
@@ -61,3 +59,6 @@ class ComparisonBootstrapTests(unittest.TestCase):
         np.testing.assert_allclose(lo,lower+3,rtol=1e-12,atol=1e-12)
         np.testing.assert_allclose(hi,upper+3,rtol=1e-12,atol=1e-12)
         self.assertAlmostEqual(critical,again)
+
+
+if __name__=='__main__':unittest.main()

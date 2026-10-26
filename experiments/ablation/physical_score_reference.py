@@ -47,7 +47,7 @@ def reference_estimates(probe,physical,output,plan,check_budget,*,candidate_mean
             if name not in moments:moments[name]=VectorMoments(vector)
             moments[name].add(vector)
             bias=vector[section].double().cpu().numpy()
-            record[name]=dict(bias=bias.tolist(),projections=(directions@bias).tolist(),l2=float(vector.norm()))
+            record[name]=dict(bias=bias.tolist(),projections=(directions@bias).tolist(),l2=float(vector.double().norm()))
         for left,right,difference,constant in comparisons:
             for name in ('ppo_sim','corrected'):
                 errors.append(dict(seed=seed,left=left,right=right,reference=name,
