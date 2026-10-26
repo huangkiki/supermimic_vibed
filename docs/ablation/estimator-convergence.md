@@ -47,7 +47,9 @@ means. Per-draw vectors are deliberately omitted to bound storage.
 
 ## Resource qualification and execution
 
-Use one idle A10040GB, with at least16GiB free GPU memory and20.75GiB free disk.
+Use one idle A10040GB, with at least16GiB free GPU memory and16.75GiB free disk.
+The live host has about20.8GiB free before deployment; reserve16GiB plus0.75GiB
+for both phases' compact artifacts. No existing checkpoints are removed.
 The initial conservative peak estimate is8GiB. A disjoint qualification uses
 4 gradient samples,4 reference tapes,2 directions, the same H32 and epsilon grid.
 It must finish within240seconds. Only after measured phase times, multiplied by

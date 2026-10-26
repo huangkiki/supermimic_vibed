@@ -16,7 +16,7 @@
   "qualification_max_seconds": 240,
   "minimum_free_memory_mib": 16384,
   "initial_peak_memory_forecast_mib": 8192,
-  "minimum_disk_reserve_gib": 20,
+  "minimum_disk_reserve_gib": 16,
   "artifact_forecast_gib": 0.75,
   "forecast_safety_factor": 1.25,
   "scope": "One fixed trained seed0 snapshot and two run starts; noise tapes are not independent training seeds. No retraining. This new explicitly requested campaign has a separate cap; prior diagnostic costs remain in their original ledger."
