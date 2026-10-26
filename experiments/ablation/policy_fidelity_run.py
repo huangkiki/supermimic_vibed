@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+import json
 import os
 import math
 from pathlib import Path
@@ -130,6 +131,8 @@ def parser():
     value.add_argument('--direction-seed', type=int, default=50001,
                        help='independent Rademacher directions, generated before any gradient')
     value.add_argument('--action-std', type=float, default=.1, help='shared fixed Gaussian std for the auxiliary comparison only')
+    value.add_argument('--checkpoint-audit', type=Path,
+                       help='fixed-policy WM checkpoint / physical PPO plan; separate diagnostic mode')
     value.add_argument('--gpu', type=int, required=True, help='physical GPU index, checked before CUDA allocation')
     value.add_argument('--gpu-uuid', required=True)
     value.add_argument('--max-seconds', type=float, default=600)
@@ -140,11 +143,21 @@ def main(argv=None):
     started = time.perf_counter()
     # Help and argument checking work without loading Isaac Lab or allocating a GPU.
     args, launcher = parser().parse_known_args(argv)
-    time_limit = 3600 if args.convergence_counts is not None else 1800
+    time_limit = 3600 if args.convergence_counts is not None or args.checkpoint_audit else 1800
     if not math.isfinite(args.max_seconds) or args.max_seconds <= 0 or args.max_seconds > time_limit:
         raise ValueError(f'This diagnostic requires 0 < max-seconds <= {time_limit}')
     if args.convergence_counts is not None and args.estimator_seeds is None:
         raise ValueError('Convergence counts require the matched estimator mode')
+    audit_plan = None
+    if args.checkpoint_audit:
+        from .checkpoint_audit import validate_plan
+        audit_plan = json.loads(args.checkpoint_audit.read_text())
+        validate_plan(audit_plan)
+        if (args.estimator_seeds is not None or args.prepare_history_only or args.no_critic
+                or args.detach_action_reward or args.precision != 'fp32' or args.gradient_horizon != 32):
+            raise ValueError('Checkpoint audit requires standalone full-objective FP32 H32 mode')
+        if not math.isfinite(args.action_std) or args.action_std <= 0:
+            raise ValueError('Invalid Gaussian action std')
     if args.replay_prefix_bank and not args.prepare_history_only:
         raise ValueError('A distinct replay-prefix bank requires history preparation only')
     limit = 64 if args.prepare_history_only else 16
@@ -191,9 +204,15 @@ def main(argv=None):
         planned_rollouts = len(args.reference_seeds) * (1 + 2 * args.directions * len(args.epsilons)) + args.repeats - 1
     if args.prepare_history_only:
         planned_rollouts = 0
+    if audit_plan:
+        a = audit_plan
+        planned_rollouts = (len(a['gradient_seeds']) + len(a['reference_seeds'])
+                            * (1 + 2*a['directions']*len(a['epsilons'])
+                               + (1 + 2*len(a['wm_checkpoints']))*len(a['epsilons'])) + a['repeats']-1)
     receipt = dict(status='started', args=vars(args), resources=resources, preflight_observations=observations,
         requested_time_budget_seconds=args.max_seconds, planned_physical_rollouts=planned_rollouts,
-        planned_physical_steps=planned_rollouts * args.gradient_horizon * len(args.sample_indices),
+        planned_physical_steps=planned_rollouts * args.gradient_horizon * len(args.sample_indices)
+                               * (audit_plan['replicas'] if audit_plan else 1),
         requested_gpu_hour_budget=args.max_seconds / 3600,
         budget_enforcement="checked before capture and each rollout; initialization or one operation may overrun; actual time retained",
         memory_estimate='16 GiB initial conservative reservation; not a measured peak',
@@ -243,6 +262,13 @@ def _run(args, launcher, output, receipt, started):
     bank = select_bank(original_bank, args.sample_indices)
     if bank['collector_sha256'] != checkpoint_hash or bank['motion_hashes'] != manifest['motions'] or bank['asset_hashes'] != manifest['assets']:
         raise ValueError('Held-out bank collector, motions or assets differ from the checkpoint')
+    audit_plan = None
+    if args.checkpoint_audit:
+        from .checkpoint_audit import repeat_bank
+        audit_plan = json.loads(args.checkpoint_audit.read_text())
+        if 'replay_history' not in bank:
+            raise ValueError('Prepare original raw histories before replicating audit starts')
+        bank = repeat_bank(bank, audit_plan['replicas'])
     torch.backends.cuda.matmul.allow_tf32 = args.precision == 'training'
     torch.backends.cudnn.allow_tf32 = args.precision == 'training'
     networks.AMP_DTYPE = torch.bfloat16 if args.precision == 'training' and cfg.amp == 'bf16' else None
@@ -256,7 +282,7 @@ def _run(args, launcher, output, receipt, started):
         module.load_state_dict(checkpoint[key])
     sim_cfg = make_sim(device, launch_args)
     with launch_simulation(sim_cfg, launch_args):
-        env = TrackingSim(sim_cfg, len(args.sample_indices), motion, mdp, gamma=cfg.gamma, eval_mode=True)
+        env = TrackingSim(sim_cfg, len(bank['frames']), motion, mdp, gamma=cfg.gamma, eval_mode=True)
         if args.replay_prefix_bank and 'replay_history' in bank:
             raise ValueError('A derived prefix bank requires a legacy parent, not an already prepared bank')
         if 'replay_history' not in bank:
@@ -270,7 +296,7 @@ def _run(args, launcher, output, receipt, started):
         starts = dict(s=bank['state'], a_prev=bank['previous_action'], xi=bank['xi'], f=bank['frames'])
         validate_starts(starts, bank['replay_history'], env.N, cfg.hist)
         torch.save(bank, output / 'policy-bank.pt')
-        if args.record_contacts:
+        if args.record_contacts or audit_plan:
             model = env.sim.backend_manager._solver.mj_model
             write_json(output / 'contact-map.json', dict(geom_body_ids=[int(i) for i in model.geom_bodyid],
                        body_names=[model.body(i).name for i in range(model.nbody)]))
@@ -293,7 +319,14 @@ def _run(args, launcher, output, receipt, started):
             if time.perf_counter() - started > args.max_seconds:
                 raise TimeoutError('Policy diagnostic time budget exhausted before next operation')
         check_budget()
-        if args.estimator_seeds is not None:
+        if audit_plan:
+            from .checkpoint_audit import run_audit
+            from .policy_estimators import stochastic_probe
+            probe = stochastic_probe(probe, args.action_std)
+            physical = ClosedLoopPhysical(probe, env, bank, record_contacts=True)
+            receipt['checkpoint_audit'] = run_audit(probe, physical, output, audit_plan, check_budget,
+                                                   expected_manifest=checkpoint['manifest'])
+        elif args.estimator_seeds is not None:
             from .policy_estimators import stochastic_probe
             from .compare_policy_estimators import run_comparison
             probe = stochastic_probe(probe, args.action_std)

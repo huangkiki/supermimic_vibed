@@ -67,7 +67,7 @@ def pathwise_gradient(probe):
 
 
 @torch.no_grad()
-def collect_score_rollout(probe):
+def collect_score_rollout(probe, *, dynamics=None):
     """Collect detached data through the SAME original actor prefix and noise tape."""
     actor = probe.policy
     if not isinstance(actor, FixedGaussianPolicy) or probe.detach_action_reward:
@@ -76,8 +76,9 @@ def collect_score_rollout(probe):
         raise RuntimeError('A policy tape is already being collected')
     actor.records = []
     try:
-        namespace = probe._namespace(actor, probe.wm)
-        with fixed_rng(probe.seed, probe.device), preserve_requires_grad(probe.wm, probe.critic):
+        dynamics = probe.wm if dynamics is None else dynamics
+        namespace = probe._namespace(actor, dynamics)
+        with fixed_rng(probe.seed, probe.device), preserve_requires_grad(dynamics, probe.critic):
             result = namespace['actor_objective']()
         tape = actor.records
     finally:
@@ -103,6 +104,10 @@ def collect_score_rollout(probe):
     return dict(obs=observations, goal=goal_inputs, action=actions, old_log_prob=log_prob,
                 advantage=(targets - values[:-1]).detach(), weight=(result['disc'] * result['c_t']).detach(),
                 target=targets.detach(), value=values.detach(), objective=result['J'].detach().clone(),
+                proxy=result['J'].detach().clone(), rewards=result['r'].detach().clone(),
+                soft_termination=result['d'].detach().clone(), actions=actions,
+                states=tuple(torch.stack([state[i] for state in states]).detach().clone()
+                             for i in range(len(states[0]))),
                 seed=probe.seed, std=actor.std, gamma=probe.gamma, no_critic=probe.no_critic,
                 interpretation='on-policy PPO surrogate at theta_old; lambda=1; unnormalized advantages')
 
