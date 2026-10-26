@@ -9,25 +9,25 @@ diagnostic, not another policy-training comparison.
 
 The machine-readable plan is
 [`estimator-convergence-v1.json`](../../experiments/ablation/configs/estimator-convergence-v1.json).
-Use the same trained seed0 checkpoint at update4000, the same two saved run
+Use the same trained seed 0 checkpoint at update 4000, the same two saved run
 starts, fixed WM/critic/normalization, H32, FP32 with TF32 disabled, and Gaussian
-action standard deviation0.1. Mean-network parameters are the only differentiated
+action standard deviation 0.1. Mean-network parameters are the only differentiated
 parameters. No optimization or checkpoint selection occurs.
 
 - Generate eight independent unit-L2 Rademacher parameter directions with seed
   50001 **before** computing gradients. Save their packed signs and SHA256.
 - Both estimators use the same trajectories and soft-survival objective with
-  fixed-critic bootstrap. Nested sample counts16,64,256 use seeds30001–30256.
+  fixed-critic bootstrap. Nested sample counts 16, 64, 256 use seeds 30001–30256.
   One sample is a noise tape across the fixed two-start minibatch. These are
   Monte Carlo samples, not independent training seeds or new states.
 - PPO here means the **first score-function gradient at the old policy**,
   with the causal return and detached baseline; no clipping-active later epochs,
   GAE, entropy term, learned standard deviation, Adam or policy learning.
-- On independent reference tapes40001–40032, evaluate central differences in
+- On independent reference tapes 40001–40032, evaluate central differences in
   **both WM and physical simulation**, paired at ±epsilon. Perturbation L2
-  scales are0.003,0.01(primary),0.03. Physics uses native exact-state restoration
+  scales are 0.003, 0.01 (primary), 0.03. Physics uses native exact-state restoration
   and cold solver reset. Record actual FP32 parameter displacement and reject
-  relative L2 rounding error above2%.
+  relative L2 rounding error above 2%.
 - The physical soft+critic objective matches the WM target algebraically.
   Hard-termination return is retained only as a different-target effectiveness
   diagnostic. Neither finite differences nor the learned critic are ground truth.
@@ -35,7 +35,7 @@ parameters. No optimization or checkpoint selection occurs.
 Report per-direction estimates/SE, reference/SE, sign agreement and correlation
 on a shared reference-resolved subset, and RMSE over **all eight directions**.
 The existing numerical screen requires return signal above five times repeat
-noise(and1e-7), adjacent-scale agreement within25%, and now also reference
+noise (and 1e-7), adjacent-scale agreement within 25%, and now also reference
 mean magnitude above twice its Monte Carlo SE. Report unresolved counts and all
 scales; do not improve the denominator after observing results. SE describes
 noise-tape variation conditional on this checkpoint and these two starts.
@@ -47,13 +47,13 @@ means. Per-draw vectors are deliberately omitted to bound storage.
 
 ## Resource qualification and execution
 
-Use one idle A10040GB, with at least16GiB free GPU memory and16.75GiB free disk.
-The live host has about20.8GiB free before deployment; reserve16GiB plus0.75GiB
+Use one idle A100 40GB, with at least 16 GiB free GPU memory and 16.75 GiB free disk.
+The live host has about 20.8 GiB free before deployment; reserve 16 GiB plus 0.75 GiB
 for both phases' compact artifacts. No existing checkpoints are removed.
-The initial conservative peak estimate is8GiB. A disjoint qualification uses
-4 gradient samples,4 reference tapes,2 directions, the same H32 and epsilon grid.
-It must finish within240seconds. Only after measured phase times, multiplied by
-the full design's work ratios and a1.25 safety factor, fit the remaining budget
+The initial conservative peak estimate is 8 GiB. A disjoint qualification uses
+4 gradient samples, 4 reference tapes, 2 directions, the same H32 and epsilon grid.
+It must finish within 240 seconds. Only after measured phase times, multiplied by
+the full design's work ratios and a 1.25 safety factor, fit the remaining budget
 does the full batch launch. The total **one allocated GPU-hour** cap includes
 qualification, initialization, failed processes and cleanup. This is a new
 user-requested campaign; the earlier diagnostic ledger remains separate and
@@ -81,6 +81,19 @@ CPU regression checks:
 python -m unittest discover -s tests -v
 python -m compileall -q experiments/ablation
 ```
+
+Recompute compact raw-data checks, all CSVs and figures on CPU:
+
+```bash
+python -m experiments.ablation.analyze_estimator_convergence \
+  /absolute/path/to/new-convergence-output/experiment \
+  --output /absolute/path/to/new-analysis
+```
+
+Add `--means /absolute/path/to/experiment/final-means.pt` to independently
+verify the final full-vector norms and each direction projection. Without that
+file, the publication can verify raw projections and returns, and the variance
+conservation identity, but cannot independently reconstruct full gradient means.
 
 ## Interpretation decided before execution
 
