@@ -12,6 +12,28 @@ from .analyze_checkpoint_audit import batch_statistics
 from .common import write_json
 
 
+def simultaneous_intervals(values, *, seed=111001, draws=10000):
+    """Seed-cluster bootstrap max-|t| intervals for all declared comparisons.
+
+    The same resampled noise rows are used for all comparisons, preserving
+    covariance. These are approximate simultaneous intervals, not distribution-
+    free bounds or training-seed uncertainty.
+    """
+    values=np.asarray(values,dtype=float)
+    if values.ndim!=2 or len(values)<16 or not np.isfinite(values).all():
+        raise ValueError('Require at least16 finite independent reference batches')
+    mean=values.mean(0);se=values.std(0,ddof=1)/math.sqrt(len(values));active=se>0
+    if not active.any():return mean,mean,0.
+    centered=values[:,active]-mean[active]
+    indices=np.random.default_rng(seed).integers(0,len(values),size=(draws,len(values)))
+    samples=centered[indices]
+    sample_se=samples.std(1,ddof=1)/math.sqrt(len(values))
+    if (sample_se<=0).any():raise ValueError('Degenerate studentized bootstrap sample')
+    maximum=np.abs(samples.mean(1)/sample_se).max(1)
+    critical=float(np.quantile(maximum,.95))
+    return mean-critical*se,mean+critical*se,critical
+
+
 def analyze(root,output,*,parent=None):
     root,output=Path(root),Path(output)
     summary=json.loads((root/'reference-gradient-summary.json').read_text())
@@ -45,6 +67,17 @@ def analyze(root,output,*,parent=None):
         row['interpretation']='negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients'
         row['two_se_interval_excludes_zero']=abs(row['mean'])>2*row['standard_error']
     save_csv(output/'full-gradient-error-difference.csv',comparisons)
+    keys=sorted({(row['left'],row['right']) for row in errors})
+    lookup={(row['seed'],row['left'],row['right']):row['squared_error_difference']
+            for row in errors if row['reference']=='corrected'}
+    matrix=np.array([[lookup[(seed,left,right)] for left,right in keys] for seed in summary['seeds']])
+    lower,upper,critical=simultaneous_intervals(matrix)
+    intervals=[dict(left=left,right=right,mean=float(matrix[:,i].mean()),
+                    lower_simultaneous_95=float(lower[i]),upper_simultaneous_95=float(upper[i]),
+                    bootstrap_max_t_critical=critical,noise_batches=n,
+                    interpretation='negative: left has lower conditional squared error; approximate simultaneous bootstrap')
+               for i,(left,right) in enumerate(keys)]
+    save_csv(output/'full-gradient-comparison-intervals.csv',intervals)
     if parent is not None:
         original=json.loads((Path(parent)/'gradient-draws.json').read_text())
         if set(r['seed'] for r in original)&set(summary['seeds']):raise ValueError('Reference is not independent of candidate gradient estimates')
