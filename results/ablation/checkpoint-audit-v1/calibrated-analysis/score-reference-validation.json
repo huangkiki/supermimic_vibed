@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "noise_batches": 64,
+  "projected_variance_ratio": 0.054321217444496875,
+  "full_variance_ratio": 0.07120622425316685,
+  "full_vector_comparisons": 7,
+  "scope": "relative squared errors conditional on primary gradient estimates; Monte Carlo SE, no analytic ground truth"
+}

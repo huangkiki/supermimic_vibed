@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "physical_tapes": 16,
+  "initial_state_drift_max": 0.0,
+  "allocations": {
+    "simulator_steps": 1361920,
+    "imagined_gradient_steps": 163840,
+    "imagined_reference_steps": 1392640,
+    "wm_training_seconds": 0.0,
+    "policy_optimization_updates": 0
+  },
+  "full_means_verified": false
+}

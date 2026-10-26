@@ -1,0 +1,15 @@
+left,right,reference,mean,standard_error,noise_batches,observations,interpretation,two_se_interval_excludes_zero
+ckpt_001000_bptt,ckpt_000000_bptt,corrected,138.68975974129802,19.620997138193346,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_001000_bptt,ckpt_000000_bptt,ppo_sim,247.48260168978692,95.07767815165012,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_002000_bptt,ckpt_001000_bptt,corrected,-232.94753243781224,18.74347218648704,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_002000_bptt,ckpt_001000_bptt,ppo_sim,-261.9767648238116,79.01335154859018,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_003000_bptt,ckpt_002000_bptt,corrected,-44.87636456873595,9.718553304612348,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_003000_bptt,ckpt_002000_bptt,ppo_sim,-40.174917041888435,34.853570765605134,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,False
+ckpt_004000_bptt,ckpt_003000_bptt,corrected,-26.389072102023228,5.813153916847695,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_004000_bptt,ckpt_003000_bptt,ppo_sim,-27.04128006834288,23.363632985017187,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,False
+ckpt_004000_bptt,ckpt_004000_ppo,corrected,-3729.8481905666595,72.6163595951162,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_004000_bptt,ckpt_004000_ppo,ppo_sim,-4246.300087612538,326.1978711421451,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_004000_bptt,ppo_sim,corrected,-3764.3787187000094,75.5699315796731,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_004000_bptt,ppo_sim,ppo_sim,-4286.59689860095,331.33055221571794,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,True
+ckpt_004000_ppo,ppo_sim,corrected,-34.530528133349776,18.858487703895424,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,False
+ckpt_004000_ppo,ppo_sim,ppo_sim,-40.29681098841253,58.41411943046709,64,64,negative: left finite gradient estimate has lower squared error; conditional on fixed candidate gradients,False

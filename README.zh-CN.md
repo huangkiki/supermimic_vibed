@@ -8,23 +8,23 @@
 
 ## 已经得到什么结果
 
-新增[16状态接触分组诊断](docs/ablation/policy-gradient-contacts.md)：两批实际Adam平均硬回报改善 +0.006009 / +0.018797，但多数匹配目标随机方向的有限差分参考仍不稳定；过去stable组7/8在未来H32发生接触切换。保持原状态门槛并完整记录旧库重建失败、派生库及费用，累计参数梯度诊断0.408913 GPU-hours。
+**最新实验直接测到了：forward误差更低，Policy梯度仍可能更差；在最终WM和有限采样预算下，BPTT又确实能比PPO给出更接近物理目标的梯度。** 两件事并不矛盾，不能只用训练胜负推断梯度准确性。[完整中文报告、原始数据和复算命令](docs/ablation/checkpoint-audit-results.md)。
 
-[参数梯度结论与逐项验收](docs/ablation/policy-gradient-conclusions.md)：原路径诊断现为18组，H32同精度消融已补齐；全部原始张量重新通过梯度、裁剪和方向点积复核。H32此快照上Critic Bootstrap占完整梯度方向投影约58.5%，这不是物理收益归因比例。[分解、精度敏感性与数据](docs/ablation/policy-gradient-components.md)。
+| 新完成的控制实验 | 实测结果 | 能回答的范围 |
+|---|---|---|
+| 固定Policy，替换五个WM checkpoint | WM0→1000，H32 prediction MSE **0.494→0.066**，完整梯度平方误差却增加 **138.69 [84.91,192.47]** | 未训练到部分训练WM的反例；平方误差含幅值与方向 |
+| 同Policy/目标/512条轨迹，BPTT vs PPO-WM vs PPO-Sim | 最终WM的BPTT完整梯度平方误差低于两种PPO；七项比较同时报告不确定性 | 单训练seed、两个run起点；独立物理score数值参考 |
+| 相近Gaussian KL的物理小步更新 | 主尺度硬Return改善依次为 **+.001071 / +.000309 / +.000297** | 校准输入分布KL≈.00145；不是完整PPO训练速度比 |
 
-前一批完整 **Policy Parameter Gradient** 完成15组真实MuJoCo-Warp诊断，累计0.169490 GPU-hours。同一checkpoint的两个run起点上，H1/H8实际Adam步改善了带Critic代理目标，却降低短时域物理回报；H32两者均改善。另有FP32检查揭示小随机方向的数值敏感性。它们不能证明BPTT优于PPO的原因。[数据、图与解释边界](docs/ablation/policy-gradient-native-v1.md)。
+![完整Policy梯度误差比较：负值表示左方法更接近物理期望梯度](results/ablation/checkpoint-audit-v1/calibrated-analysis/full-gradient-comparisons.png)
 
-同策略同目标的BPTT/PPO梯度对照也已完成：各H1/H8/H32使用16个梯度噪声批次、16个独立物理噪声批次。相同L2步长下，H32硬物理Return改善为 **BPTT +0.03676 ± 0.00152 SE / PPO -0.00132 ± 0.00119 SE**。PPO采样方差很大；这支持本批条件下的更新有效性，不证明全局梯度准确性或完整训练排名。[结果、图、失败修复与完整费用](docs/ablation/matched-policy-results.md)。
+图中区间为固定候选梯度条件下的近似同时95%区间，不是训练seed置信区间。新实验累计 **0.564808 GPU-hours**，包含资源验收和两次失败；最小扰动三项因数值分辨率不足保留为unresolved。**仍未完成三个训练seed和全部40段motion的端到端效率归因**，不能据此给出WM吞吐与模型梯度各贡献多少的比例。
 
-**目前尚无多种子效率结论。** 开发seed0的六条件均完成4000次迭代和物理评估：在线SuperMimic的物理Return为0.8035、失败2/18；冻结BPTT为0.001907、失败18/18，原参数PPO也全部失败。调整Actor学习率后，PPO-Sim在独立1000轮调参批次达到0.2528、失败12/18。开发seed0不计入正式统计；正式seeds1/2/3已预登记，seed1已开始，seeds2/3串行等待。正式结论仍需至少3个训练seed和全部40段动作。
+先查看[本次答案与六项校准物理评测](docs/ablation/checkpoint-audit-results.md)，无需GPU即可重算图表。此前的[参数梯度诊断](docs/ablation/policy-gradient-conclusions.md)、[匹配Gaussian估计器](docs/ablation/matched-policy-results.md)、[接触状态诊断](docs/ablation/policy-gradient-contacts.md)保留各自状态和证据范围，不能当作额外独立训练seed。
 
-正式seed1的PPO-Sim与在线PPO-WM均已完成4000轮和各15次物理复评。最终物理Return分别为**0.405212 ± 0.008721 / 0.402736 ± 0.000003**，完整训练加评估分别为**3.481735 / 2.384217 GPU-hours**。在线PPO-WM的记录费用低31.52%，但这是一个训练seed，SD来自同一checkpoint的复评；两者均未达到预登记质量门槛，不报告同等质量加速比。[完整对照、原始日志/CSV与CPU复算命令](docs/ablation/confirmatory-seed1-ppo-pair.md)。
+### 此前完成的训练与链路实验
 
-[研究问题与证据边界](docs/ablation/results.md)逐项说明WM吞吐、同模型优化器收益、预测误差和梯度可靠性已经测到了什么、还缺什么。短程资源资格、单seed观察和正式多seed结论分别报告；历史预算不作为当前运行额度。
-
-**运行快照（2026-10-24T11:48:46.220847+08:00）**：正式seed1三个在线方法的训练及45次物理复评已完成记录，SuperMimic完整费用与三方法对照尚待单独验收；当前进入冻结条件。seed2/3继续按原队列等待，完整六条件、多seed结论尚未完成。运行源码固定为`3526437`，开发主分支更新不会改变活动实验。
-
-开发进度按已验证的小批次提交、通过CI后合并到`main`，并同步本中文README。长时间实验未结束时也交付已完成代码和带时间的结果快照；未完成实验明确保留，不以整套实验完成作为代码合入条件。
+以下为已有归档结果，不代表现在仍有训练进程运行。开发seed0只用于探索；正式seed1的PPO配对已有完整账本，三seed全矩阵尚无完成验收。
 
 | 实验 | 已验证的结果 | 证据 |
 |---|---|---|

@@ -101,6 +101,8 @@ def main():
     parser=argparse.ArgumentParser(__doc__);parser.add_argument('--input',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--parent',type=Path)
     args=parser.parse_args();result=analyze(args.input,args.output,parent=args.parent);plot(result,args.output)
+    from .analyze_score_reference import plot_comparisons
+    plot_comparisons(args.output)
 
 
 if __name__=='__main__':main()

@@ -1,0 +1,6 @@
+allocation,phase,source,returncode,seconds,allocated_gpu_hours,peak_device_memory_used_mib,simulator_steps,imagined_steps,step_evidence
+failed-attempt,qualification,a419cbe55cd81f7b482e9c0fba819d066e02cfd9,1,1.813815905014053,0.0005038377513927925,517.0,0,0,No rollout completed
+primary,qualification,c04862a094d96102e6bd37e2ed8e2a14cb1d24b8,0,136.45168956706766,0.03790324710196324,3578.0,98304,71680,Native audit-summary
+primary,experiment,c04862a094d96102e6bd37e2ed8e2a14cb1d24b8,0,1551.9674449759768,0.43110206804888246,3578.0,1361920,1556480,Native audit-summary
+reference-attempt,experiment,b04e6c2847f0496956ca8b093e177efea282ad13,1,223.21204685105477,0.06200334634751521,3834.0,82944,131072,Reconstructed completed stages: calibration + 16 baselines + 64 references
+calibrated,experiment,0f705e17e15d3699c82ecb7cad9bc4d90e0ae04e,0,119.86310433608014,0.033295306760022264,2558.0,115712,0,Native summary; reference reused without new samples
