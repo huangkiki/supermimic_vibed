@@ -21,19 +21,29 @@ def main():
     parser.add_argument('--parent-campaign',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--gpu',type=int,required=True)
+    parser.add_argument('--resume-failed',type=Path,help='completed reference from a failed calibration attempt; retain all costs')
     args=parser.parse_args()
     parent=args.parent_campaign.resolve();output=args.output.resolve()
     campaign=json.loads((parent/'campaign.json').read_text())
     if campaign['status']!='complete':raise ValueError('Parent must finish before any follow-up allocation')
     plan=campaign['plan'];consumed=campaign['allocated_gpu_hours']+plan.get('earlier_attempt_gpu_hours',0.)
+    resumed=None
+    if args.resume_failed:
+        resumed=json.loads((args.resume_failed/'campaign.json').read_text())
+        if resumed['status']!='failed' or resumed['parent_campaign_sha256']!=sha256(parent/'campaign.json'):
+            raise ValueError('Resume requires a failed attempt bound to this exact parent')
+        if not abs(resumed['prior_audit_gpu_hours']-consumed)<1e-12:
+            raise ValueError('Failed attempt budget lineage differs')
+        consumed+=resumed['allocated_gpu_hours']
     remaining=3600*(plan['hard_gpu_hours']-consumed)
     native=json.loads((parent/'experiment/probe.json').read_text())
     design=json.loads((parent/'experiment/audit-plan.json').read_text())
     design.update(update_only_parent=str(parent/'experiment'),calibration_seed=91001,target_action_rms=[.0003,.001,.003],
                   physical_reference_seeds=list(range(101001,101065)))
+    if args.resume_failed:design['completed_reference']=str((args.resume_failed/'experiment').resolve())
     timings=list(csv.DictReader((parent/'experiment/timings.csv').open()))
     physical=[float(row['seconds']) for row in timings if row['operation'].endswith('_physical_update')]
-    rollout_count=1+len(design['reference_seeds'])*(1+3*len(design['target_action_rms']))+len(design['physical_reference_seeds'])
+    rollout_count=1+len(design['reference_seeds'])*(1+3*len(design['target_action_rms']))+(0 if resumed else len(design['physical_reference_seeds']))
     # Explicit 240-second calibration/auxiliary-gradient/setup allowance plus measured rollout
     # duration with 30% headroom. Qualification already used this exact batch.
     forecast=240+1.3*rollout_count*sum(physical)/len(physical)
@@ -59,6 +69,8 @@ def main():
                  parent_campaign_sha256=sha256(parent/'campaign.json'),parent_campaign=str(parent),
                  prior_audit_gpu_hours=consumed,cap_gpu_hours=plan['hard_gpu_hours'],
                  forecast_seconds=forecast,memory_forecast_mib=16384,commands=[record])
+    if resumed:receipt.update(resumed_campaign=str(args.resume_failed.resolve()),
+                              resumed_campaign_sha256=sha256(args.resume_failed/'campaign.json'))
     def persist():
         receipt['allocated_gpu_hours']=record.get('seconds',0.)/3600
         receipt['combined_audit_gpu_hours']=consumed+receipt['allocated_gpu_hours']

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+import shutil
 import time
 
 import torch
@@ -11,6 +12,14 @@ import torch
 from .analyze import save_csv
 from .common import sha256, write_json
 from .policy_fidelity import displaced_parameters, parameter_vector
+
+
+class CalibrationResolutionError(ValueError):
+    """A measured scale that fails the unchanged numerical-resolution criteria."""
+
+    def __init__(self, measurements):
+        self.measurements=measurements
+        super().__init__(f'Unresolved calibration: {measurements}')
 
 
 @torch.no_grad()
@@ -48,11 +57,11 @@ def calibrate_direction(actor, observations, goals, direction, target, check_bud
             lower=step
         else:
             upper=step
-    if abs(rms-target) > .01*target or rounding > .02:
-        raise ValueError('Unresolved action-RMS calibration or parameter quantization')
     torch.testing.assert_close(parameter_vector(actor),before,rtol=0,atol=0)
     result=dict(parameter_step=step,requested_action_rms=target,actual_action_rms=rms,
                 gaussian_kl=baseline.shape[-1]*rms*rms/(2*actor.std**2),parameter_rounding_relative_l2=rounding)
+    if abs(rms-target) > .01*target or rounding > .02:
+        raise CalibrationResolutionError(result)
     if return_means:
         result['means']=dict(baseline=baseline.cpu(),shifted=shifted.cpu())
     return result
@@ -89,7 +98,7 @@ def run_updates(probe,physical,output,plan,check_budget):
     targets=plan['target_action_rms']
     if targets != sorted(set(targets)) or any(not 0 < x <= .003 for x in targets):
         raise ValueError('Require increasing small action RMS targets up to .003')
-    started=time.perf_counter();steps=0;rows=[];calibrations=[];baselines=[];timings=[];mean_tapes=[]
+    started=time.perf_counter();steps=0;rows=[];calibrations=[];baselines=[];timings=[];mean_tapes=[];rejected=[]
     physical.record_contacts=False
 
     def rollout(score=False):
@@ -100,6 +109,7 @@ def run_updates(probe,physical,output,plan,check_budget):
         torch.cuda.synchronize(probe.device)
         timings.append(dict(seconds=time.perf_counter()-start,seed=probe.seed,score=score))
         steps+=probe.batch*probe.horizon
+        write_json(output/'physical-progress.json',dict(simulator_steps=steps))
         return result
 
     probe.seed=plan['calibration_seed']
@@ -109,13 +119,37 @@ def run_updates(probe,physical,output,plan,check_budget):
         probe.seed=seed;result=rollout()
         baselines.append({key:result[key].cpu() for key in ('proxy','hard','actions','initial_state_drift')})
     torch.save(baselines,output/'baseline-tapes.pt')
-    from .physical_score_reference import reference_estimates
-    reference=reference_estimates(probe,physical,output,plan,check_budget,candidate_means=vectors)
-    steps+=reference['simulator_steps']
+    reused=bool(plan.get('completed_reference'))
+    if reused:
+        cache=Path(plan['completed_reference'])
+        saved_plan=json.loads((cache/'audit-plan.json').read_text())
+        for key in ('gradient_seeds','reference_seeds','physical_reference_seeds','calibration_seed','replicas','wm_checkpoints'):
+            if saved_plan[key]!=plan[key]:raise ValueError(f'Completed reference design differs: {key}')
+        saved_bank=torch.load(cache/'policy-bank.pt',map_location=probe.device,weights_only=False)
+        if saved_bank['collector_sha256']!=physical.bank['collector_sha256']:raise ValueError('Reference checkpoint differs')
+        for key in ('state','frames','xi','previous_action'):
+            torch.testing.assert_close(saved_bank[key],physical.bank[key],rtol=0,atol=0)
+        reference=json.loads((cache/'reference-gradient-summary.json').read_text())
+        if reference['status']!='complete' or sha256(cache/'reference-gradient-means.pt')!=reference['mean_sha256']:
+            raise ValueError('Incomplete or modified cached reference')
+        for name in ('reference-gradient-summary.json','reference-gradient-draws.json','reference-error-differences.json'):
+            shutil.copyfile(cache/name,output/name)
+        write_json(output/'reference-reuse.json',dict(source=str(cache),summary_sha256=sha256(cache/'reference-gradient-summary.json'),
+            mean_sha256=reference['mean_sha256'],new_reference_simulator_steps=0,new_reference_imagined_steps=0))
+    else:
+        from .physical_score_reference import reference_estimates
+        reference=reference_estimates(probe,physical,output,plan,check_budget,candidate_means=vectors)
+        steps+=reference['simulator_steps']
     for method in methods:
         direction=vectors[method]/vectors[method].norm()
         for target in targets:
-            info=calibrate_direction(probe.policy,calibration['obs'],calibration['goal'],direction,target,check_budget,return_means=True)
+            try:
+                info=calibrate_direction(probe.policy,calibration['obs'],calibration['goal'],direction,target,check_budget,return_means=True)
+            except CalibrationResolutionError as exc:
+                rejected.append(dict(method=method,status='unresolved',**exc.measurements))
+                write_json(output/'calibration-rejections.json',rejected)
+                print(f'CALIBRATION UNRESOLVED {method}: {exc.measurements}',flush=True)
+                continue
             mean_tapes.append(dict(method=method,target=target,**info.pop('means')))
             torch.save(mean_tapes,output/'calibration-means.pt')
             calibrations.append(dict(method=method,**info))
@@ -133,8 +167,10 @@ def run_updates(probe,physical,output,plan,check_budget):
             save_csv(output/'calibration.csv',calibrations);save_csv(output/'updates.csv',rows)
             print(f'CALIBRATED {method} action RMS {target:g} complete',flush=True)
     save_csv(output/'timings.csv',timings)
+    write_json(output/'calibration-rejections.json',rejected)
     torch.save({name:vectors[name].cpu() for name in methods},output/'selected-means.pt')
-    result=dict(status='complete',simulator_steps=steps,imagined_steps=reference['imagined_steps'],seconds=time.perf_counter()-started,
+    result=dict(status='complete',simulator_steps=steps,imagined_steps=0 if reused else reference['imagined_steps'],seconds=time.perf_counter()-started,
+        reference_reused=reused,accepted_calibrations=len(calibrations),unresolved_calibrations=len(rejected),
         physical_reference=reference,
         parent=str(parent),parent_summary_sha256=sha256(parent/'audit-summary.json'),
         parent_mean_sha256=summary['gradient_means_sha256'],calibration_seed=plan['calibration_seed'],
