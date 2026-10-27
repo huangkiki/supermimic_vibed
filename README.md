@@ -1,6 +1,6 @@
 # SuperMimic reproduction on Isaac Lab 3 (kit-less, MuJoCo-Warp)
 
-[中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md)
+[中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md) · [Retained-state formal experiment](docs/retained-state-formal.md)
 
 ## What the added ablations have measured
 
