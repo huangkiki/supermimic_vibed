@@ -210,6 +210,9 @@ def main() -> None:
     started = time.monotonic()
     results = {}
 
+    def remaining_seconds() -> float:
+        return max(1.0, args.max_gpu_hours * 3600 - (time.monotonic() - started))
+
     try:
         for condition in CONDITIONS:
             for seed in SEEDS:
@@ -233,7 +236,8 @@ def main() -> None:
                 )
                 with (run_dir / "stdout.log").open("w") as log:
                     subprocess.run(train, cwd=ROOT, env=env, stdout=log,
-                                   stderr=subprocess.STDOUT, check=True)
+                                   stderr=subprocess.STDOUT, check=True,
+                                   timeout=remaining_seconds())
                 checkpoint = run_dir / f"ckpt_{iterations:06d}.pt"
                 if not checkpoint.is_file():
                     raise FileNotFoundError(checkpoint)
@@ -245,7 +249,8 @@ def main() -> None:
                 )
                 with (run_dir / "evaluation.log").open("w") as log:
                     subprocess.run(evaluation, cwd=ROOT, env=env, stdout=log,
-                                   stderr=subprocess.STDOUT, check=True)
+                                   stderr=subprocess.STDOUT, check=True,
+                                   timeout=remaining_seconds())
                 evaluation_json = checkpoint.with_name(
                     checkpoint.stem + "_eval.json"
                 )
