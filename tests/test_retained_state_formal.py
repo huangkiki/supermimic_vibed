@@ -1,12 +1,11 @@
-import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from experiments.retained_state.run_formal import (
     CONDITIONS,
-    evaluation_command,
     evaluate_gate,
+    evaluation_command,
     training_command,
 )
 

@@ -6,11 +6,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SEEDS = (2, 3, 4)
