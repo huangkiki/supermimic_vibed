@@ -6,6 +6,7 @@ from experiments.retained_state.run_formal import (
     CONDITIONS,
     evaluate_gate,
     evaluation_command,
+    parse_evaluation_log,
     training_command,
 )
 
@@ -64,6 +65,19 @@ class RetainedStateFormalTests(unittest.TestCase):
         self.assertFalse(gate["passed"])
         self.assertEqual(gate["reason"], "incomplete")
         self.assertEqual(len(gate["missing"]), 6)
+
+    def test_evaluation_metrics_are_parsed_from_mixed_simulator_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evaluation.log"
+            path.write_text(
+                "simulator startup {not json}\n"
+                '{"norm_return": 0.7, "norm_return_framew": 0.71, '
+                '"n_failed": 2, "failed": ["a", "b"]}\n'
+                "[INFO] context cleared\n"
+            )
+            metrics = parse_evaluation_log(path)
+            self.assertEqual(metrics["norm_return"], 0.7)
+            self.assertEqual(metrics["failed"], ["a", "b"])
 
 
 if __name__ == "__main__":

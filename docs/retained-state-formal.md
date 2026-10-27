@@ -43,6 +43,12 @@ The screen gate passes only when:
 
 The machine-readable decision is `results.json:gate`.
 
+If the process is interrupted after training or evaluation artifacts were written,
+rerun the exact same command with `--resume`. Completed checkpoints are not
+retrained. Completed simulator stdout is parsed and converted into the missing
+machine-readable metric file; the original source commit and accrued GPU-hour
+budget remain in `manifest.json`.
+
 ## Final phase
 
 Run this only after the screen gate passes:

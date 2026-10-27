@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SEEDS = (2, 3, 4)
 PHASES = {"screen": 4_000, "final": 14_000}
+METRIC_KEYS = {"norm_return", "norm_return_framew", "n_failed", "failed"}
 CONDITIONS = {
     "original": (),
     "retained": ("--wm_latent_dim", "128", "--wm_state_skip"),
@@ -83,6 +84,25 @@ def evaluation_command(
         "--ckpt", str(checkpoint),
         "--motion_dir", str(motion_dir),
     ]
+
+
+def parse_evaluation_log(path: Path) -> dict:
+    """Extract the final evaluation object from mixed simulator stdout."""
+    text = path.read_text(errors="replace")
+    decoder = json.JSONDecoder()
+    found = []
+    for index, character in enumerate(text):
+        if character != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(text[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict) and METRIC_KEYS <= value.keys():
+            found.append(value)
+    if not found:
+        raise ValueError(f"no evaluation metrics found in {path}")
+    return found[-1]
 
 
 def require_idle_gpu(gpu: int) -> dict:
@@ -163,6 +183,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--motion-dir", type=Path, default=ROOT / "data/lafan1_g1")
     parser.add_argument("--max-gpu-hours", type=float, default=6.0)
+    parser.add_argument("--resume", action="store_true", help="Reuse completed training/evaluation artifacts")
     parser.add_argument("--skip-gpu-check", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args()
 
@@ -174,9 +195,27 @@ def main() -> None:
     if not args.motion_dir.is_dir():
         raise FileNotFoundError(args.motion_dir)
     output = args.output.resolve()
-    if output.exists():
+    resumed_manifest = None
+    if output.exists() and not args.resume:
         raise FileExistsError(f"refusing to overwrite existing output: {output}")
-    output.mkdir(parents=True)
+    if output.exists():
+        manifest_path = output / "manifest.json"
+        if not manifest_path.is_file():
+            raise FileNotFoundError(manifest_path)
+        resumed_manifest = json.loads(manifest_path.read_text())
+        expected_conditions = {
+            name: list(extra) for name, extra in CONDITIONS.items()
+        }
+        if resumed_manifest.get("phase") != args.phase:
+            raise ValueError("resumed manifest phase differs")
+        if resumed_manifest.get("iterations") != PHASES[args.phase]:
+            raise ValueError("resumed manifest iteration budget differs")
+        if resumed_manifest.get("seeds") != list(SEEDS):
+            raise ValueError("resumed manifest seeds differ")
+        if resumed_manifest.get("conditions") != expected_conditions:
+            raise ValueError("resumed manifest conditions differ")
+    else:
+        output.mkdir(parents=True)
     resource = None if args.skip_gpu_check else require_idle_gpu(args.gpu)
     iterations = PHASES[args.phase]
     motion_files = {
@@ -185,76 +224,104 @@ def main() -> None:
     }
     if len(motion_files) != 40:
         raise ValueError(f"expected 40 LAFAN CSVs, found {len(motion_files)}")
-    manifest = {
-        "protocol_version": 1,
-        "phase": args.phase,
-        "iterations": iterations,
-        "seeds": list(SEEDS),
-        "conditions": {
-            name: list(extra) for name, extra in CONDITIONS.items()
-        },
-        "source_commit": subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
-        ).strip(),
-        "motion_dir": str(args.motion_dir),
-        "motion_files_sha256": motion_files,
-        "gpu": resource,
-        "max_gpu_hours": args.max_gpu_hours,
-        "started_at": time.time(),
-        "status": "running",
-    }
+    current_commit = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+    ).strip()
+    if resumed_manifest is None:
+        manifest = {
+            "protocol_version": 1,
+            "phase": args.phase,
+            "iterations": iterations,
+            "seeds": list(SEEDS),
+            "conditions": {
+                name: list(extra) for name, extra in CONDITIONS.items()
+            },
+            "source_commit": current_commit,
+            "motion_dir": str(args.motion_dir),
+            "motion_files_sha256": motion_files,
+            "gpu": resource,
+            "max_gpu_hours": args.max_gpu_hours,
+            "started_at": time.time(),
+            "status": "running",
+            "elapsed_gpu_hours": 0.0,
+        }
+    else:
+        manifest = resumed_manifest
+        if manifest.get("motion_files_sha256") != motion_files:
+            raise ValueError("resumed manifest motion files differ")
+        prior_gpu = manifest.get("gpu") or {}
+        if resource and prior_gpu.get("uuid") not in (None, resource["uuid"]):
+            raise ValueError("resumed manifest GPU identity differs")
+        manifest["resumed_by_source_commit"] = current_commit
+        manifest["max_gpu_hours"] = args.max_gpu_hours
+        manifest["status"] = "running"
+        manifest.pop("error", None)
     write_json(output / "manifest.json", manifest)
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     started = time.monotonic()
+    budget_start_hours = float(manifest.get("elapsed_gpu_hours", 0.0))
     results = {}
 
     def remaining_seconds() -> float:
-        return max(1.0, args.max_gpu_hours * 3600 - (time.monotonic() - started))
+        consumed_hours = budget_start_hours + (time.monotonic() - started) / 3600
+        return max(1.0, (args.max_gpu_hours - consumed_hours) * 3600)
 
     try:
         for condition in CONDITIONS:
             for seed in SEEDS:
-                used_hours = (time.monotonic() - started) / 3600
+                used_hours = budget_start_hours + (time.monotonic() - started) / 3600
                 if used_hours >= args.max_gpu_hours:
                     raise TimeoutError(
                         f"GPU-hour cap reached: {used_hours:.4f}/{args.max_gpu_hours:.4f}"
                     )
                 run_id = f"{args.phase}-{condition}-seed{seed}"
                 run_dir = output / "runs" / run_id
-                if run_dir.exists():
+                if run_dir.exists() and not args.resume:
                     raise FileExistsError(run_dir)
-                run_dir.mkdir(parents=True)
-                train = training_command(
-                    args.python,
-                    run_dir=run_dir,
-                    motion_dir=args.motion_dir,
-                    seed=seed,
-                    iterations=iterations,
-                    condition=condition,
-                )
-                with (run_dir / "stdout.log").open("w") as log:
-                    subprocess.run(train, cwd=ROOT, env=env, stdout=log,
-                                   stderr=subprocess.STDOUT, check=True,
-                                   timeout=remaining_seconds())
+                run_dir.mkdir(parents=True, exist_ok=True)
                 checkpoint = run_dir / f"ckpt_{iterations:06d}.pt"
                 if not checkpoint.is_file():
-                    raise FileNotFoundError(checkpoint)
-                evaluation = evaluation_command(
-                    args.python,
-                    run_dir=run_dir,
-                    checkpoint=checkpoint,
-                    motion_dir=args.motion_dir,
-                )
-                with (run_dir / "evaluation.log").open("w") as log:
-                    subprocess.run(evaluation, cwd=ROOT, env=env, stdout=log,
-                                   stderr=subprocess.STDOUT, check=True,
-                                   timeout=remaining_seconds())
+                    train = training_command(
+                        args.python,
+                        run_dir=run_dir,
+                        motion_dir=args.motion_dir,
+                        seed=seed,
+                        iterations=iterations,
+                        condition=condition,
+                    )
+                    with (run_dir / "stdout.log").open("w") as log:
+                        subprocess.run(train, cwd=ROOT, env=env, stdout=log,
+                                       stderr=subprocess.STDOUT, check=True,
+                                       timeout=remaining_seconds())
+                if not checkpoint.is_file():
+                    raise FileNotFoundError(
+                        f"training stopped without final checkpoint: {checkpoint}"
+                    )
                 evaluation_json = checkpoint.with_name(
                     checkpoint.stem + "_eval.json"
                 )
                 if not evaluation_json.is_file():
-                    raise FileNotFoundError(evaluation_json)
+                    evaluation_log = run_dir / "evaluation.log"
+                    metrics = None
+                    if evaluation_log.is_file():
+                        try:
+                            metrics = parse_evaluation_log(evaluation_log)
+                        except ValueError:
+                            pass
+                    if metrics is None:
+                        evaluation = evaluation_command(
+                            args.python,
+                            run_dir=run_dir,
+                            checkpoint=checkpoint,
+                            motion_dir=args.motion_dir,
+                        )
+                        with evaluation_log.open("w") as log:
+                            subprocess.run(evaluation, cwd=ROOT, env=env, stdout=log,
+                                           stderr=subprocess.STDOUT, check=True,
+                                           timeout=remaining_seconds())
+                        metrics = parse_evaluation_log(evaluation_log)
+                    write_json(evaluation_json, metrics)
                 metrics = json.loads(evaluation_json.read_text())
                 results[f"{condition}-seed{seed}"] = {
                     "norm_return": float(metrics["norm_return"]),
@@ -265,13 +332,17 @@ def main() -> None:
                     "checkpoint_sha256": sha256(checkpoint),
                 }
                 write_json(output / "partial-results.json", results)
-                manifest["elapsed_gpu_hours"] = (time.monotonic() - started) / 3600
+                manifest["elapsed_gpu_hours"] = (
+                    budget_start_hours + (time.monotonic() - started) / 3600
+                )
                 write_json(output / "manifest.json", manifest)
         results["gate"] = evaluate_gate({k: v for k, v in results.items() if k != "gate"})
         write_json(output / "results.json", results)
         manifest.update(
             status="complete",
-            elapsed_gpu_hours=(time.monotonic() - started) / 3600,
+            elapsed_gpu_hours=(
+                budget_start_hours + (time.monotonic() - started) / 3600
+            ),
             completed_at=time.time(),
         )
         write_json(output / "manifest.json", manifest)
@@ -279,7 +350,9 @@ def main() -> None:
         manifest.update(
             status="failed",
             error=repr(exc),
-            elapsed_gpu_hours=(time.monotonic() - started) / 3600,
+            elapsed_gpu_hours=(
+                budget_start_hours + (time.monotonic() - started) / 3600
+            ),
             completed_at=time.time(),
         )
         write_json(output / "manifest.json", manifest)
