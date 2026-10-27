@@ -268,8 +268,8 @@ def main() -> None:
         return max(1.0, (args.max_gpu_hours - consumed_hours) * 3600)
 
     try:
-        for condition in CONDITIONS:
-            for seed in SEEDS:
+        for seed in SEEDS:
+            for condition in CONDITIONS:
                 used_hours = budget_start_hours + (time.monotonic() - started) / 3600
                 if used_hours >= args.max_gpu_hours:
                     raise TimeoutError(
