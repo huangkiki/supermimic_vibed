@@ -35,9 +35,12 @@ class RetainedStateFormalTests(unittest.TestCase):
                 self.assertEqual(original[original.index(flag) + 1], value)
             evaluation = evaluation_command(
                 "python", run_dir=root / "retained",
-                checkpoint=root / "retained/ckpt_004000.pt", motion_dir=root / "data",
+                checkpoint=root / "retained/ckpt_004000.pt",
+                metrics_path=root / "retained/ckpt_004000_eval.json",
+                motion_dir=root / "data",
             )
             self.assertIn("--ckpt", evaluation)
+            self.assertIn("--metrics-json", evaluation)
 
     def test_gate_requires_gain_failures_and_two_positive_seeds(self):
         results = {}

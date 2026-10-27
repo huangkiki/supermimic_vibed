@@ -75,6 +75,7 @@ def evaluation_command(
     *,
     run_dir: Path,
     checkpoint: Path,
+    metrics_path: Path,
     motion_dir: Path,
 ) -> list[str]:
     return [
@@ -82,6 +83,7 @@ def evaluation_command(
         "supermimic/evaluate.py",
         "--run_dir", str(run_dir),
         "--ckpt", str(checkpoint),
+        "--metrics-json", str(metrics_path),
         "--motion_dir", str(motion_dir),
     ]
 
@@ -301,12 +303,21 @@ def main() -> None:
                 evaluation_json = checkpoint.with_name(
                     checkpoint.stem + "_eval.json"
                 )
-                if not evaluation_json.is_file():
+                metrics = None
+                if evaluation_json.is_file():
+                    try:
+                        candidate = json.loads(evaluation_json.read_text())
+                    except (OSError, json.JSONDecodeError):
+                        candidate = None
+                    if candidate is not None and "per_clip" in candidate:
+                        metrics = candidate
+                if metrics is None:
                     evaluation_log = run_dir / "evaluation.log"
-                    metrics = None
                     if evaluation_log.is_file():
                         try:
-                            metrics = parse_evaluation_log(evaluation_log)
+                            candidate = parse_evaluation_log(evaluation_log)
+                            if "per_clip" in candidate:
+                                metrics = candidate
                         except ValueError:
                             pass
                     if metrics is None:
@@ -314,6 +325,7 @@ def main() -> None:
                             args.python,
                             run_dir=run_dir,
                             checkpoint=checkpoint,
+                            metrics_path=evaluation_json,
                             motion_dir=args.motion_dir,
                         )
                         with evaluation_log.open("w") as log:
@@ -322,12 +334,12 @@ def main() -> None:
                                            timeout=remaining_seconds())
                         metrics = parse_evaluation_log(evaluation_log)
                     write_json(evaluation_json, metrics)
-                metrics = json.loads(evaluation_json.read_text())
                 results[f"{condition}-seed{seed}"] = {
                     "norm_return": float(metrics["norm_return"]),
                     "norm_return_framew": float(metrics["norm_return_framew"]),
                     "n_failed": int(metrics["n_failed"]),
                     "failed": list(metrics["failed"]),
+                    "per_clip": dict(metrics["per_clip"]),
                     "checkpoint": str(checkpoint),
                     "checkpoint_sha256": sha256(checkpoint),
                 }
