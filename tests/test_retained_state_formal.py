@@ -6,6 +6,7 @@ from experiments.retained_state.run_formal import (
     CONDITIONS,
     evaluate_gate,
     evaluation_command,
+    load_checkpoint_metrics,
     parse_evaluation_log,
     training_command,
 )
@@ -81,6 +82,16 @@ class RetainedStateFormalTests(unittest.TestCase):
             metrics = parse_evaluation_log(path)
             self.assertEqual(metrics["norm_return"], 0.7)
             self.assertEqual(metrics["failed"], ["a", "b"])
+
+    def test_checkpoint_metrics_require_per_clip_results(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "metrics.json"
+            path.write_text(
+                '{"norm_return": 0.7, "norm_return_framew": 0.71, '
+                '"n_failed": 1, "failed": ["a"]}'
+            )
+            with self.assertRaisesRegex(ValueError, "per_clip"):
+                load_checkpoint_metrics(path)
 
 
 if __name__ == "__main__":

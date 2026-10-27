@@ -107,6 +107,16 @@ def parse_evaluation_log(path: Path) -> dict:
     return found[-1]
 
 
+def load_checkpoint_metrics(path: Path) -> dict:
+    metrics = json.loads(path.read_text())
+    if not METRIC_KEYS <= metrics.keys():
+        raise ValueError(f"evaluation metrics are incomplete: {path}")
+    per_clip = metrics.get("per_clip")
+    if not isinstance(per_clip, dict) or not per_clip:
+        raise ValueError(f"evaluation metrics are missing per_clip: {path}")
+    return metrics
+
+
 def require_idle_gpu(gpu: int) -> dict:
     output = subprocess.check_output(
         [
@@ -306,10 +316,10 @@ def main() -> None:
                 metrics = None
                 if evaluation_json.is_file():
                     try:
-                        candidate = json.loads(evaluation_json.read_text())
-                    except (OSError, json.JSONDecodeError):
+                        candidate = load_checkpoint_metrics(evaluation_json)
+                    except (OSError, json.JSONDecodeError, ValueError):
                         candidate = None
-                    if candidate is not None and "per_clip" in candidate:
+                    if candidate is not None:
                         metrics = candidate
                 if metrics is None:
                     evaluation_log = run_dir / "evaluation.log"
@@ -332,8 +342,12 @@ def main() -> None:
                             subprocess.run(evaluation, cwd=ROOT, env=env, stdout=log,
                                            stderr=subprocess.STDOUT, check=True,
                                            timeout=remaining_seconds())
-                        metrics = parse_evaluation_log(evaluation_log)
-                    write_json(evaluation_json, metrics)
+                        if evaluation_json.is_file():
+                            metrics = load_checkpoint_metrics(evaluation_json)
+                        else:
+                            metrics = parse_evaluation_log(evaluation_log)
+                            write_json(evaluation_json, metrics)
+                metrics = load_checkpoint_metrics(evaluation_json)
                 results[f"{condition}-seed{seed}"] = {
                     "norm_return": float(metrics["norm_return"]),
                     "norm_return_framew": float(metrics["norm_return_framew"]),
