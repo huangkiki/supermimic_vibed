@@ -1,10 +1,12 @@
 # SuperMimic 复现与 World Model / PPO / BPTT 消融
 
-[English](README.md) · [实验协议](docs/ablation/protocol.md) · [完整运行命令](docs/ablation/runbook.md)
+[English](README.md) · [实验协议](docs/ablation/protocol.md) · [完整运行命令](docs/ablation/runbook.md) · [Retained-state 正式实验](docs/retained-state-formal.md)
 
 用同一个 Unitree G1、LAFAN1 动作库和物理评估协议，比较直接在 MuJoCo-Warp 中训练的 PPO、在 Learned World Model 中训练的 PPO，以及 WM+BPTT+Critic，判断效率收益来自模型 rollout 吞吐、模型梯度，还是两者的组合。
 
 这是论文的**非官方独立复现**。本分支新增实验脚本，不修改原 `supermimic/` 训练入口。
+
+GAWM 启发的 retained-state 表征已完成三个新 seed 的 4,000 轮筛选：平均归一化回报 **0.7231 → 0.7370（+1.92%）**，失败数 **10/120 → 9/120**。这没有达到预登记的 **+3%** 门槛，因此没有启动 14,000 轮 final；当前只支持“弱正向信号”，不据此默认启用该配置。[完整结果与限制](docs/retained-state-formal.md)。
 
 ## 已经得到什么结果
 

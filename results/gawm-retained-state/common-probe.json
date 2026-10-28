@@ -1,0 +1,1085 @@
+{
+  "scope": "fixed reference-start native probes on the training motion library; not unseen-motion generalization or policy tracking",
+  "seed": 7001,
+  "frames_per_clip": 4,
+  "steps": 8,
+  "action_noise_std": {
+    "reference_pd": 0.0,
+    "noisy_reference_pd": 0.1
+  },
+  "domain_randomization": false,
+  "scorer_sha256": "a45d257818ee0d3ab7f8dad797fa8a7368c50727cb9b4c0232dff8abfe5d682c",
+  "dataset_sha256": "e3d640325a098a30280280623c449220555dc94db0f926814e1c35e49b1b2dec",
+  "scorer_checks": {
+    "identical_states": {
+      "valid_transitions": 1280,
+      "common_normalized_mse": 0.0,
+      "component_rmse": {
+        "position_m": 0.0,
+        "rotation_rad": 0.0,
+        "linear_velocity_m_s": 0.0,
+        "angular_velocity_rad_s": 0.0,
+        "joint_position_rad": 0.0,
+        "joint_velocity_rad_s": 0.0
+      }
+    },
+    "one_metre_translation": {
+      "valid_transitions": 1280,
+      "common_normalized_mse": 127.32438659667969,
+      "component_rmse": {
+        "position_m": 0.5773502588272095,
+        "rotation_rad": 0.0,
+        "linear_velocity_m_s": 0.0,
+        "angular_velocity_rad_s": 0.0,
+        "joint_position_rad": 0.0,
+        "joint_velocity_rad_s": 0.0
+      }
+    }
+  },
+  "models": {
+    "logs/full-original-seed0/ckpt_002000.pt": {
+      "iteration": 2000,
+      "checkpoint_sha256": "5278f5a8bbe186c997da758516068c34bf37b6cd45e24d614c51dd1e56a073dd",
+      "sim_steps": 20742144,
+      "wall_time": 997.2806620597839,
+      "wm_parameters": 8822854,
+      "peak_torch_allocated_bytes": 13450118144,
+      "peak_torch_reserved_bytes": 15927869440,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.2985903322696686,
+            "component_rmse": {
+              "position_m": 0.0018546590581536293,
+              "rotation_rad": 0.0055656698532402515,
+              "linear_velocity_m_s": 0.050451476126909256,
+              "angular_velocity_rad_s": 0.33012840151786804,
+              "joint_position_rad": 0.009114380925893784,
+              "joint_velocity_rad_s": 0.5968648195266724
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.060333251953125,
+            "component_rmse": {
+              "position_m": 0.009160845540463924,
+              "rotation_rad": 0.028161000460386276,
+              "linear_velocity_m_s": 0.08755026012659073,
+              "angular_velocity_rad_s": 0.4311320185661316,
+              "joint_position_rad": 0.030139533802866936,
+              "joint_velocity_rad_s": 0.5941658616065979
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.3010048866271973,
+            "component_rmse": {
+              "position_m": 0.014733613468706608,
+              "rotation_rad": 0.04718584939837456,
+              "linear_velocity_m_s": 0.12113219499588013,
+              "angular_velocity_rad_s": 0.5415076017379761,
+              "joint_position_rad": 0.04520320147275925,
+              "joint_velocity_rad_s": 0.6839268803596497
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.3108566999435425,
+            "component_rmse": {
+              "position_m": 0.0018738987855613232,
+              "rotation_rad": 0.005712462123483419,
+              "linear_velocity_m_s": 0.051355112344026566,
+              "angular_velocity_rad_s": 0.33492395281791687,
+              "joint_position_rad": 0.009309452027082443,
+              "joint_velocity_rad_s": 0.6058782935142517
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.0706934928894043,
+            "component_rmse": {
+              "position_m": 0.009165854193270206,
+              "rotation_rad": 0.027969999238848686,
+              "linear_velocity_m_s": 0.08780036121606827,
+              "angular_velocity_rad_s": 0.4351118206977844,
+              "joint_position_rad": 0.030033541843295097,
+              "joint_velocity_rad_s": 0.6070680618286133
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.321685314178467,
+            "component_rmse": {
+              "position_m": 0.014744863845407963,
+              "rotation_rad": 0.046903327107429504,
+              "linear_velocity_m_s": 0.12119662016630173,
+              "angular_velocity_rad_s": 0.5386514663696289,
+              "joint_position_rad": 0.04499406740069389,
+              "joint_velocity_rad_s": 0.7429230809211731
+            }
+          }
+        }
+      }
+    },
+    "logs/full-original-seed0/ckpt_004000.pt": {
+      "iteration": 4000,
+      "checkpoint_sha256": "3bbca1e5c402fdac53386c2003a7211a31d638326b1e24847bc678fb1012b35c",
+      "sim_steps": 41222144,
+      "wall_time": 2073.153192281723,
+      "wm_parameters": 8822854,
+      "peak_torch_allocated_bytes": 13450125312,
+      "peak_torch_reserved_bytes": 15927869440,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.15611426532268524,
+            "component_rmse": {
+              "position_m": 0.0010973282624036074,
+              "rotation_rad": 0.0037486376240849495,
+              "linear_velocity_m_s": 0.040190454572439194,
+              "angular_velocity_rad_s": 0.24623306095600128,
+              "joint_position_rad": 0.006349432747811079,
+              "joint_velocity_rad_s": 0.44799160957336426
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.49043360352516174,
+            "component_rmse": {
+              "position_m": 0.005875875242054462,
+              "rotation_rad": 0.0191633440554142,
+              "linear_velocity_m_s": 0.06455667316913605,
+              "angular_velocity_rad_s": 0.3376559913158417,
+              "joint_position_rad": 0.019199056550860405,
+              "joint_velocity_rad_s": 0.46606090664863586
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.069090723991394,
+            "component_rmse": {
+              "position_m": 0.009299823082983494,
+              "rotation_rad": 0.032669924199581146,
+              "linear_velocity_m_s": 0.08240935206413269,
+              "angular_velocity_rad_s": 0.4332815408706665,
+              "joint_position_rad": 0.02915932424366474,
+              "joint_velocity_rad_s": 0.5536460280418396
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.16622406244277954,
+            "component_rmse": {
+              "position_m": 0.0011229340452700853,
+              "rotation_rad": 0.003963967319577932,
+              "linear_velocity_m_s": 0.04086525738239288,
+              "angular_velocity_rad_s": 0.25318443775177,
+              "joint_position_rad": 0.006598528474569321,
+              "joint_velocity_rad_s": 0.4568426311016083
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.5043262243270874,
+            "component_rmse": {
+              "position_m": 0.005920593161135912,
+              "rotation_rad": 0.019170964136719704,
+              "linear_velocity_m_s": 0.06474767625331879,
+              "angular_velocity_rad_s": 0.344020813703537,
+              "joint_position_rad": 0.019305991008877754,
+              "joint_velocity_rad_s": 0.48113372921943665
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.0951603651046753,
+            "component_rmse": {
+              "position_m": 0.009351348504424095,
+              "rotation_rad": 0.03269568458199501,
+              "linear_velocity_m_s": 0.08218955993652344,
+              "angular_velocity_rad_s": 0.43778011202812195,
+              "joint_position_rad": 0.029121624305844307,
+              "joint_velocity_rad_s": 0.6093972325325012
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-latent-seed0/ckpt_002000.pt": {
+      "iteration": 2000,
+      "checkpoint_sha256": "9e15ee86d6a01fd2af7332aada3ad2d82484e823f055dddd64b3946ee2f150a9",
+      "sim_steps": 20742144,
+      "wall_time": 1097.6899931430817,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13643152384,
+      "peak_torch_reserved_bytes": 16114515968,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.26031965017318726,
+            "component_rmse": {
+              "position_m": 0.0018454554956406355,
+              "rotation_rad": 0.005087828263640404,
+              "linear_velocity_m_s": 0.04886869341135025,
+              "angular_velocity_rad_s": 0.2909204065799713,
+              "joint_position_rad": 0.008686899207532406,
+              "joint_velocity_rad_s": 0.5526384115219116
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.9156081676483154,
+            "component_rmse": {
+              "position_m": 0.007964867167174816,
+              "rotation_rad": 0.02317083813250065,
+              "linear_velocity_m_s": 0.08018037676811218,
+              "angular_velocity_rad_s": 0.3615245819091797,
+              "joint_position_rad": 0.02860192209482193,
+              "joint_velocity_rad_s": 0.5321005582809448
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.917822241783142,
+            "component_rmse": {
+              "position_m": 0.01269191037863493,
+              "rotation_rad": 0.037658531218767166,
+              "linear_velocity_m_s": 0.10748368501663208,
+              "angular_velocity_rad_s": 0.46020668745040894,
+              "joint_position_rad": 0.042098671197891235,
+              "joint_velocity_rad_s": 0.6304406523704529
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.26922860741615295,
+            "component_rmse": {
+              "position_m": 0.0018519088625907898,
+              "rotation_rad": 0.005149735137820244,
+              "linear_velocity_m_s": 0.04906249791383743,
+              "angular_velocity_rad_s": 0.2930440306663513,
+              "joint_position_rad": 0.008828733116388321,
+              "joint_velocity_rad_s": 0.5567096471786499
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.9223032593727112,
+            "component_rmse": {
+              "position_m": 0.007873540744185448,
+              "rotation_rad": 0.02284228429198265,
+              "linear_velocity_m_s": 0.08042795211076736,
+              "angular_velocity_rad_s": 0.36696991324424744,
+              "joint_position_rad": 0.028499159961938858,
+              "joint_velocity_rad_s": 0.5478518009185791
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.931462049484253,
+            "component_rmse": {
+              "position_m": 0.012552750296890736,
+              "rotation_rad": 0.036957673728466034,
+              "linear_velocity_m_s": 0.10690747946500778,
+              "angular_velocity_rad_s": 0.4603736698627472,
+              "joint_position_rad": 0.041958991438150406,
+              "joint_velocity_rad_s": 0.6731576919555664
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-latent-seed0/ckpt_004000.pt": {
+      "iteration": 4000,
+      "checkpoint_sha256": "7c5ebc80cde6c59b1111d6b094bcb3436eb9176f72c622c978cdcca7c85d5bee",
+      "sim_steps": 41222144,
+      "wall_time": 2243.8511865139008,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13643159552,
+      "peak_torch_reserved_bytes": 16114515968,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.13150696456432343,
+            "component_rmse": {
+              "position_m": 0.0010128404246643186,
+              "rotation_rad": 0.00374203035607934,
+              "linear_velocity_m_s": 0.03326919674873352,
+              "angular_velocity_rad_s": 0.22271691262722015,
+              "joint_position_rad": 0.005840627010911703,
+              "joint_velocity_rad_s": 0.3817099928855896
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.43360674381256104,
+            "component_rmse": {
+              "position_m": 0.004693224560469389,
+              "rotation_rad": 0.015181870199739933,
+              "linear_velocity_m_s": 0.052420858293771744,
+              "angular_velocity_rad_s": 0.27555015683174133,
+              "joint_position_rad": 0.01884419471025467,
+              "joint_velocity_rad_s": 0.4229620695114136
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 0.9967668652534485,
+            "component_rmse": {
+              "position_m": 0.007474641781300306,
+              "rotation_rad": 0.025078412145376205,
+              "linear_velocity_m_s": 0.07088825106620789,
+              "angular_velocity_rad_s": 0.3618820011615753,
+              "joint_position_rad": 0.029489336535334587,
+              "joint_velocity_rad_s": 0.5584120154380798
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.136419415473938,
+            "component_rmse": {
+              "position_m": 0.0010371883399784565,
+              "rotation_rad": 0.00386428483761847,
+              "linear_velocity_m_s": 0.03347473591566086,
+              "angular_velocity_rad_s": 0.22567486763000488,
+              "joint_position_rad": 0.005974061321467161,
+              "joint_velocity_rad_s": 0.3833918869495392
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.43812447786331177,
+            "component_rmse": {
+              "position_m": 0.004694822710007429,
+              "rotation_rad": 0.015263338573276997,
+              "linear_velocity_m_s": 0.052842698991298676,
+              "angular_velocity_rad_s": 0.27889448404312134,
+              "joint_position_rad": 0.018811477348208427,
+              "joint_velocity_rad_s": 0.42634695768356323
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.0067206621170044,
+            "component_rmse": {
+              "position_m": 0.007500063627958298,
+              "rotation_rad": 0.025043370202183723,
+              "linear_velocity_m_s": 0.07225727289915085,
+              "angular_velocity_rad_s": 0.3541252613067627,
+              "joint_position_rad": 0.02942212112247944,
+              "joint_velocity_rad_s": 0.5607876181602478
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-grounded-seed0/ckpt_002000.pt": {
+      "iteration": 2000,
+      "checkpoint_sha256": "bd11a5f75b67340a253600a8b6cbf9ed00ca253c4e4e56d00f3ea53fe1f43c64",
+      "sim_steps": 20742144,
+      "wall_time": 1162.521956205368,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13648430592,
+      "peak_torch_reserved_bytes": 16116613120,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.35712215304374695,
+            "component_rmse": {
+              "position_m": 0.0020291449036449194,
+              "rotation_rad": 0.005846313666552305,
+              "linear_velocity_m_s": 0.057214170694351196,
+              "angular_velocity_rad_s": 0.3678184449672699,
+              "joint_position_rad": 0.010942795313894749,
+              "joint_velocity_rad_s": 0.6601518988609314
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.3270595073699951,
+            "component_rmse": {
+              "position_m": 0.011061795055866241,
+              "rotation_rad": 0.030916733667254448,
+              "linear_velocity_m_s": 0.10856735706329346,
+              "angular_velocity_rad_s": 0.46075931191444397,
+              "joint_position_rad": 0.035107795149087906,
+              "joint_velocity_rad_s": 0.6208477020263672
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.7767646312713623,
+            "component_rmse": {
+              "position_m": 0.018425729125738144,
+              "rotation_rad": 0.04909049719572067,
+              "linear_velocity_m_s": 0.1471005380153656,
+              "angular_velocity_rad_s": 0.6219417452812195,
+              "joint_position_rad": 0.05135176703333855,
+              "joint_velocity_rad_s": 0.7366299629211426
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.37111973762512207,
+            "component_rmse": {
+              "position_m": 0.0020386874675750732,
+              "rotation_rad": 0.00593972485512495,
+              "linear_velocity_m_s": 0.05791529640555382,
+              "angular_velocity_rad_s": 0.37097033858299255,
+              "joint_position_rad": 0.011114277876913548,
+              "joint_velocity_rad_s": 0.6729763746261597
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.3359928131103516,
+            "component_rmse": {
+              "position_m": 0.010932592675089836,
+              "rotation_rad": 0.030795978382229805,
+              "linear_velocity_m_s": 0.10843770951032639,
+              "angular_velocity_rad_s": 0.463119775056839,
+              "joint_position_rad": 0.035052914172410965,
+              "joint_velocity_rad_s": 0.6393448114395142
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.791253089904785,
+            "component_rmse": {
+              "position_m": 0.018193406984210014,
+              "rotation_rad": 0.04909944906830788,
+              "linear_velocity_m_s": 0.14644818007946014,
+              "angular_velocity_rad_s": 0.6160083413124084,
+              "joint_position_rad": 0.05115645378828049,
+              "joint_velocity_rad_s": 0.7952558994293213
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-grounded-seed0/ckpt_004000.pt": {
+      "iteration": 4000,
+      "checkpoint_sha256": "90cc84c117c9f4584722a685dafec85f339b63ae5ec2dfbbcd61b69a759e6eb3",
+      "sim_steps": 41222144,
+      "wall_time": 2361.338755130768,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13648437760,
+      "peak_torch_reserved_bytes": 16118710272,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.1460583657026291,
+            "component_rmse": {
+              "position_m": 0.0011175846448168159,
+              "rotation_rad": 0.0037496068980544806,
+              "linear_velocity_m_s": 0.0376424603164196,
+              "angular_velocity_rad_s": 0.23081733286380768,
+              "joint_position_rad": 0.006363340187817812,
+              "joint_velocity_rad_s": 0.40599194169044495
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.4660291373729706,
+            "component_rmse": {
+              "position_m": 0.005069944076240063,
+              "rotation_rad": 0.016410166397690773,
+              "linear_velocity_m_s": 0.061759836971759796,
+              "angular_velocity_rad_s": 0.280963659286499,
+              "joint_position_rad": 0.01985468529164791,
+              "joint_velocity_rad_s": 0.42881307005882263
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.0328266620635986,
+            "component_rmse": {
+              "position_m": 0.008260106667876244,
+              "rotation_rad": 0.026170743629336357,
+              "linear_velocity_m_s": 0.0847630575299263,
+              "angular_velocity_rad_s": 0.35340413451194763,
+              "joint_position_rad": 0.029961593449115753,
+              "joint_velocity_rad_s": 0.5233171582221985
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.15267407894134521,
+            "component_rmse": {
+              "position_m": 0.0011260485043749213,
+              "rotation_rad": 0.003879674943163991,
+              "linear_velocity_m_s": 0.03814726322889328,
+              "angular_velocity_rad_s": 0.2326650619506836,
+              "joint_position_rad": 0.006512544583529234,
+              "joint_velocity_rad_s": 0.41418421268463135
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.47678735852241516,
+            "component_rmse": {
+              "position_m": 0.0050722225569188595,
+              "rotation_rad": 0.016487406566739082,
+              "linear_velocity_m_s": 0.062434498220682144,
+              "angular_velocity_rad_s": 0.2837543189525604,
+              "joint_position_rad": 0.019939696416258812,
+              "joint_velocity_rad_s": 0.43957096338272095
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.0605533123016357,
+            "component_rmse": {
+              "position_m": 0.008299190551042557,
+              "rotation_rad": 0.026280032470822334,
+              "linear_velocity_m_s": 0.08645965158939362,
+              "angular_velocity_rad_s": 0.35548701882362366,
+              "joint_position_rad": 0.03007936105132103,
+              "joint_velocity_rad_s": 0.5675326585769653
+            }
+          }
+        }
+      }
+    },
+    "logs/full-original-seed1/ckpt_002000.pt": {
+      "iteration": 2000,
+      "checkpoint_sha256": "c242e4f18f06a3eb89529ba772ad269d8fcf330edd250d1dea1b2eecf80853f8",
+      "sim_steps": 20742144,
+      "wall_time": 887.0775573253632,
+      "wm_parameters": 8822854,
+      "peak_torch_allocated_bytes": 13457785856,
+      "peak_torch_reserved_bytes": 15919480832,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.3142658770084381,
+            "component_rmse": {
+              "position_m": 0.0018068838398903608,
+              "rotation_rad": 0.0057050976902246475,
+              "linear_velocity_m_s": 0.05249989405274391,
+              "angular_velocity_rad_s": 0.31265145540237427,
+              "joint_position_rad": 0.009493901394307613,
+              "joint_velocity_rad_s": 0.6040475964546204
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.114342212677002,
+            "component_rmse": {
+              "position_m": 0.008832531049847603,
+              "rotation_rad": 0.02834090031683445,
+              "linear_velocity_m_s": 0.0929146260023117,
+              "angular_velocity_rad_s": 0.40800952911376953,
+              "joint_position_rad": 0.031585369259119034,
+              "joint_velocity_rad_s": 0.595517635345459
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.295494794845581,
+            "component_rmse": {
+              "position_m": 0.014380193315446377,
+              "rotation_rad": 0.04576738551259041,
+              "linear_velocity_m_s": 0.1298346221446991,
+              "angular_velocity_rad_s": 0.4984452724456787,
+              "joint_position_rad": 0.04643215239048004,
+              "joint_velocity_rad_s": 0.675627589225769
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.3276904821395874,
+            "component_rmse": {
+              "position_m": 0.0018208265537396073,
+              "rotation_rad": 0.0058632357977330685,
+              "linear_velocity_m_s": 0.05321906879544258,
+              "angular_velocity_rad_s": 0.31920456886291504,
+              "joint_position_rad": 0.009656664915382862,
+              "joint_velocity_rad_s": 0.6133174896240234
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.1217427253723145,
+            "component_rmse": {
+              "position_m": 0.008753590285778046,
+              "rotation_rad": 0.028354208916425705,
+              "linear_velocity_m_s": 0.09277740865945816,
+              "angular_velocity_rad_s": 0.4162951707839966,
+              "joint_position_rad": 0.031434670090675354,
+              "joint_velocity_rad_s": 0.6115424036979675
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.3076095581054688,
+            "component_rmse": {
+              "position_m": 0.014200583100318909,
+              "rotation_rad": 0.04576543718576431,
+              "linear_velocity_m_s": 0.12837480008602142,
+              "angular_velocity_rad_s": 0.5112016201019287,
+              "joint_position_rad": 0.04609896242618561,
+              "joint_velocity_rad_s": 0.720307469367981
+            }
+          }
+        }
+      }
+    },
+    "logs/full-original-seed1/ckpt_004000.pt": {
+      "iteration": 4000,
+      "checkpoint_sha256": "9c20922a68977ea429f12daaaa4362fdb7e7f650a1bc098e5bed1301d04a986b",
+      "sim_steps": 41222144,
+      "wall_time": 1895.7450172901154,
+      "wm_parameters": 8822854,
+      "peak_torch_allocated_bytes": 13457793024,
+      "peak_torch_reserved_bytes": 15919480832,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.15488336980342865,
+            "component_rmse": {
+              "position_m": 0.001162254367955029,
+              "rotation_rad": 0.0036944181192666292,
+              "linear_velocity_m_s": 0.03929321467876434,
+              "angular_velocity_rad_s": 0.22844640910625458,
+              "joint_position_rad": 0.006325241643935442,
+              "joint_velocity_rad_s": 0.4322327971458435
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.5028747320175171,
+            "component_rmse": {
+              "position_m": 0.005392956081777811,
+              "rotation_rad": 0.01845431886613369,
+              "linear_velocity_m_s": 0.06854987144470215,
+              "angular_velocity_rad_s": 0.3332529067993164,
+              "joint_position_rad": 0.01950015127658844,
+              "joint_velocity_rad_s": 0.4681791067123413
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.1114023923873901,
+            "component_rmse": {
+              "position_m": 0.008742311969399452,
+              "rotation_rad": 0.030839329585433006,
+              "linear_velocity_m_s": 0.09993758797645569,
+              "angular_velocity_rad_s": 0.44699931144714355,
+              "joint_position_rad": 0.029694130644202232,
+              "joint_velocity_rad_s": 0.5703993439674377
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.16328094899654388,
+            "component_rmse": {
+              "position_m": 0.001189035945571959,
+              "rotation_rad": 0.003861411241814494,
+              "linear_velocity_m_s": 0.03999217227101326,
+              "angular_velocity_rad_s": 0.23699724674224854,
+              "joint_position_rad": 0.006510999985039234,
+              "joint_velocity_rad_s": 0.4390289783477783
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.5157551765441895,
+            "component_rmse": {
+              "position_m": 0.005464272107928991,
+              "rotation_rad": 0.018343251198530197,
+              "linear_velocity_m_s": 0.06908340007066727,
+              "angular_velocity_rad_s": 0.3404700458049774,
+              "joint_position_rad": 0.019569728523492813,
+              "joint_velocity_rad_s": 0.48109742999076843
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 1.1374555826187134,
+            "component_rmse": {
+              "position_m": 0.00884199794381857,
+              "rotation_rad": 0.03071604110300541,
+              "linear_velocity_m_s": 0.10093744099140167,
+              "angular_velocity_rad_s": 0.45448997616767883,
+              "joint_position_rad": 0.02967078424990177,
+              "joint_velocity_rad_s": 0.5952085256576538
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-latent-seed1/ckpt_002000.pt": {
+      "iteration": 2000,
+      "checkpoint_sha256": "1af41f646ae076317889463c6ffa3ecacb3b4aca742b40507b57030ebe71cf4a",
+      "sim_steps": 20742144,
+      "wall_time": 959.8541951179504,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13647604736,
+      "peak_torch_reserved_bytes": 16116613120,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.2772919833660126,
+            "component_rmse": {
+              "position_m": 0.0015539430314674973,
+              "rotation_rad": 0.005048980936408043,
+              "linear_velocity_m_s": 0.0483061857521534,
+              "angular_velocity_rad_s": 0.3174496591091156,
+              "joint_position_rad": 0.008664170280098915,
+              "joint_velocity_rad_s": 0.5532688498497009
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.8964529037475586,
+            "component_rmse": {
+              "position_m": 0.007717697881162167,
+              "rotation_rad": 0.024673977866768837,
+              "linear_velocity_m_s": 0.08051097393035889,
+              "angular_velocity_rad_s": 0.38685548305511475,
+              "joint_position_rad": 0.027765201404690742,
+              "joint_velocity_rad_s": 0.5496382117271423
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.002206325531006,
+            "component_rmse": {
+              "position_m": 0.012804040685296059,
+              "rotation_rad": 0.0417633093893528,
+              "linear_velocity_m_s": 0.11326314508914948,
+              "angular_velocity_rad_s": 0.5194870233535767,
+              "joint_position_rad": 0.042107921093702316,
+              "joint_velocity_rad_s": 0.6786863803863525
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.2858877182006836,
+            "component_rmse": {
+              "position_m": 0.0015476358821615577,
+              "rotation_rad": 0.005144316703081131,
+              "linear_velocity_m_s": 0.048488058149814606,
+              "angular_velocity_rad_s": 0.3198128342628479,
+              "joint_position_rad": 0.008823046460747719,
+              "joint_velocity_rad_s": 0.5565721988677979
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.9077389240264893,
+            "component_rmse": {
+              "position_m": 0.007626889273524284,
+              "rotation_rad": 0.024509241804480553,
+              "linear_velocity_m_s": 0.08077559620141983,
+              "angular_velocity_rad_s": 0.39322009682655334,
+              "joint_position_rad": 0.027834251523017883,
+              "joint_velocity_rad_s": 0.5604183077812195
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.017106056213379,
+            "component_rmse": {
+              "position_m": 0.012684139423072338,
+              "rotation_rad": 0.04146809130907059,
+              "linear_velocity_m_s": 0.11357457935810089,
+              "angular_velocity_rad_s": 0.5268714427947998,
+              "joint_position_rad": 0.04215820133686066,
+              "joint_velocity_rad_s": 0.6805290579795837
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-latent-seed1/ckpt_004000.pt": {
+      "iteration": 4000,
+      "checkpoint_sha256": "fa2303a815e52eab661253dfb3ec875cda8865892737493ed783acf65b80b9ba",
+      "sim_steps": 41222144,
+      "wall_time": 2039.4310126304626,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13647604736,
+      "peak_torch_reserved_bytes": 16116613120,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.11476344615221024,
+            "component_rmse": {
+              "position_m": 0.00078233378008008,
+              "rotation_rad": 0.0032942509278655052,
+              "linear_velocity_m_s": 0.030879346653819084,
+              "angular_velocity_rad_s": 0.20948049426078796,
+              "joint_position_rad": 0.005300112068653107,
+              "joint_velocity_rad_s": 0.35889577865600586
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.34548982977867126,
+            "component_rmse": {
+              "position_m": 0.003776310011744499,
+              "rotation_rad": 0.015539010986685753,
+              "linear_velocity_m_s": 0.050971630960702896,
+              "angular_velocity_rad_s": 0.2694167196750641,
+              "joint_position_rad": 0.015790121629834175,
+              "joint_velocity_rad_s": 0.3990383744239807
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 0.7828993201255798,
+            "component_rmse": {
+              "position_m": 0.0061946711502969265,
+              "rotation_rad": 0.02566397748887539,
+              "linear_velocity_m_s": 0.06962426751852036,
+              "angular_velocity_rad_s": 0.35133492946624756,
+              "joint_position_rad": 0.024004852399230003,
+              "joint_velocity_rad_s": 0.5328475832939148
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.12060736119747162,
+            "component_rmse": {
+              "position_m": 0.0008020086097531021,
+              "rotation_rad": 0.0034463515039533377,
+              "linear_velocity_m_s": 0.03171735256910324,
+              "angular_velocity_rad_s": 0.2139214277267456,
+              "joint_position_rad": 0.005432197358459234,
+              "joint_velocity_rad_s": 0.36042994260787964
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.35163557529449463,
+            "component_rmse": {
+              "position_m": 0.00379901472479105,
+              "rotation_rad": 0.015587172470986843,
+              "linear_velocity_m_s": 0.051508255302906036,
+              "angular_velocity_rad_s": 0.2734510898590088,
+              "joint_position_rad": 0.015799207612872124,
+              "joint_velocity_rad_s": 0.40086615085601807
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 0.7914903163909912,
+            "component_rmse": {
+              "position_m": 0.006225677207112312,
+              "rotation_rad": 0.025817787274718285,
+              "linear_velocity_m_s": 0.07203260064125061,
+              "angular_velocity_rad_s": 0.3503253757953644,
+              "joint_position_rad": 0.023864183574914932,
+              "joint_velocity_rad_s": 0.5096141695976257
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-grounded-seed1/ckpt_002000.pt": {
+      "iteration": 2000,
+      "checkpoint_sha256": "8bea1425bcf6a68b254d833be9510676c4dfa96f0e6fabefffc223c9a88f2319",
+      "sim_steps": 20742144,
+      "wall_time": 1077.76877951622,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13647585792,
+      "peak_torch_reserved_bytes": 16118710272,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.3067704439163208,
+            "component_rmse": {
+              "position_m": 0.001733686774969101,
+              "rotation_rad": 0.005857523996382952,
+              "linear_velocity_m_s": 0.05391643941402435,
+              "angular_velocity_rad_s": 0.337984174489975,
+              "joint_position_rad": 0.009527374058961868,
+              "joint_velocity_rad_s": 0.5949035286903381
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.076049566268921,
+            "component_rmse": {
+              "position_m": 0.008809123188257217,
+              "rotation_rad": 0.028724607080221176,
+              "linear_velocity_m_s": 0.09517449885606766,
+              "angular_velocity_rad_s": 0.4126925468444824,
+              "joint_position_rad": 0.029863646253943443,
+              "joint_velocity_rad_s": 0.5824247002601624
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.220879316329956,
+            "component_rmse": {
+              "position_m": 0.014283528551459312,
+              "rotation_rad": 0.04543318226933479,
+              "linear_velocity_m_s": 0.12568004429340363,
+              "angular_velocity_rad_s": 0.5132386684417725,
+              "joint_position_rad": 0.04406613111495972,
+              "joint_velocity_rad_s": 0.6736437082290649
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.31646326184272766,
+            "component_rmse": {
+              "position_m": 0.0017322658095508814,
+              "rotation_rad": 0.005986599717289209,
+              "linear_velocity_m_s": 0.0542544424533844,
+              "angular_velocity_rad_s": 0.34104013442993164,
+              "joint_position_rad": 0.009660083800554276,
+              "joint_velocity_rad_s": 0.5985312461853027
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 1.08229398727417,
+            "component_rmse": {
+              "position_m": 0.008652887307107449,
+              "rotation_rad": 0.0283645186573267,
+              "linear_velocity_m_s": 0.09517963230609894,
+              "angular_velocity_rad_s": 0.4167215824127197,
+              "joint_position_rad": 0.029797948896884918,
+              "joint_velocity_rad_s": 0.5975833535194397
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 2.219977855682373,
+            "component_rmse": {
+              "position_m": 0.013956792652606964,
+              "rotation_rad": 0.04460716247558594,
+              "linear_velocity_m_s": 0.12538328766822815,
+              "angular_velocity_rad_s": 0.5168200731277466,
+              "joint_position_rad": 0.04387636482715607,
+              "joint_velocity_rad_s": 0.7176300287246704
+            }
+          }
+        }
+      }
+    },
+    "logs/full-skip-grounded-seed1/ckpt_004000.pt": {
+      "iteration": 4000,
+      "checkpoint_sha256": "df960074dbb2ad50ed6be564ff220cb53b8aa1673745e44f5d76ef21308ff78b",
+      "sim_steps": 41222144,
+      "wall_time": 2204.9823265075684,
+      "wm_parameters": 9368874,
+      "peak_torch_allocated_bytes": 13647585792,
+      "peak_torch_reserved_bytes": 16118710272,
+      "probes": {
+        "reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.1412505805492401,
+            "component_rmse": {
+              "position_m": 0.0009441889123991132,
+              "rotation_rad": 0.0035682087764143944,
+              "linear_velocity_m_s": 0.032110683619976044,
+              "angular_velocity_rad_s": 0.2176591008901596,
+              "joint_position_rad": 0.0060380492359399796,
+              "joint_velocity_rad_s": 0.40935420989990234
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.42118287086486816,
+            "component_rmse": {
+              "position_m": 0.004286101553589106,
+              "rotation_rad": 0.01580522581934929,
+              "linear_velocity_m_s": 0.05455617979168892,
+              "angular_velocity_rad_s": 0.2941553592681885,
+              "joint_position_rad": 0.018497437238693237,
+              "joint_velocity_rad_s": 0.432582825422287
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 0.9395807385444641,
+            "component_rmse": {
+              "position_m": 0.006990327034145594,
+              "rotation_rad": 0.026437457650899887,
+              "linear_velocity_m_s": 0.07498282194137573,
+              "angular_velocity_rad_s": 0.38356444239616394,
+              "joint_position_rad": 0.028076063841581345,
+              "joint_velocity_rad_s": 0.5700128674507141
+            }
+          }
+        },
+        "noisy_reference_pd": {
+          "one_step": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.14851300418376923,
+            "component_rmse": {
+              "position_m": 0.0009605318773537874,
+              "rotation_rad": 0.003733748570084572,
+              "linear_velocity_m_s": 0.03319941461086273,
+              "angular_velocity_rad_s": 0.22369104623794556,
+              "joint_position_rad": 0.006194492802023888,
+              "joint_velocity_rad_s": 0.4120064973831177
+            }
+          },
+          "rollout_all_steps": {
+            "valid_transitions": 1280,
+            "common_normalized_mse": 0.4287186861038208,
+            "component_rmse": {
+              "position_m": 0.004288223572075367,
+              "rotation_rad": 0.015814268961548805,
+              "linear_velocity_m_s": 0.05502438172698021,
+              "angular_velocity_rad_s": 0.29780134558677673,
+              "joint_position_rad": 0.018536536023020744,
+              "joint_velocity_rad_s": 0.4350273609161377
+            }
+          },
+          "rollout_final_step": {
+            "valid_transitions": 160,
+            "common_normalized_mse": 0.9495022892951965,
+            "component_rmse": {
+              "position_m": 0.006997854448854923,
+              "rotation_rad": 0.026589838787913322,
+              "linear_velocity_m_s": 0.07613939046859741,
+              "angular_velocity_rad_s": 0.3792860805988312,
+              "joint_position_rad": 0.02800712361931801,
+              "joint_velocity_rad_s": 0.544043242931366
+            }
+          }
+        }
+      }
+    }
+  }
+}

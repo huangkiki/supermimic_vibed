@@ -25,6 +25,7 @@ parser.add_argument("--run_dir", type=str, required=True)
 parser.add_argument("--watch", action="store_true")
 parser.add_argument("--ckpt", type=str, default=None, help="evaluate one checkpoint")
 parser.add_argument("--record", type=str, default=None, help="save trajectories (npz) for rendering")
+parser.add_argument("--metrics-json", type=str, default=None, help="write complete single-checkpoint metrics")
 parser.add_argument("--motion_dir", type=str, default=os.path.join(REPO, "data", "lafan1_g1"))
 parser.add_argument("--every", type=int, default=1, help="evaluate every n-th checkpoint")
 add_launcher_args(parser)
@@ -102,6 +103,13 @@ with launch_simulation(sim_cfg, args):
     if args.ckpt:
         ck = torch.load(args.ckpt, map_location=dev)
         res = evaluate(env, ck, args.record)
+        if args.metrics_json:
+            output = os.path.abspath(args.metrics_json)
+            os.makedirs(os.path.dirname(output), exist_ok=True)
+            temporary = output + ".tmp"
+            with open(temporary, "w") as handle:
+                json.dump(res, handle, indent=1)
+            os.replace(temporary, output)
         print(json.dumps({k: v for k, v in res.items() if k != "per_clip"}, indent=1))
         sys.exit(0)
     out_csv = os.path.join(args.run_dir, "eval.csv")

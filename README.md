@@ -1,6 +1,6 @@
 # SuperMimic reproduction on Isaac Lab 3 (kit-less, MuJoCo-Warp)
 
-[中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md)
+[中文实验入口](README.zh-CN.md) · [Controlled WM/PPO/BPTT ablation protocol](docs/ablation/protocol.md) · [Measured ablation results](docs/ablation/results.md) · [Retained-state formal experiment](docs/retained-state-formal.md)
 
 ## What the added ablations have measured
 
@@ -146,6 +146,33 @@ docker exec supermimic python tools/render.py traj.npz out.mp4 --clips dance2_su
 The first iterations are slow while `torch.compile` builds its kernels (cached in `.cache/`).
 Checkpoints are written every 2000 iterations to `logs/<run>/`; the eval watcher scores each on all
 40 clips and appends to `logs/<run>/eval.csv`.
+
+### Experimental GAWM-inspired dynamics
+
+An optional state encoder can be trained with physical state alignment and inverse
+dynamics supervision inspired by [GAWM](https://github.com/zsibot/gawm). The
+original model remains the default. See [the experiment guide](docs/grounded-dynamics.md)
+for the three-condition comparison, training flags and simulator-free checks.
+The first encoder-replacement pilot underperformed the original model. Keeping
+physical inputs and appending learned features improved **both tested seeds** at
+4,000 iterations / 4,096 environments: mean return **0.7171 → 0.7513 (+4.78%)**,
+with failures **7/80 → 3/80** across two evaluations of the same 40 clips. The
+tested candidate uses `--wm_latent_dim 128 --wm_state_skip`; leave auxiliary
+weights at zero. Adding SA/IDM losses gave mean return 0.7338 and 8/80 failures.
+
+That two-seed comparison was exploratory. A preregistered screen on three new
+seeds (`2`, `3`, `4`) did **not** pass its +3% gate: mean return was
+**0.7231 → 0.7370 (+1.92%)**, with failures **10/120 → 9/120**. Per-seed return
+changes were **+0.53% / -0.86% / +6.38%**. The 14,000-iteration final phase was
+therefore not run, and retained-state remains opt-in rather than a validated
+general improvement. [Formal protocol and results](docs/retained-state-formal.md).
+
+![Historical two-seed retained-state comparison](results/gawm-retained-state/comparison.png)
+
+Observed training time increased about 7.9% for the retained-state configuration
+under shared CPU/cache load; this is not an isolated speed comparison. See the
+guide for all scores, costs, scripts and limitations. The results below are the
+original upstream reproduction and do not measure this extension.
 
 ## Result (LAFAN1, 40 clips, one RTX PRO 6000 Blackwell)
 
