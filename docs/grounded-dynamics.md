@@ -1,5 +1,10 @@
 # Grounding the dynamics representation
 
+> **Status:** this page records the earlier two-seed exploratory comparison.
+> The later three-seed formal screen did not pass its preregistered +3% gate,
+> so the 14,000-iteration final phase was not run. See
+> [the formal experiment](retained-state-formal.md) for the current result.
+
 Across two tested seeds at the same 4,000-iteration budget, retaining physical
 inputs and appending learned features improved mean tracking return by 4.78%,
 with failures falling from 7/80 to 3/80 evaluations. Use

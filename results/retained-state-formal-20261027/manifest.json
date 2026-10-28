@@ -1,0 +1,25 @@
+{
+  "protocol_version": 1,
+  "phase": "screen",
+  "iterations": 4000,
+  "seeds": [
+    2,
+    3,
+    4
+  ],
+  "conditions": {
+    "original": [],
+    "retained": [
+      "--wm_latent_dim",
+      "128",
+      "--wm_state_skip"
+    ]
+  },
+  "source_commit": "fd7624ffd57dc82d0a9ec3230774e6a387b2f8de",
+  "resumed_by_source_commit": "f04c097679dfdcffbc9a32d4139f8cb839d16122",
+  "max_gpu_hours": 6,
+  "started_at": 1793096488.892425,
+  "completed_at": 1793115515.408534,
+  "status": "complete",
+  "elapsed_gpu_hours": 4.989247702456099
+}

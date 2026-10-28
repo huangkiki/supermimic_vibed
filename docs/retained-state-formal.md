@@ -49,6 +49,30 @@ retrained. Completed simulator stdout is parsed and converted into the missing
 machine-readable metric file; the original source commit and accrued GPU-hour
 budget remain in `manifest.json`.
 
+## Completed screen result
+
+The screen completed within **4.989 / 6 GPU-hours** on one A100-PCIE-40GB using
+three new seeds and all 40 motion clips per checkpoint:
+
+| Seed | Original return / failures | Retained return / failures | Relative return change |
+| --- | ---: | ---: | ---: |
+| 2 | 0.726757 / 3 | 0.730595 / 2 | +0.53% |
+| 3 | 0.748219 / 2 | 0.741801 / 2 | -0.86% |
+| 4 | 0.694247 / 5 | 0.738535 / 5 | +6.38% |
+| Mean / total | **0.723075 / 10 of 120** | **0.736977 / 9 of 120** | **+1.92%** |
+
+Two seeds had positive return changes, and the aggregate failure count decreased
+by one. However, the mean return gain was below the preregistered 3% threshold,
+so `gate.passed=false`. The 14,000-iteration final phase was not run.
+
+This supports only a weak positive signal at the 4,000-iteration screen budget.
+It does not justify enabling retained state by default or claiming a robust
+control improvement.
+
+Sanitized evidence:
+[results](../results/retained-state-formal-20261027/results.json) and
+[manifest](../results/retained-state-formal-20261027/manifest.json).
+
 ## Final phase
 
 Run this only after the screen gate passes:

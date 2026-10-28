@@ -156,13 +156,20 @@ for the three-condition comparison, training flags and simulator-free checks.
 The first encoder-replacement pilot underperformed the original model. Keeping
 physical inputs and appending learned features improved **both tested seeds** at
 4,000 iterations / 4,096 environments: mean return **0.7171 → 0.7513 (+4.78%)**,
-with failures **7/80 → 3/80** across two evaluations of the same 40 clips. Enable
-this configuration with `--wm_latent_dim 128 --wm_state_skip`; leave auxiliary
+with failures **7/80 → 3/80** across two evaluations of the same 40 clips. The
+tested candidate uses `--wm_latent_dim 128 --wm_state_skip`; leave auxiliary
 weights at zero. Adding SA/IDM losses gave mean return 0.7338 and 8/80 failures.
 
-![Two-seed retained-state comparison](results/gawm-retained-state/comparison.png)
+That two-seed comparison was exploratory. A preregistered screen on three new
+seeds (`2`, `3`, `4`) did **not** pass its +3% gate: mean return was
+**0.7231 → 0.7370 (+1.92%)**, with failures **10/120 → 9/120**. Per-seed return
+changes were **+0.53% / -0.86% / +6.38%**. The 14,000-iteration final phase was
+therefore not run, and retained-state remains opt-in rather than a validated
+general improvement. [Formal protocol and results](docs/retained-state-formal.md).
 
-Observed training time increased about 7.9% for the recommended configuration
+![Historical two-seed retained-state comparison](results/gawm-retained-state/comparison.png)
+
+Observed training time increased about 7.9% for the retained-state configuration
 under shared CPU/cache load; this is not an isolated speed comparison. See the
 guide for all scores, costs, scripts and limitations. The results below are the
 original upstream reproduction and do not measure this extension.
